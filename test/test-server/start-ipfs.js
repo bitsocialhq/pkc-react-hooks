@@ -6,9 +6,10 @@ import assert from 'assert'
 import {path as getIpfsPath} from 'kubo'
 const ipfsPath = getIpfsPath()
 
-const startIpfs = ({apiPort, gatewayPort, args = ''} = {}) => {
+const startIpfs = ({apiPort, gatewayPort, swarmPort, args = ''} = {}) => {
   assert.equal(typeof apiPort, 'number')
   assert.equal(typeof gatewayPort, 'number')
+  assert.equal(typeof swarmPort, 'number')
 
   const ipfsDataPath = getTmpFolderPath()
   const plebbitDataPath = getTmpFolderPath()
@@ -33,6 +34,7 @@ const startIpfs = ({apiPort, gatewayPort, args = ''} = {}) => {
   // set ports
   execSync(`IPFS_PATH="${ipfsDataPath}" "${ipfsPath}" config Addresses.API /ip4/127.0.0.1/tcp/${apiPort}`, {stdio: 'inherit'})
   execSync(`IPFS_PATH="${ipfsDataPath}" "${ipfsPath}" config Addresses.Gateway /ip4/127.0.0.1/tcp/${gatewayPort}`, {stdio: 'inherit'})
+  execSync(`IPFS_PATH="${ipfsDataPath}" "${ipfsPath}" config --json Addresses.Swarm '["/ip4/127.0.0.1/tcp/${swarmPort}"]'`, {stdio: 'inherit'})
 
   // add hello for monitoring
   execSync(`echo "hello" | "${ipfsPath}" add -`, {stdio: 'inherit', env: {IPFS_PATH: ipfsDataPath}, shell: true})
