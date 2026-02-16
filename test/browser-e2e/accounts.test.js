@@ -569,11 +569,25 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
           const onChallengeVerification = (challengeVerification, comment) => {
             console.log('onChallengeVerification')
             console.log(challengeVerification)
+            if (!challengeVerification.challengeSuccess) {
+              console.error(
+                `DIAGNOSTIC: reply challengeVerification FAILED: reason=${challengeVerification.reason}, challengeErrors=${JSON.stringify(challengeVerification.challengeErrors)}`
+              )
+            }
             replyChallengeVerification = challengeVerification
           }
           // wait for the parent comment to be indexed by the subplebbit before publishing a reply
+          console.log(`publish reply: publishedCid=${publishedCid}, typeof=${typeof publishedCid}`)
           rendered.rerender(publishedCid)
           await waitFor(() => typeof rendered.result.current.comment?.updatedAt === 'number')
+          const parentComment = rendered.result.current.comment
+          console.log(`publish reply: after waitFor updatedAt=${parentComment?.updatedAt}, cid=${parentComment?.cid}, timestamp=${parentComment?.timestamp}`)
+          if (typeof parentComment?.updatedAt !== 'number') {
+            console.error('DIAGNOSTIC: waitFor(updatedAt) resolved without updatedAt being a number! Parent may not be indexed.')
+            console.error(
+              `DIAGNOSTIC: comment state: ${JSON.stringify({cid: parentComment?.cid, updatedAt: parentComment?.updatedAt, timestamp: parentComment?.timestamp, depth: parentComment?.depth})}`
+            )
+          }
           console.log('parent comment indexed, publishing reply')
 
           const publishCommentOptions = {
