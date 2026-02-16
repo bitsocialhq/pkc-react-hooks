@@ -573,7 +573,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
           }
           // wait for the parent comment to be indexed by the subplebbit before publishing a reply
           rendered.rerender(publishedCid)
-          await waitFor(() => typeof rendered.result.current.comment?.timestamp === 'number')
+          await waitFor(() => typeof rendered.result.current.comment?.updatedAt === 'number')
           console.log('parent comment indexed, publishing reply')
 
           const publishCommentOptions = {
