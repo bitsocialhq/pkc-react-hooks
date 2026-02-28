@@ -5,7 +5,7 @@ import repliesSorter from '../feeds/feed-sorter'
 import accountsStore from '../accounts'
 import {flattenCommentsPages, commentIsValid, removeInvalidComments} from '../../lib/utils'
 import Logger from '@plebbit/plebbit-logger'
-const log = Logger('plebbit-react-hooks:replies:stores')
+const log = Logger('pkc-react-hooks:replies:stores')
 
 /**
  * Calculate the feeds from all the loaded replies pages, filter and sort them

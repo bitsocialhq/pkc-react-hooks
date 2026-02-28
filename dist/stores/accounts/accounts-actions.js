@@ -16,7 +16,7 @@ import Logger from '@plebbit/plebbit-logger';
 import validator from '../../lib/validator';
 import chain from '../../lib/chain';
 import assert from 'assert';
-const log = Logger('plebbit-react-hooks:accounts:stores');
+const log = Logger('pkc-react-hooks:accounts:stores');
 import * as accountsActionsInternal from './accounts-actions-internal';
 import { getAccountSubplebbits, getCommentCidsToAccountsComments, fetchCommentLinkDimensions, getAccountCommentDepth, addShortAddressesToAccountComment } from './utils';
 import utils from '../../lib/utils';

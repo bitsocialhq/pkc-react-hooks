@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import { useEffect, useState } from 'react';
 import { useAccount } from '../accounts';
 import Logger from '@plebbit/plebbit-logger';
-const log = Logger('plebbit-react-hooks:authors:hooks');
+const log = Logger('pkc-react-hooks:authors:hooks');
 import assert from 'assert';
 import { ethers } from 'ethers';
 import { getNftMetadataUrl, getNftImageUrl, getNftOwner } from '../../lib/chain';

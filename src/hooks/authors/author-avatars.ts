@@ -1,7 +1,7 @@
 import {useEffect, useState, useMemo} from 'react'
 import {useAccount} from '../accounts'
 import Logger from '@plebbit/plebbit-logger'
-const log = Logger('plebbit-react-hooks:authors:hooks')
+const log = Logger('pkc-react-hooks:authors:hooks')
 import assert from 'assert'
 import {Nft, ChainProviders, Author} from '../../types'
 import {ethers} from 'ethers'

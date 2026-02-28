@@ -11,7 +11,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useAccount } from './accounts';
 import validator from '../lib/validator';
 import Logger from '@plebbit/plebbit-logger';
-const log = Logger('plebbit-react-hooks:replies:hooks');
+const log = Logger('pkc-react-hooks:replies:hooks');
 import assert from 'assert';
 import useRepliesStore, { feedOptionsToFeedName, getRepliesFirstPageSkipValidation } from '../stores/replies';
 export function useReplies(options) {

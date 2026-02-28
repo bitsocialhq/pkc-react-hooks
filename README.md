@@ -4,11 +4,11 @@
 
 - [Hooks API](#hooks)
 - [Getting started](#getting-started)
-- Install, testing and building: https://github.com/plebbit/plebbit-react-hooks/blob/master/docs/testing.md
-- Mock content (for UI development): https://github.com/plebbit/plebbit-react-hooks/blob/master/docs/mock-content.md
-- Algorithms: https://github.com/plebbit/plebbit-react-hooks/blob/master/docs/algorithms.md
-- Schema (Types, IndexedDb and state management): https://github.com/plebbit/plebbit-react-hooks/blob/master/docs/schema.md
-- Types: https://github.com/plebbit/plebbit-react-hooks/blob/master/src/types.ts
+- Install, testing and building: https://github.com/bitsocialhq/pkc-react-hooks/blob/master/docs/testing.md
+- Mock content (for UI development): https://github.com/bitsocialhq/pkc-react-hooks/blob/master/docs/mock-content.md
+- Algorithms: https://github.com/bitsocialhq/pkc-react-hooks/blob/master/docs/algorithms.md
+- Schema (Types, IndexedDb and state management): https://github.com/bitsocialhq/pkc-react-hooks/blob/master/docs/schema.md
+- Types: https://github.com/bitsocialhq/pkc-react-hooks/blob/master/src/types.ts
 
 ### Hooks
 
@@ -94,7 +94,7 @@ deleteCaches() // delete the cached comments, cached subplebbits and cached page
 #### Getting started
 
 ```jsx
-import {useComment, useAccount} from '@plebbit/plebbit-react-hooks'
+import {useComment, useAccount} from '@bitsocialhq/pkc-react-hooks'
 
 const account = useAccount()
 const comment = useComment({commentCid})
@@ -109,7 +109,7 @@ const account = useAccount()
 #### Create accounts and change active account
 
 ```jsx
-import {useAccount, useAccounts, createAccount, setActiveAccount} from '@plebbit/plebbit-react-hooks'
+import {useAccount, useAccounts, createAccount, setActiveAccount} from '@bitsocialhq/pkc-react-hooks'
 
 const account = useAccount()
 const {accounts} = useAccounts()
@@ -344,8 +344,8 @@ const {publishComment} = usePublishComment(publishReplyOptions)
 await publishComment()
 
 // when displaying replies, it is recommended to include the user's pending replies
-// https://github.com/plebbit/plebbit-react-hooks/#get-replies-to-a-post-nested (nested)
-// https://github.com/plebbit/plebbit-react-hooks/#get-replies-to-a-post-flattened-not-nested (not nested)
+// https://github.com/bitsocialhq/pkc-react-hooks/#get-replies-to-a-post-nested (nested)
+// https://github.com/bitsocialhq/pkc-react-hooks/#get-replies-to-a-post-flattened-not-nested (not nested)
 ```
 
 #### Create a post or comment using hooks
@@ -640,7 +640,7 @@ console.log(error)
 #### Edit an account
 
 ```jsx
-import {useAccount, setAccount, useResolvedAuthorAddress} from '@plebbit/plebbit-react-hooks'
+import {useAccount, setAccount, useResolvedAuthorAddress} from '@bitsocialhq/pkc-react-hooks'
 const account = useAccount() // or useAccount('Account 2') to use an account other than the active one
 
 const author: {...account.author, displayName: 'John'}
@@ -672,7 +672,7 @@ if (state === 'resolving') {
 > Note: deleting account is unrecoverable, warn the user to export/backup his account before deleting
 
 ```jsx
-import {deleteAccount} from '@plebbit/plebbit-react-hooks'
+import {deleteAccount} from '@bitsocialhq/pkc-react-hooks'
 
 // delete active account
 await deleteAccount()
@@ -884,7 +884,7 @@ if (state === 'resolving') {
 #### Export and import account
 
 ```jsx
-import {exportAccount, importAccount, setActiveAccount, setAccountsOrder} from '@plebbit/plebbit-react-hooks'
+import {exportAccount, importAccount, setActiveAccount, setAccountsOrder} from '@bitsocialhq/pkc-react-hooks'
 
 // get active account 'Account 1'
 const activeAccount = useAccount()
@@ -973,7 +973,7 @@ const {accountEdits} = useAccountEdits({filter})
 #### Get replies to a post (nested or flat)
 
 ```jsx
-import {useReplies, useComment, useAccountComment} from '@plebbit/plebbit-react-hooks'
+import {useReplies, useComment, useAccountComment} from '@bitsocialhq/pkc-react-hooks'
 
 // NOTE: recommended to use the same replies options for all depths, or will load slower
 const useRepliesOptions = {sortType: 'best', flat: false, repliesPerPage: 20, accountComments: {newerThan: Infinity, append: false}}
@@ -1013,7 +1013,7 @@ const repliesComponents = replies.map((reply, index) => <Reply key={reply?.index
 #### Get a shortCid or shortAddress
 
 ```jsx
-// NOTE: not possible to do from plebbit-react-hooks, needs plebbit-js
+// NOTE: not possible to do from pkc-react-hooks, needs plebbit-js
 import {getShortAddress, getShortCid} from '@plebbit/plebbit-js'
 
 const shortParentCid = getShortAddress(comment.parentCid)
@@ -1023,7 +1023,7 @@ const shortAddress = getShortCid(address)
 #### Get a shortCid or shortAddress
 
 ```jsx
-import {useShortAddress, useShortCid} from '@plebbit/plebbit-react-hooks'
+import {useShortAddress, useShortCid} from '@bitsocialhq/pkc-react-hooks'
 
 const shortParentCid = useShortCid(comment.parentCid)
 const shortAddress = useShortAddress(address)

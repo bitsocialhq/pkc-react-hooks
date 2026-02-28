@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import Logger from '@plebbit/plebbit-logger';
-const log = Logger('plebbit-react-hooks:states:hooks');
+const log = Logger('pkc-react-hooks:states:hooks');
 import assert from 'assert';
 import { useSubplebbits } from './subplebbits';
 import { subplebbitPostsCacheExpired } from '../lib/utils';

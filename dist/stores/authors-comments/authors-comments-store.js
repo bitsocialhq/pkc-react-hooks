@@ -8,7 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import Logger from '@plebbit/plebbit-logger';
-const log = Logger('plebbit-react-hooks:authors:stores');
+const log = Logger('pkc-react-hooks:authors:stores');
 import createStore from 'zustand';
 import assert from 'assert';
 import commentsStore from '../comments';

@@ -331,7 +331,7 @@ export interface UsePlebbitRpcSettingsResult extends Result {
 /**
  * TODO: define these types more in depth, most are already defined in:
  * https://github.com/plebbit/plebbit-js or
- * https://github.com/plebbit/plebbit-react-hooks/blob/master/docs/schema.md
+ * https://github.com/bitsocialhq/pkc-react-hooks/blob/master/docs/schema.md
  */
 export type Account = {
     [key: string]: any;

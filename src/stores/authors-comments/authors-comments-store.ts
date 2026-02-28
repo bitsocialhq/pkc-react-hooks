@@ -1,5 +1,5 @@
 import Logger from '@plebbit/plebbit-logger'
-const log = Logger('plebbit-react-hooks:authors:stores')
+const log = Logger('pkc-react-hooks:authors:stores')
 import createStore from 'zustand'
 import assert from 'assert'
 import {CommentsFilter, AuthorCommentsOptions, AuthorsComments, Account, Comment} from '../../types'

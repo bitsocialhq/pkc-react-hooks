@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import assert from 'assert';
 import QuickLru from 'quick-lru';
 import Logger from '@plebbit/plebbit-logger';
-const log = Logger('plebbit-react-hooks:utils');
+const log = Logger('pkc-react-hooks:utils');
 const merge = (...args) => {
     // @ts-ignore
     const clonedArgs = args.map((arg) => {

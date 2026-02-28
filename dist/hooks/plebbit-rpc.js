@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import { useState, useMemo, useEffect } from 'react';
 import { useAccount } from './accounts';
 import Logger from '@plebbit/plebbit-logger';
-const log = Logger('plebbit-react-hooks:states:plebbit-rpc');
+const log = Logger('pkc-react-hooks:states:plebbit-rpc');
 import assert from 'assert';
 /**
  * @param acountName - The nickname of the account, e.g. 'Account 1'. If no accountName is provided, use

@@ -1,4 +1,4 @@
-// test plebbit-js mock content https://github.com/plebbit/plebbit-react-hooks/blob/master/docs/mock-content.md
+// test plebbit-js mock content https://github.com/bitsocialhq/pkc-react-hooks/blob/master/docs/mock-content.md
 
 window.process = {env: {}}
 window.process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT = '1'

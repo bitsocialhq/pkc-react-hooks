@@ -16,7 +16,7 @@ import localForageLru from '../../lib/localforage-lru';
 import utils from '../../lib/utils';
 import { getDefaultPlebbitOptions, overwritePlebbitOptions } from './account-generator';
 import Logger from '@plebbit/plebbit-logger';
-const log = Logger('plebbit-react-hooks:accounts:stores');
+const log = Logger('pkc-react-hooks:accounts:stores');
 const accountsDatabase = localForage.createInstance({ name: 'plebbitReactHooks-accounts' });
 const accountsMetadataDatabase = localForage.createInstance({ name: 'plebbitReactHooks-accountsMetadata' });
 // TODO: remove this eventually after everyone has migrated

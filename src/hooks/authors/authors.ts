@@ -2,7 +2,7 @@ import {useEffect, useState, useMemo} from 'react'
 import {useInterval} from '../utils/use-interval'
 import {useAccount} from '../accounts'
 import Logger from '@plebbit/plebbit-logger'
-const log = Logger('plebbit-react-hooks:authors:hooks')
+const log = Logger('pkc-react-hooks:authors:hooks')
 import assert from 'assert'
 import {
   ChainProviders,

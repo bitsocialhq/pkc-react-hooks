@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import utils from '../../lib/utils';
 import Logger from '@plebbit/plebbit-logger';
 // include replies pages store with feeds for debugging
-const log = Logger('plebbit-react-hooks:replies:stores');
+const log = Logger('pkc-react-hooks:replies:stores');
 import accountsStore from '../accounts';
 import commentsStore from '../comments';
 import { addChildrenRepliesFeedsToAddToStore } from './utils';

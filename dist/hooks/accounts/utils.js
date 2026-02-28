@@ -12,7 +12,7 @@ import { useMemo, useState, useEffect } from 'react';
 import memoize from 'memoizee';
 import PlebbitJs from '../../lib/plebbit-js';
 import Logger from '@plebbit/plebbit-logger';
-const log = Logger('plebbit-react-hooks:accounts:hooks');
+const log = Logger('pkc-react-hooks:accounts:hooks');
 export const useCalculatedNotifications = (account, accountCommentsReplies) => {
     return useMemo(() => {
         if (!account || !accountCommentsReplies) {

@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import utils from '../../lib/utils';
 import Logger from '@plebbit/plebbit-logger';
 // include subplebbits pages store with feeds for debugging
-const log = Logger('plebbit-react-hooks:feeds:stores');
+const log = Logger('pkc-react-hooks:feeds:stores');
 import accountsStore from '../accounts';
 import subplebbitsStore from '../subplebbits';
 import localForageLru from '../../lib/localforage-lru';

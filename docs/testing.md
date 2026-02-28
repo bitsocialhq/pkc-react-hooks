@@ -12,10 +12,10 @@
 
 ```
 DEBUG=* yarn test
-DEBUG=plebbit-react-hooks:* yarn test
-DEBUG=plebbit-react-hooks:hooks:* yarn test
-DEBUG=plebbit-react-hooks:hooks:accounts yarn test
-DEBUG=plebbit-react-hooks:hooks:accounts DEBUG_DEPTH=6 yarn test feeds
+DEBUG=pkc-react-hooks:* yarn test
+DEBUG=pkc-react-hooks:hooks:* yarn test
+DEBUG=pkc-react-hooks:hooks:accounts yarn test
+DEBUG=pkc-react-hooks:hooks:accounts DEBUG_DEPTH=6 yarn test feeds
 ```
 
 #### Preapre for E2E tests
@@ -30,7 +30,7 @@ DEBUG=plebbit-react-hooks:hooks:accounts DEBUG_DEPTH=6 yarn test feeds
 #### E2E tests
 
 - `yarn test:e2e`
-- `DEBUG=plebbit-react-hooks:* yarn test:e2e` for tests with logs
+- `DEBUG=pkc-react-hooks:* yarn test:e2e` for tests with logs
 
 #### Build
 

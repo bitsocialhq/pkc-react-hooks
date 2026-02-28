@@ -1,7 +1,7 @@
 import {Account, Role, Subplebbits, AccountComment, AccountsComments, CommentCidsToAccountsComments, Comment} from '../../types'
 import assert from 'assert'
 import Logger from '@plebbit/plebbit-logger'
-const log = Logger('plebbit-react-hooks:accounts:stores')
+const log = Logger('pkc-react-hooks:accounts:stores')
 import commentsStore from '../comments'
 import repliesPagesStore from '../replies-pages'
 import subplebbitsPagesStore from '../subplebbits-pages'

@@ -2,7 +2,7 @@ import repliesStore from '../replies';
 import repliesCommentsStore from '../replies/replies-comments-store';
 import Logger from '@plebbit/plebbit-logger';
 // include replies pages store with feeds for debugging
-const log = Logger('plebbit-react-hooks:replies:stores');
+const log = Logger('pkc-react-hooks:replies:stores');
 const getSortTypeFromPage = (page) => {
     var _a, _b, _c;
     for (const reply of page.comments || []) {

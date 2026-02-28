@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import localForageLru from '../../lib/localforage-lru';
 const commentsDatabase = localForageLru.createInstance({ name: 'plebbitReactHooks-comments', size: 5000 });
 import Logger from '@plebbit/plebbit-logger';
-const log = Logger('plebbit-react-hooks:comments:stores');
+const log = Logger('pkc-react-hooks:comments:stores');
 import utils from '../../lib/utils';
 import createStore from 'zustand';
 import accountsStore from '../accounts';

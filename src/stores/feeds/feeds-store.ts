@@ -1,6 +1,6 @@
 import assert from 'assert'
 import Logger from '@plebbit/plebbit-logger'
-const log = Logger('plebbit-react-hooks:feeds:stores')
+const log = Logger('pkc-react-hooks:feeds:stores')
 import {
   Feed,
   Feeds,

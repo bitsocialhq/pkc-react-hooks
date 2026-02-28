@@ -12,7 +12,7 @@ import accountsStore, { listeners } from './accounts-store';
 import accountsDatabase from './accounts-database';
 import Logger from '@plebbit/plebbit-logger';
 import assert from 'assert';
-const log = Logger('plebbit-react-hooks:accounts:stores');
+const log = Logger('pkc-react-hooks:accounts:stores');
 import utils from '../../lib/utils';
 // TODO: we currently subscribe to updates for every single comment
 // in the user's account history. This probably does not scale, we

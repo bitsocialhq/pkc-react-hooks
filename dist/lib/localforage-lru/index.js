@@ -13,7 +13,7 @@ try {
     if (process.env.REACT_APP_PLEBBIT_REACT_HOOKS_NO_CACHE) {
         // @ts-ignore
         localForageLru.createInstance = () => {
-            console.warn('@plebbit/plebbit-react-hooks cache is disabled for testing');
+            console.warn('@bitsocialhq/pkc-react-hooks cache is disabled for testing');
             return {
                 getItem: function (key) {
                     return __awaiter(this, void 0, void 0, function* () { });

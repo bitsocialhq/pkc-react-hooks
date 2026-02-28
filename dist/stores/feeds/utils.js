@@ -12,7 +12,7 @@ import accountsStore from '../accounts';
 import feedSorter from './feed-sorter';
 import { subplebbitPostsCacheExpired, commentIsValid, removeInvalidComments } from '../../lib/utils';
 import Logger from '@plebbit/plebbit-logger';
-const log = Logger('plebbit-react-hooks:feeds:stores');
+const log = Logger('pkc-react-hooks:feeds:stores');
 /**
  * Calculate the feeds from all the loaded subplebbit pages, filter and sort them
  */

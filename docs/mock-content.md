@@ -1,7 +1,7 @@
 #### Install the node module
 
 ```sh
-yarn add https://github.com/plebbit/plebbit-react-hooks
+yarn add https://github.com/bitsocialhq/pkc-react-hooks
 ```
 
 #### Add env variable for mocking
@@ -16,7 +16,7 @@ REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT_LOADING_TIME=1000
 #### Get a mock feed
 
 ```js
-import {useFeed} from '@plebbit/plebbit-react-hooks'
+import {useFeed} from '@bitsocialhq/pkc-react-hooks'
 
 function App() {
   const {feed, hasMore, loadMore} = useFeed({subplebbitAddresses: ['news.eth'], sortType: 'new'})
@@ -36,7 +36,7 @@ REACT_APP_PLEBBIT_REACT_HOOKS_NO_CACHE=1
 #### Delete databases and caches
 
 ```js
-import {deleteCaches, deleteDatabases} from '@plebbit/plebbit-react-hooks'
+import {deleteCaches, deleteDatabases} from '@bitsocialhq/pkc-react-hooks'
 
 // delete all databases, including all caches and accounts data
 await deleteDatabases()

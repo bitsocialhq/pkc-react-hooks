@@ -16,7 +16,7 @@ import memoize from 'memoizee'
 import utils from '../../lib/utils'
 import PlebbitJs from '../../lib/plebbit-js'
 import Logger from '@plebbit/plebbit-logger'
-const log = Logger('plebbit-react-hooks:accounts:hooks')
+const log = Logger('pkc-react-hooks:accounts:hooks')
 
 export const useCalculatedNotifications = (account?: Account, accountCommentsReplies?: AccountCommentsReplies) => {
   return useMemo(() => {

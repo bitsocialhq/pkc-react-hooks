@@ -13,7 +13,7 @@ import chain from '../../lib/chain';
 import { v4 as uuid } from 'uuid';
 import accountsDatabase from './accounts-database';
 import Logger from '@plebbit/plebbit-logger';
-const log = Logger('plebbit-react-hooks:accounts:stores');
+const log = Logger('pkc-react-hooks:accounts:stores');
 // default chain providers
 const chainProviders = {
     eth: {

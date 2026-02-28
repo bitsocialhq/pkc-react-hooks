@@ -21,7 +21,7 @@ var __rest = (this && this.__rest) || function (s, e) {
 import { useMemo, useState } from 'react';
 import useAccountsStore from '../../stores/accounts';
 import Logger from '@plebbit/plebbit-logger';
-const log = Logger('plebbit-react-hooks:actions:hooks');
+const log = Logger('pkc-react-hooks:actions:hooks');
 import assert from 'assert';
 import { useAccount, useAccountId } from '../accounts';
 const publishChallengeAnswersNotReady = (challengeAnswers) => __awaiter(void 0, void 0, void 0, function* () {

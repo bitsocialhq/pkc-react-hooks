@@ -1,6 +1,6 @@
 import assert from 'assert'
 import Logger from '@plebbit/plebbit-logger'
-const log = Logger('plebbit-react-hooks:replies:stores')
+const log = Logger('pkc-react-hooks:replies:stores')
 import {Feed, Feeds, Comment, Comments, Account, RepliesFeedOptions, RepliesFeedsOptions, RepliesPage, CommentsFilter} from '../../types'
 import createStore from 'zustand'
 import localForageLru from '../../lib/localforage-lru'

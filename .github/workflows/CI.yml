@@ -65,13 +65,13 @@ jobs:
         run: node .github/workflows/print-vitest-failures.cjs
       - name: Run e2e chrome tests
         id: run_e2e_chrome
-        run: DEBUG="plebbit-js:*,plebbit-react-hooks:*" CHROME_BIN=$(which chromium-browser) yarn test:e2e:chrome
+        run: DEBUG="plebbit-js:*,pkc-react-hooks:*" CHROME_BIN=$(which chromium-browser) yarn test:e2e:chrome
       - name: Print failed e2e chrome tests
         if: ${{ failure() && steps.run_e2e_chrome.outcome == 'failure' }}
         run: node .github/workflows/print-vitest-failures.cjs
       - name: Run e2e firefox tests
         id: run_e2e_firefox
-        run: DEBUG="plebbit-js:*,plebbit-react-hooks:*" FIREFOX_BIN=$(which firefox) yarn test:e2e:firefox
+        run: DEBUG="plebbit-js:*,pkc-react-hooks:*" FIREFOX_BIN=$(which firefox) yarn test:e2e:firefox
       - name: Print failed e2e firefox tests
         if: ${{ failure() && steps.run_e2e_firefox.outcome == 'failure' }}
         run: node .github/workflows/print-vitest-failures.cjs

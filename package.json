@@ -1,16 +1,16 @@
 {
-  "name": "@plebbit/plebbit-react-hooks",
+  "name": "@bitsocialhq/pkc-react-hooks",
   "type": "module",
   "keywords": [
-    "plebbit",
-    "subplebbit"
+    "bitsocial",
+    "pkc"
   ],
-  "repository": "github:plebbit/plebbit-react-hooks",
-  "license": "GPL-2.0",
+  "repository": "github:bitsocialhq/pkc-react-hooks",
+  "license": "GPL-2.0-only",
   "publishConfig": {
     "access": "public"
   },
-  "version": "0.0.1",
+  "version": "0.1.0",
   "files": [
     "dist"
   ],

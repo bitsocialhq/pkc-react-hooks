@@ -3,7 +3,7 @@ import QuickLru from 'quick-lru'
 import Logger from '@plebbit/plebbit-logger'
 import PlebbitJs from '../plebbit-js'
 import {Comment} from '../../types'
-const log = Logger('plebbit-react-hooks:utils')
+const log = Logger('pkc-react-hooks:utils')
 
 const merge = (...args: any) => {
   // @ts-ignore
