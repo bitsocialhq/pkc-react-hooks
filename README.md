@@ -1,4 +1,18 @@
-*Telegram group for this repo https://t.me/plebbitreact*
+# pkc-react-hooks
+
+React hooks for the [PKC](https://github.com/pkcprotocol) (Public Key Communities) protocol. Build decentralized, serverless social apps with React using a familiar hooks API — fetch feeds, comments, author profiles, manage accounts, publish content, and more, all without a central server.
+
+This package is published as [`@bitsocialhq/pkc-react-hooks`](https://github.com/bitsocialhq/pkc-react-hooks) and is currently used by [5chan](https://github.com/bitsocialhq/5chan) and other Bitsocial clients.
+
+> **Note:** This repo is a temporary [Bitsocial](https://github.com/bitsocialhq) fork of [plebbit/plebbit-react-hooks](https://github.com/plebbit/plebbit-react-hooks) for AI-aided development. Bug fixes, new features, and improvements made here will be merged upstream when the original maintainer is ready. The codebase still uses legacy naming (`plebbit`, `subplebbit`, etc.) pending upstream rebranding of the protocol layer.
+
+## Installation
+
+```bash
+yarn add @bitsocialhq/pkc-react-hooks
+```
+
+---
 
 ### Docs:
 
