@@ -1,101 +1,108 @@
 // test plebbit-js mock content https://github.com/bitsocialhq/pkc-react-hooks/blob/master/docs/mock-content.md
 
-window.process = {env: {}}
-window.process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT = '1'
-window.process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT_LOADING_TIME = '1000'
+window.process = { env: {} };
+window.process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT = "1";
+window.process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT_LOADING_TIME = "1000";
 
-import {useComment, useSubplebbit, useFeed, useAccountSubplebbits, useAccount, setPlebbitJs} from '../../dist'
-import PlebbitJsMockContent from '../../dist/lib/plebbit-js/plebbit-js-mock-content'
+import {
+  useComment,
+  useSubplebbit,
+  useFeed,
+  useAccountSubplebbits,
+  useAccount,
+  setPlebbitJs,
+} from "../../dist";
+import PlebbitJsMockContent from "../../dist/lib/plebbit-js/plebbit-js-mock-content";
 // mock right after importing or sometimes fails to mock
-setPlebbitJs(PlebbitJsMockContent)
+setPlebbitJs(PlebbitJsMockContent);
 
-import * as accountsActions from '../../dist/stores/accounts/accounts-actions'
-import {act, renderHook} from '@testing-library/react-hooks/dom'
-import testUtils from '../../dist/lib/test-utils'
+import * as accountsActions from "../../dist/stores/accounts/accounts-actions";
+import { act, renderHook } from "@testing-library/react";
+import testUtils from "../../dist/lib/test-utils";
 
-const timeout = 180_000
+const timeout = 180_000;
 
-describe('mock content', () => {
+describe("mock content", () => {
   beforeAll(() => {
-    testUtils.silenceReactWarnings()
-  })
+    testUtils.silenceReactWarnings();
+  });
   afterAll(() => {
-    testUtils.restoreAll()
-  })
+    testUtils.restoreAll();
+  });
 
   afterEach(async () => {
-    await testUtils.resetDatabasesAndStores()
-  })
+    await testUtils.resetDatabasesAndStores();
+  });
 
-  it('use comments', async () => {
-    const rendered = renderHook((commentCid) => useComment({commentCid}))
-    const waitFor = testUtils.createWaitFor(rendered, {timeout})
+  it("use comments", async () => {
+    const rendered = renderHook((commentCid) => useComment({ commentCid }));
+    const waitFor = testUtils.createWaitFor(rendered, { timeout });
 
-    rendered.rerender('QmXxWyFRBUReRNzyJueFLFh84Mtj7ycbySktRQ5ffZLVa0')
-    await waitFor(() => rendered.result.current.state === 'fetching-ipfs')
-    expect(rendered.result.current.state).to.equal('fetching-ipfs')
-    await waitFor(() => typeof rendered.result.current.timestamp === 'number')
-    console.log(rendered.result.current)
-    expect(typeof rendered.result.current.timestamp).to.equal('number')
-    await waitFor(() => typeof rendered.result.current.upvoteCount === 'number')
-    console.log(rendered.result.current)
-    expect(typeof rendered.result.current.upvoteCount).to.equal('number')
-    expect(rendered.result.current.state).to.equal('succeeded')
+    rendered.rerender("QmXxWyFRBUReRNzyJueFLFh84Mtj7ycbySktRQ5ffZLVa0");
+    await waitFor(() => rendered.result.current.state === "fetching-ipfs");
+    expect(rendered.result.current.state).to.equal("fetching-ipfs");
+    await waitFor(() => typeof rendered.result.current.timestamp === "number");
+    console.log(rendered.result.current);
+    expect(typeof rendered.result.current.timestamp).to.equal("number");
+    await waitFor(() => typeof rendered.result.current.upvoteCount === "number");
+    console.log(rendered.result.current);
+    expect(typeof rendered.result.current.upvoteCount).to.equal("number");
+    expect(rendered.result.current.state).to.equal("succeeded");
 
-    rendered.rerender(null)
-    await waitFor(() => rendered.result.current.timestamp === undefined)
-    expect(rendered.result.current.timestamp).to.equal(undefined)
-    await waitFor(() => rendered.result.current.upvoteCount === undefined)
-    expect(rendered.result.current.upvoteCount).to.equal(undefined)
+    rendered.rerender(null);
+    await waitFor(() => rendered.result.current.timestamp === undefined);
+    expect(rendered.result.current.timestamp).to.equal(undefined);
+    await waitFor(() => rendered.result.current.upvoteCount === undefined);
+    expect(rendered.result.current.upvoteCount).to.equal(undefined);
 
-    rendered.rerender('QmXxWyFRBUReRNzyJueFLFh84Mtj7ycbySktRQ5ffZLVa1')
-    await waitFor(() => typeof rendered.result.current.timestamp === 'number')
-    expect(typeof rendered.result.current.timestamp).to.equal('number')
-    await waitFor(() => typeof rendered.result.current.upvoteCount === 'number')
-    console.log(rendered.result.current)
-    expect(typeof rendered.result.current.upvoteCount).to.equal('number')
+    rendered.rerender("QmXxWyFRBUReRNzyJueFLFh84Mtj7ycbySktRQ5ffZLVa1");
+    await waitFor(() => typeof rendered.result.current.timestamp === "number");
+    expect(typeof rendered.result.current.timestamp).to.equal("number");
+    await waitFor(() => typeof rendered.result.current.upvoteCount === "number");
+    console.log(rendered.result.current);
+    expect(typeof rendered.result.current.upvoteCount).to.equal("number");
 
-    rendered.rerender('QmXxWyFRBUReRNzyJueFLFh84Mtj7ycbySktRQ5ffZLVa2')
-    await waitFor(() => typeof rendered.result.current.timestamp === 'number')
-    expect(typeof rendered.result.current.timestamp).to.equal('number')
-    await waitFor(() => typeof rendered.result.current.upvoteCount === 'number')
-    console.log(rendered.result.current)
-    expect(typeof rendered.result.current.upvoteCount).to.equal('number')
+    rendered.rerender("QmXxWyFRBUReRNzyJueFLFh84Mtj7ycbySktRQ5ffZLVa2");
+    await waitFor(() => typeof rendered.result.current.timestamp === "number");
+    expect(typeof rendered.result.current.timestamp).to.equal("number");
+    await waitFor(() => typeof rendered.result.current.upvoteCount === "number");
+    console.log(rendered.result.current);
+    expect(typeof rendered.result.current.upvoteCount).to.equal("number");
 
-    rendered.rerender('QmXxWyFRBUReRNzyJueFLFh84Mtj7ycbySktRQ5ffZLVa3')
-    await waitFor(() => typeof rendered.result.current.timestamp === 'number')
-    expect(typeof rendered.result.current.timestamp).to.equal('number')
-    await waitFor(() => typeof rendered.result.current.upvoteCount === 'number')
-    console.log(rendered.result.current)
-    expect(typeof rendered.result.current.upvoteCount).to.equal('number')
+    rendered.rerender("QmXxWyFRBUReRNzyJueFLFh84Mtj7ycbySktRQ5ffZLVa3");
+    await waitFor(() => typeof rendered.result.current.timestamp === "number");
+    expect(typeof rendered.result.current.timestamp).to.equal("number");
+    await waitFor(() => typeof rendered.result.current.upvoteCount === "number");
+    console.log(rendered.result.current);
+    expect(typeof rendered.result.current.upvoteCount).to.equal("number");
 
     // test getting from db
-    await testUtils.resetStores()
-    const rendered2 = renderHook((commentCid) => useComment({commentCid}))
+    await testUtils.resetStores();
+    const rendered2 = renderHook((commentCid) => useComment({ commentCid }));
 
-    rendered2.rerender('QmXxWyFRBUReRNzyJueFLFh84Mtj7ycbySktRQ5ffZLVa3')
-    await waitFor(() => typeof rendered2.result.current.subplebbitAddress === 'string')
-    console.log(rendered2.result.current)
-    expect(typeof rendered2.result.current.subplebbitAddress).to.equal('string')
-    expect(typeof rendered2.result.current.timestamp).to.equal('number')
-    expect(typeof rendered2.result.current.upvoteCount).to.equal('number')
-  })
+    rendered2.rerender("QmXxWyFRBUReRNzyJueFLFh84Mtj7ycbySktRQ5ffZLVa3");
+    await waitFor(() => typeof rendered2.result.current.subplebbitAddress === "string");
+    console.log(rendered2.result.current);
+    expect(typeof rendered2.result.current.subplebbitAddress).to.equal("string");
+    expect(typeof rendered2.result.current.timestamp).to.equal("number");
+    expect(typeof rendered2.result.current.upvoteCount).to.equal("number");
+  });
 
-  it('use subplebbits', async () => {
-    const rendered = renderHook((subplebbitAddress) => useSubplebbit({subplebbitAddress}))
-    const waitFor = testUtils.createWaitFor(rendered, {timeout})
+  it("use subplebbits", async () => {
+    const rendered = renderHook((subplebbitAddress) => useSubplebbit({ subplebbitAddress }));
+    const waitFor = testUtils.createWaitFor(rendered, { timeout });
 
-    rendered.rerender('anything2.eth')
-    await waitFor(() => rendered.result.current.state === 'fetching-ipns')
-    expect(rendered.result.current.state).to.equal('fetching-ipns')
-    await waitFor(() => typeof rendered.result.current.updatedAt === 'number')
+    rendered.rerender("anything2.eth");
+    await waitFor(() => rendered.result.current.state === "fetching-ipns");
+    expect(rendered.result.current.state).to.equal("fetching-ipns");
+    await waitFor(() => typeof rendered.result.current.updatedAt === "number");
     // console.log(rendered.result.current?.posts?.pages?.hot?.comments)
-    console.log(rendered.result.current)
-    expect(rendered.result.current.address).to.equal('anything2.eth')
-    expect(typeof rendered.result.current.updatedAt).to.equal('number')
-    expect(typeof rendered.result.current.posts?.pages?.hot?.comments?.[0]?.cid).to.equal('string')
-    expect(typeof rendered.result.current.posts?.pageCids?.new).to.equal('string')
-    expect(rendered.result.current.state).to.equal('succeeded')
+    console.log(rendered.result.current);
+    expect(rendered.result.current.address).to.equal("anything2.eth");
+    expect(typeof rendered.result.current.updatedAt).to.equal("number");
+    expect(typeof rendered.result.current.posts?.pages?.hot?.comments?.[0]?.cid).to.equal("string");
+    expect(typeof rendered.result.current.posts?.pageCids?.new).to.equal("string");
+    expect(rendered.result.current.state).to.equal("succeeded");
 
     // rendered.rerender(null)
     // await waitFor(() => rendered.result.current.updatedAt === undefined)
@@ -120,142 +127,155 @@ describe('mock content', () => {
     // expect(typeof rendered.result.current.posts?.pageCids?.new).to.equal('string')
 
     // test getting from db
-    await testUtils.resetStores()
-    const rendered2 = renderHook((subplebbitAddress) => useSubplebbit({subplebbitAddress}))
+    await testUtils.resetStores();
+    const rendered2 = renderHook((subplebbitAddress) => useSubplebbit({ subplebbitAddress }));
 
-    rendered2.rerender('anything2')
-    await waitFor(() => typeof rendered2.result.current.updatedAt === 'number')
-    console.log(rendered2.result.current)
-    expect(rendered2.result.current.address).to.equal('anything2')
-    expect(typeof rendered2.result.current.updatedAt).to.equal('number')
-    expect(typeof rendered2.result.current.posts?.pages?.hot?.comments?.[0]?.cid).to.equal('string')
-    expect(typeof rendered2.result.current.posts?.pageCids?.new).to.equal('string')
-  })
+    rendered2.rerender("anything2");
+    await waitFor(() => typeof rendered2.result.current.updatedAt === "number");
+    console.log(rendered2.result.current);
+    expect(rendered2.result.current.address).to.equal("anything2");
+    expect(typeof rendered2.result.current.updatedAt).to.equal("number");
+    expect(typeof rendered2.result.current.posts?.pages?.hot?.comments?.[0]?.cid).to.equal(
+      "string",
+    );
+    expect(typeof rendered2.result.current.posts?.pageCids?.new).to.equal("string");
+  });
 
-  it('use feed hot', async () => {
-    const rendered = renderHook((subplebbitAddresses) => useFeed({subplebbitAddresses, sortType: 'hot'}))
-    const waitFor = testUtils.createWaitFor(rendered, {timeout})
-
-    const scrollOnePage = async () => {
-      const nextFeedLength = (rendered.result.current.feed?.length || 0) + 25
-      act(() => {
-        rendered.result.current.loadMore()
-      })
-      try {
-        await rendered.waitFor(() => rendered.result.current.feed?.length >= nextFeedLength, {timeout})
-      } catch (e) {
-        console.error('scrollOnePage failed:', e)
-      }
-    }
-
-    rendered.rerender(['jokes.eth', 'news.eth'])
-    await waitFor(() => rendered.result.current.feed?.length > 0)
-    console.log(rendered.result.current)
-    expect(rendered.result.current.feed?.length).to.be.greaterThan(0)
-    await scrollOnePage()
-    await scrollOnePage()
-    console.log(rendered.result.current)
-    expect(rendered.result.current.feed?.length).to.be.greaterThan(50)
-  })
-
-  it('use feed new', async () => {
-    const rendered = renderHook((subplebbitAddresses) => useFeed({subplebbitAddresses, sortType: 'new'}))
-    const waitFor = testUtils.createWaitFor(rendered, {timeout})
+  it("use feed hot", async () => {
+    const rendered = renderHook((subplebbitAddresses) =>
+      useFeed({ subplebbitAddresses, sortType: "hot" }),
+    );
+    const waitFor = testUtils.createWaitFor(rendered, { timeout });
 
     const scrollOnePage = async () => {
-      const nextFeedLength = (rendered.result.current.feed?.length || 0) + 25
+      const nextFeedLength = (rendered.result.current.feed?.length || 0) + 25;
       act(() => {
-        rendered.result.current.loadMore()
-      })
+        rendered.result.current.loadMore();
+      });
       try {
-        await rendered.waitFor(() => rendered.result.current.feed?.length >= nextFeedLength, {timeout})
+        await waitFor(() => rendered.result.current.feed?.length >= nextFeedLength);
       } catch (e) {
-        console.error('scrollOnePage failed:', e)
+        console.error("scrollOnePage failed:", e);
       }
-    }
+    };
 
-    rendered.rerender(['jokes.eth', 'news.eth'])
-    await waitFor(() => rendered.result.current.feed?.length > 0)
-    console.log(rendered.result.current)
-    expect(rendered.result.current.feed?.length).to.be.greaterThan(0)
-    await scrollOnePage()
-    await scrollOnePage()
-    console.log(rendered.result.current)
-    expect(rendered.result.current.feed?.length).to.be.greaterThan(50)
-  })
+    rendered.rerender(["jokes.eth", "news.eth"]);
+    await waitFor(() => rendered.result.current.feed?.length > 0);
+    console.log(rendered.result.current);
+    expect(rendered.result.current.feed?.length).to.be.greaterThan(0);
+    await scrollOnePage();
+    await scrollOnePage();
+    console.log(rendered.result.current);
+    expect(rendered.result.current.feed?.length).to.be.greaterThan(50);
+  });
 
-  it('publish', async () => {
-    const rendered = renderHook(() => useAccount())
-    const waitFor = testUtils.createWaitFor(rendered, {timeout})
+  it("use feed new", async () => {
+    const rendered = renderHook((subplebbitAddresses) =>
+      useFeed({ subplebbitAddresses, sortType: "new" }),
+    );
+    const waitFor = testUtils.createWaitFor(rendered, { timeout });
 
-    await waitFor(() => typeof rendered.result.current.plebbit?.createComment === 'function')
-    expect(typeof rendered.result.current.plebbit?.createComment).to.equal('function')
+    const scrollOnePage = async () => {
+      const nextFeedLength = (rendered.result.current.feed?.length || 0) + 25;
+      act(() => {
+        rendered.result.current.loadMore();
+      });
+      try {
+        await waitFor(() => rendered.result.current.feed?.length >= nextFeedLength);
+      } catch (e) {
+        console.error("scrollOnePage failed:", e);
+      }
+    };
 
-    console.log('publishing comment')
-    let onChallengeVerificationCalled = false
+    rendered.rerender(["jokes.eth", "news.eth"]);
+    await waitFor(() => rendered.result.current.feed?.length > 0);
+    console.log(rendered.result.current);
+    expect(rendered.result.current.feed?.length).to.be.greaterThan(0);
+    await scrollOnePage();
+    await scrollOnePage();
+    console.log(rendered.result.current);
+    expect(rendered.result.current.feed?.length).to.be.greaterThan(50);
+  });
+
+  it("publish", async () => {
+    const rendered = renderHook(() => useAccount());
+    const waitFor = testUtils.createWaitFor(rendered, { timeout });
+
+    await waitFor(() => typeof rendered.result.current.plebbit?.createComment === "function");
+    expect(typeof rendered.result.current.plebbit?.createComment).to.equal("function");
+
+    console.log("publishing comment");
+    let onChallengeVerificationCalled = false;
     const onChallenge = (challenge, comment) => {
-      console.log('challenge', challenge)
-      comment.publishChallengeAnswers(['some answer...'])
-    }
+      console.log("challenge", challenge);
+      comment.publishChallengeAnswers(["some answer..."]);
+    };
     const onChallengeVerification = (...args) => {
-      console.log('challengeverification', args)
-      onChallengeVerificationCalled = true
-    }
+      console.log("challengeverification", args);
+      onChallengeVerificationCalled = true;
+    };
     await accountsActions.publishComment({
-      subplebbitAddress: 'news.eth',
-      content: 'content',
-      title: 'title',
+      subplebbitAddress: "news.eth",
+      content: "content",
+      title: "title",
       onChallenge,
       onChallengeVerification,
-    })
+    });
 
-    await waitFor(() => onChallengeVerificationCalled === true)
-    expect(onChallengeVerificationCalled).to.equal(true)
+    await waitFor(() => onChallengeVerificationCalled === true);
+    expect(onChallengeVerificationCalled).to.equal(true);
 
-    console.log('publishing vote')
-    onChallengeVerificationCalled = false
+    console.log("publishing vote");
+    onChallengeVerificationCalled = false;
     await accountsActions.publishVote({
-      subplebbitAddress: 'news.eth',
+      subplebbitAddress: "news.eth",
       vote: 1,
-      commentCid: 'some cid...',
+      commentCid: "some cid...",
       onChallenge,
       onChallengeVerification,
-    })
+    });
 
-    await waitFor(() => onChallengeVerificationCalled === true)
-    expect(onChallengeVerificationCalled).to.equal(true)
-  })
+    await waitFor(() => onChallengeVerificationCalled === true);
+    expect(onChallengeVerificationCalled).to.equal(true);
+  });
 
-  it('use account subplebbits', async () => {
+  it("use account subplebbits", async () => {
     const rendered = renderHook(() => {
-      const account = useAccount()
-      const {createSubplebbit} = accountsActions
-      const accountSubplebbits = useAccountSubplebbits()
-      return {createSubplebbit, accountSubplebbits, account}
-    })
-    const waitFor = testUtils.createWaitFor(rendered, {timeout})
-    await waitFor(() => typeof rendered.result.current.account?.plebbit?.createSubplebbit === 'function')
-    expect(typeof rendered.result.current.account?.plebbit?.createSubplebbit).to.equal('function')
+      const account = useAccount();
+      const { createSubplebbit } = accountsActions;
+      const accountSubplebbits = useAccountSubplebbits();
+      return { createSubplebbit, accountSubplebbits, account };
+    });
+    const waitFor = testUtils.createWaitFor(rendered, { timeout });
+    await waitFor(
+      () => typeof rendered.result.current.account?.plebbit?.createSubplebbit === "function",
+    );
+    expect(typeof rendered.result.current.account?.plebbit?.createSubplebbit).to.equal("function");
 
-    console.log('creating subplebbit')
+    console.log("creating subplebbit");
     const subplebbit = await rendered.result.current.createSubplebbit({
-      title: 'title',
-      description: 'description',
-    })
-    console.log({subplebbit})
-    expect(subplebbit.title).to.equal('title')
+      title: "title",
+      description: "description",
+    });
+    console.log({ subplebbit });
+    expect(subplebbit.title).to.equal("title");
 
     // wait for account subplebbits
-    await waitFor(() => JSON.stringify(rendered.result.current?.accountSubplebbits?.accountSubplebbits) !== '{}')
-    expect(JSON.stringify(rendered.result.current?.accountSubplebbits?.accountSubplebbits)).not.to.equal('{}')
-    console.log(rendered.result.current?.accountSubplebbits)
+    await waitFor(
+      () =>
+        JSON.stringify(rendered.result.current?.accountSubplebbits?.accountSubplebbits) !== "{}",
+    );
+    expect(
+      JSON.stringify(rendered.result.current?.accountSubplebbits?.accountSubplebbits),
+    ).not.to.equal("{}");
+    console.log(rendered.result.current?.accountSubplebbits);
 
     // NOTE: this test won't change accountSubplebbits state, need to use publishSubplebbitEdit for that
-    console.log('editing subplebbit')
+    console.log("editing subplebbit");
     await subplebbit.edit({
-      address: 'name.eth',
-    })
-    console.log({subplebbit})
-    expect(subplebbit.address).to.equal('name.eth')
-  })
-})
+      address: "name.eth",
+    });
+    console.log({ subplebbit });
+    expect(subplebbit.address).to.equal("name.eth");
+  });
+});
