@@ -1,4 +1,4 @@
-import { UseClientsStatesOptions, UseClientsStatesResult, UseSubplebbitsStatesOptions, UseSubplebbitsStatesResult } from '../types';
+import { UseClientsStatesOptions, UseClientsStatesResult, UseSubplebbitsStatesOptions, UseSubplebbitsStatesResult } from "../types";
 /**
  * @param comment - The comment to get the states from
  * @param subplebbit - The subplebbit to get the states from

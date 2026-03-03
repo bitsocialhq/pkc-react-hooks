@@ -3,13 +3,13 @@
 
 // fix "ReferenceError: process is not defined" in "assert" package
 if (window.process === undefined) {
-  const processPolyfill: any = {}
+  const processPolyfill: any = {};
   // @ts-ignore
-  window.process = processPolyfill
+  window.process = processPolyfill;
 }
 if (window.process.env === undefined) {
-  window.process.env = {}
+  window.process.env = {};
 }
 
 // must export a function and call it or this file isn't read
-export default () => {}
+export default () => {};

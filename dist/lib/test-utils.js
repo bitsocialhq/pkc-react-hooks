@@ -7,14 +7,15 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { resetCommentsStore, resetCommentsDatabaseAndStore } from '../stores/comments';
-import { resetSubplebbitsStore, resetSubplebbitsDatabaseAndStore } from '../stores/subplebbits';
-import { resetAccountsStore, resetAccountsDatabaseAndStore } from '../stores/accounts';
-import { resetFeedsStore, resetFeedsDatabaseAndStore } from '../stores/feeds';
-import { resetSubplebbitsPagesStore, resetSubplebbitsPagesDatabaseAndStore } from '../stores/subplebbits-pages';
-import { resetAuthorsCommentsStore, resetAuthorsCommentsDatabaseAndStore } from '../stores/authors-comments';
-import { resetRepliesStore, resetRepliesDatabaseAndStore } from '../stores/replies';
-import { resetRepliesPagesStore, resetRepliesPagesDatabaseAndStore } from '../stores/replies-pages';
+import { renderHook, act as tlAct } from "@testing-library/react";
+import { resetCommentsStore, resetCommentsDatabaseAndStore } from "../stores/comments";
+import { resetSubplebbitsStore, resetSubplebbitsDatabaseAndStore } from "../stores/subplebbits";
+import { resetAccountsStore, resetAccountsDatabaseAndStore } from "../stores/accounts";
+import { resetFeedsStore, resetFeedsDatabaseAndStore } from "../stores/feeds";
+import { resetSubplebbitsPagesStore, resetSubplebbitsPagesDatabaseAndStore, } from "../stores/subplebbits-pages";
+import { resetAuthorsCommentsStore, resetAuthorsCommentsDatabaseAndStore, } from "../stores/authors-comments";
+import { resetRepliesStore, resetRepliesDatabaseAndStore } from "../stores/replies";
+import { resetRepliesPagesStore, resetRepliesPagesDatabaseAndStore } from "../stores/replies-pages";
 const restorables = [];
 export const silenceUpdateUnmountedComponentWarning = () => {
     const originalError = console.error;
@@ -73,27 +74,37 @@ const createWaitFor = (rendered, waitForOptions) => {
         throw Error(`createWaitFor invalid 'rendered' argument`);
     }
     const waitFor = (waitForFunction) => __awaiter(void 0, void 0, void 0, function* () {
-        // format error stack trace for usefulness
         const stackTraceLimit = Error.stackTraceLimit;
         Error.stackTraceLimit = 10;
-        const errorWithUsefulStackTrace = new Error('waitFor');
+        const errorWithUsefulStackTrace = new Error("waitFor");
         Error.stackTraceLimit = stackTraceLimit;
-        if (typeof waitForFunction !== 'function') {
+        if (typeof waitForFunction !== "function") {
             throw Error(`waitFor invalid 'waitForFunction' argument`);
         }
         // @ts-ignore
-        if (typeof waitForFunction.then === 'function') {
+        if (typeof waitForFunction.then === "function") {
             throw Error(`waitFor 'waitForFunction' can't be async`);
         }
-        try {
-            yield rendered.waitFor(() => Boolean(waitForFunction()), waitForOptions);
-        }
-        catch (e) {
-            // @ts-ignore
-            errorWithUsefulStackTrace.message = `${e.message} ${waitForFunction.toString()}`;
-            if (!testUtils.silenceWaitForWarning) {
-                console.warn(errorWithUsefulStackTrace);
+        const { timeout = 2000, interval = 50 } = waitForOptions || {};
+        const start = Date.now();
+        while (true) {
+            // flush pending React/Zustand state updates before each check
+            yield tlAct(() => __awaiter(void 0, void 0, void 0, function* () { }));
+            try {
+                if (Boolean(waitForFunction()))
+                    return;
             }
+            catch (e) {
+                // condition threw (e.g. accessing property on undefined), keep waiting
+            }
+            if (Date.now() - start >= timeout) {
+                errorWithUsefulStackTrace.message = `Timed out in waitFor after ${timeout}ms. ${waitForFunction.toString()}`;
+                if (!testUtils.silenceWaitForWarning) {
+                    console.warn(errorWithUsefulStackTrace);
+                }
+                return;
+            }
+            yield new Promise((resolve) => setTimeout(resolve, interval));
         }
     });
     return waitFor;
@@ -121,6 +132,25 @@ export const resetDatabasesAndStores = () => __awaiter(void 0, void 0, void 0, f
     // always accounts last because it has async initialization
     yield resetAccountsDatabaseAndStore();
 });
+// renderHook wrapper that tracks all intermediate render results in result.all
+// (replaces @testing-library/react-hooks' result.all which doesn't exist in @testing-library/react)
+const renderHookWithHistory = (callback, options) => {
+    const allResults = [];
+    const rendered = renderHook((props) => {
+        const value = callback(props);
+        allResults.push(value);
+        return value;
+    }, options);
+    // Use Proxy because result.result may be frozen in React 19
+    const resultWithAll = new Proxy(rendered.result, {
+        get(target, prop) {
+            if (prop === "all")
+                return allResults;
+            return target[prop];
+        },
+    });
+    return Object.assign(Object.assign({}, rendered), { result: resultWithAll });
+};
 const testUtils = {
     silenceTestWasNotWrappedInActWarning,
     silenceUpdateUnmountedComponentWarning,
@@ -130,6 +160,7 @@ const testUtils = {
     resetStores,
     resetDatabasesAndStores,
     createWaitFor,
+    renderHookWithHistory,
     // can be useful to silence warnings in tests that use retry
     silenceWaitForWarning: false,
 };

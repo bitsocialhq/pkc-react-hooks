@@ -7,21 +7,21 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { useState, useMemo, useEffect } from 'react';
-import { useAccount } from './accounts';
-import Logger from '@plebbit/plebbit-logger';
-const log = Logger('pkc-react-hooks:states:plebbit-rpc');
-import assert from 'assert';
+import { useState, useMemo, useEffect } from "react";
+import { useAccount } from "./accounts";
+import Logger from "@plebbit/plebbit-logger";
+const log = Logger("pkc-react-hooks:states:plebbit-rpc");
+import assert from "assert";
 /**
  * @param acountName - The nickname of the account, e.g. 'Account 1'. If no accountName is provided, use
  * the active account.
  */
 export function usePlebbitRpcSettings(options) {
-    assert(!options || typeof options === 'object', `usePlebbitRpcSettings options argument '${options}' not an object`);
+    assert(!options || typeof options === "object", `usePlebbitRpcSettings options argument '${options}' not an object`);
     const { accountName } = options || {};
     const account = useAccount({ accountName });
     const [plebbitRpcSettingsState, setPlebbitRpcSettingsState] = useState();
-    const [state, setState] = useState('initializing');
+    const [state, setState] = useState("initializing");
     const [errors, setErrors] = useState([]);
     useEffect(() => {
         var _a, _b;
@@ -48,29 +48,29 @@ export function usePlebbitRpcSettings(options) {
         const onRpcError = (e) => {
             setErrors([...errors, e]);
         };
-        rpcClient.on('settingschange', onRpcSettingsChange);
-        rpcClient.on('statechange', onRpcStateChange);
-        rpcClient.on('error', onRpcError);
+        rpcClient.on("settingschange", onRpcSettingsChange);
+        rpcClient.on("statechange", onRpcStateChange);
+        rpcClient.on("error", onRpcError);
         // clean up
         return () => {
-            rpcClient.removeListener('settingschange', onRpcSettingsChange);
-            rpcClient.removeListener('statechange', onRpcStateChange);
-            rpcClient.removeListener('error', onRpcError);
+            rpcClient.removeListener("settingschange", onRpcSettingsChange);
+            rpcClient.removeListener("statechange", onRpcStateChange);
+            rpcClient.removeListener("error", onRpcError);
         };
     }, [account === null || account === void 0 ? void 0 : account.id]);
     const setPlebbitRpcSettings = (plebbitRpcSettings) => __awaiter(this, void 0, void 0, function* () {
         var _a, _b;
         assert(account, `can't use usePlebbitRpcSettings.setPlebbitRpcSettings before initialized`);
-        assert(plebbitRpcSettings && typeof plebbitRpcSettings === 'object', `usePlebbitRpcSettings.setPlebbitRpcSettings plebbitRpcSettings argument '${plebbitRpcSettings}' not an object`);
+        assert(plebbitRpcSettings && typeof plebbitRpcSettings === "object", `usePlebbitRpcSettings.setPlebbitRpcSettings plebbitRpcSettings argument '${plebbitRpcSettings}' not an object`);
         const rpcClient = Object.values(((_b = (_a = account.plebbit) === null || _a === void 0 ? void 0 : _a.clients) === null || _b === void 0 ? void 0 : _b.plebbitRpcClients) || {})[0];
         assert(rpcClient, `can't use usePlebbitRpcSettings.setPlebbitRpcSettings no account.plebbit.clients.plebbitRpcClients`);
         try {
             yield rpcClient.setSettings(plebbitRpcSettings);
-            setState('succeeded');
+            setState("succeeded");
         }
         catch (e) {
             setErrors([...errors, e]);
-            setState('failed');
+            setState("failed");
         }
         // go back to original state after some time
         setTimeout(() => {

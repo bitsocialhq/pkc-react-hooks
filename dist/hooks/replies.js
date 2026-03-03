@@ -7,27 +7,27 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { useEffect, useState, useMemo } from 'react';
-import { useAccount } from './accounts';
-import validator from '../lib/validator';
-import Logger from '@plebbit/plebbit-logger';
-const log = Logger('pkc-react-hooks:replies:hooks');
-import assert from 'assert';
-import useRepliesStore, { feedOptionsToFeedName, getRepliesFirstPageSkipValidation } from '../stores/replies';
+import { useEffect, useState, useMemo } from "react";
+import { useAccount } from "./accounts";
+import validator from "../lib/validator";
+import Logger from "@plebbit/plebbit-logger";
+const log = Logger("pkc-react-hooks:replies:hooks");
+import assert from "assert";
+import useRepliesStore, { feedOptionsToFeedName, getRepliesFirstPageSkipValidation, } from "../stores/replies";
 export function useReplies(options) {
     var _a;
-    assert(!options || typeof options === 'object', `useReplies options argument '${options}' not an object`);
-    let { comment, sortType, accountName, flat, flatDepth, accountComments, repliesPerPage, filter, validateOptimistically, streamPage } = options || {};
+    assert(!options || typeof options === "object", `useReplies options argument '${options}' not an object`);
+    let { comment, sortType, accountName, flat, flatDepth, accountComments, repliesPerPage, filter, validateOptimistically, streamPage, } = options || {};
     if (!sortType) {
-        sortType = 'best';
+        sortType = "best";
     }
-    if (typeof flatDepth !== 'number') {
+    if (typeof flatDepth !== "number") {
         flatDepth = 0;
     }
     if (validateOptimistically === undefined) {
         validateOptimistically = true;
     }
-    const invalidFlatDepth = flat && typeof (comment === null || comment === void 0 ? void 0 : comment.depth) === 'number' && flatDepth !== comment.depth;
+    const invalidFlatDepth = flat && typeof (comment === null || comment === void 0 ? void 0 : comment.depth) === "number" && flatDepth !== comment.depth;
     validator.validateUseRepliesArguments(comment, sortType, accountName, flat, accountComments, repliesPerPage, filter);
     const [errors, setErrors] = useState([]);
     // add replies to store
@@ -50,14 +50,19 @@ export function useReplies(options) {
         if (!(comment === null || comment === void 0 ? void 0 : comment.cid) || !account || invalidFlatDepth) {
             return;
         }
-        addFeedToStoreOrUpdateComment(comment, feedOptions).catch((error) => log.error('useReplies addFeedToStoreOrUpdateComment error', { repliesFeedName, comment, feedOptions, error }));
+        addFeedToStoreOrUpdateComment(comment, feedOptions).catch((error) => log.error("useReplies addFeedToStoreOrUpdateComment error", {
+            repliesFeedName,
+            comment,
+            feedOptions,
+            error,
+        }));
     }, [repliesFeedName, comment]);
-    let replies = useRepliesStore((state) => state.loadedFeeds[repliesFeedName || '']);
-    let bufferedReplies = useRepliesStore((state) => state.bufferedFeeds[repliesFeedName || '']);
-    let updatedReplies = useRepliesStore((state) => state.updatedFeeds[repliesFeedName || '']);
-    let hasMore = useRepliesStore((state) => state.feedsHaveMore[repliesFeedName || '']);
+    let replies = useRepliesStore((state) => state.loadedFeeds[repliesFeedName || ""]);
+    let bufferedReplies = useRepliesStore((state) => state.bufferedFeeds[repliesFeedName || ""]);
+    let updatedReplies = useRepliesStore((state) => state.updatedFeeds[repliesFeedName || ""]);
+    let hasMore = useRepliesStore((state) => state.feedsHaveMore[repliesFeedName || ""]);
     // if the replies is not yet defined, then it has more
-    if (!repliesFeedName || typeof hasMore !== 'boolean') {
+    if (!repliesFeedName || typeof hasMore !== "boolean") {
         hasMore = true;
     }
     // if the replies is not yet defined, but no comment, doesn't have more
@@ -68,7 +73,7 @@ export function useReplies(options) {
     let loadMore = () => __awaiter(this, void 0, void 0, function* () {
         try {
             if (!(comment === null || comment === void 0 ? void 0 : comment.cid) || !account) {
-                throw Error('useReplies cannot load more replies not initalized yet');
+                throw Error("useReplies cannot load more replies not initalized yet");
             }
             incrementFeedPageNumber(repliesFeedName);
         }
@@ -82,7 +87,7 @@ export function useReplies(options) {
     let reset = () => __awaiter(this, void 0, void 0, function* () {
         try {
             if (!(comment === null || comment === void 0 ? void 0 : comment.cid) || !account) {
-                throw Error('useReplies cannot reset replies not initalized yet');
+                throw Error("useReplies cannot reset replies not initalized yet");
             }
             resetFeed(repliesFeedName);
         }
@@ -113,7 +118,7 @@ export function useReplies(options) {
         reset = emptyFunction;
     }
     if (account && (comment === null || comment === void 0 ? void 0 : comment.cid)) {
-        log('useReplies', {
+        log("useReplies", {
             repliesLength: (replies === null || replies === void 0 ? void 0 : replies.length) || 0,
             hasMore,
             comment,
@@ -125,7 +130,7 @@ export function useReplies(options) {
             invalidFlatDepth,
         });
     }
-    const state = !hasMore ? 'succeeded' : 'fetching';
+    const state = !hasMore ? "succeeded" : "fetching";
     return useMemo(() => ({
         replies: replies || [],
         bufferedReplies: bufferedReplies || [],

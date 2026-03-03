@@ -1,2 +1,2 @@
 // for vitest aliases
-export default {}
+export default {};

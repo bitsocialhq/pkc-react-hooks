@@ -1,69 +1,90 @@
 // script to start IPFS and plebbit-js for testing
 
-import {exec, execSync} from 'child_process'
-import {directory as getTmpFolderPath} from 'tempy'
-import assert from 'assert'
-import {path as getIpfsPath} from 'kubo'
-const ipfsPath = getIpfsPath()
+import { exec, execSync } from "child_process";
+import { directory as getTmpFolderPath } from "tempy";
+import assert from "assert";
+import { path as getIpfsPath } from "kubo";
+const ipfsPath = getIpfsPath();
 
-const startIpfs = ({apiPort, gatewayPort, swarmPort, args = ''} = {}) => {
-  assert.equal(typeof apiPort, 'number')
-  assert.equal(typeof gatewayPort, 'number')
-  assert.equal(typeof swarmPort, 'number')
+const startIpfs = ({ apiPort, gatewayPort, swarmPort, args = "" } = {}) => {
+  assert.equal(typeof apiPort, "number");
+  assert.equal(typeof gatewayPort, "number");
+  assert.equal(typeof swarmPort, "number");
 
-  const ipfsDataPath = getTmpFolderPath()
-  const plebbitDataPath = getTmpFolderPath()
+  const ipfsDataPath = getTmpFolderPath();
+  const plebbitDataPath = getTmpFolderPath();
   // init ipfs binary
   try {
-    execSync(`IPFS_PATH="${ipfsDataPath}" "${ipfsPath}" init`, {stdio: 'inherit'})
+    execSync(`IPFS_PATH="${ipfsDataPath}" "${ipfsPath}" init`, { stdio: "inherit" });
   } catch (e) {}
 
   // allow * origin on ipfs api to bypass cors browser error
   // very insecure do not do this in production
-  execSync(`IPFS_PATH="${ipfsDataPath}" "${ipfsPath}" config --json API.HTTPHeaders.Access-Control-Allow-Origin '["*"]'`, {stdio: 'inherit'})
+  execSync(
+    `IPFS_PATH="${ipfsDataPath}" "${ipfsPath}" config --json API.HTTPHeaders.Access-Control-Allow-Origin '["*"]'`,
+    { stdio: "inherit" },
+  );
 
   // needed for ipns if-none-match
-  execSync(`IPFS_PATH="${ipfsDataPath}" "${ipfsPath}" config --json Gateway.HTTPHeaders.Access-Control-Allow-Headers '["*"]'`, {stdio: 'inherit'})
+  execSync(
+    `IPFS_PATH="${ipfsDataPath}" "${ipfsPath}" config --json Gateway.HTTPHeaders.Access-Control-Allow-Headers '["*"]'`,
+    { stdio: "inherit" },
+  );
 
   // disable subdomain gateway
   execSync(
-    `IPFS_PATH="${ipfsDataPath}" "${ipfsPath}" config --json Gateway.PublicGateways '${JSON.stringify({localhost: {Paths: ['/ipfs', '/ipns'], UseSubdomains: false}})}'`,
-    {stdio: 'inherit'}
-  )
+    `IPFS_PATH="${ipfsDataPath}" "${ipfsPath}" config --json Gateway.PublicGateways '${JSON.stringify({ localhost: { Paths: ["/ipfs", "/ipns"], UseSubdomains: false } })}'`,
+    { stdio: "inherit" },
+  );
 
   // set ports
-  execSync(`IPFS_PATH="${ipfsDataPath}" "${ipfsPath}" config Addresses.API /ip4/127.0.0.1/tcp/${apiPort}`, {stdio: 'inherit'})
-  execSync(`IPFS_PATH="${ipfsDataPath}" "${ipfsPath}" config Addresses.Gateway /ip4/127.0.0.1/tcp/${gatewayPort}`, {stdio: 'inherit'})
-  execSync(`IPFS_PATH="${ipfsDataPath}" "${ipfsPath}" config --json Addresses.Swarm '["/ip4/127.0.0.1/tcp/${swarmPort}"]'`, {stdio: 'inherit'})
+  execSync(
+    `IPFS_PATH="${ipfsDataPath}" "${ipfsPath}" config Addresses.API /ip4/127.0.0.1/tcp/${apiPort}`,
+    { stdio: "inherit" },
+  );
+  execSync(
+    `IPFS_PATH="${ipfsDataPath}" "${ipfsPath}" config Addresses.Gateway /ip4/127.0.0.1/tcp/${gatewayPort}`,
+    { stdio: "inherit" },
+  );
+  execSync(
+    `IPFS_PATH="${ipfsDataPath}" "${ipfsPath}" config --json Addresses.Swarm '["/ip4/127.0.0.1/tcp/${swarmPort}"]'`,
+    { stdio: "inherit" },
+  );
 
   // add hello for monitoring
-  execSync(`echo "hello" | "${ipfsPath}" add -`, {stdio: 'inherit', env: {IPFS_PATH: ipfsDataPath}, shell: true})
+  execSync(`echo "hello" | "${ipfsPath}" add -`, {
+    stdio: "inherit",
+    env: { IPFS_PATH: ipfsDataPath },
+    shell: true,
+  });
 
   // start ipfs daemon
-  const ipfsProcess = exec(`IPFS_PATH="${ipfsDataPath}" "${ipfsPath}" daemon ${args}`)
-  console.log(`IPFS_PATH="${ipfsDataPath}" "${ipfsPath}" daemon ${args} process started with pid ${ipfsProcess.pid}`)
-  ipfsProcess.stderr.on('data', console.error)
-  ipfsProcess.stdin.on('data', console.log)
-  ipfsProcess.stdout.on('data', console.log)
-  ipfsProcess.on('error', console.error)
-  ipfsProcess.on('exit', () => {
-    console.error(`ipfs process with pid ${ipfsProcess.pid} exited`)
-    process.exit(1)
-  })
-  process.on('exit', () => {
-    exec(`kill ${ipfsProcess.pid + 1}`)
-  })
+  const ipfsProcess = exec(`IPFS_PATH="${ipfsDataPath}" "${ipfsPath}" daemon ${args}`);
+  console.log(
+    `IPFS_PATH="${ipfsDataPath}" "${ipfsPath}" daemon ${args} process started with pid ${ipfsProcess.pid}`,
+  );
+  ipfsProcess.stderr.on("data", console.error);
+  ipfsProcess.stdin.on("data", console.log);
+  ipfsProcess.stdout.on("data", console.log);
+  ipfsProcess.on("error", console.error);
+  ipfsProcess.on("exit", () => {
+    console.error(`ipfs process with pid ${ipfsProcess.pid} exited`);
+    process.exit(1);
+  });
+  process.on("exit", () => {
+    exec(`kill ${ipfsProcess.pid + 1}`);
+  });
 
   const ipfsDaemonIsReady = () =>
     new Promise((resolve) => {
-      ipfsProcess.stdout.on('data', (data) => {
-        if (data.match('Daemon is ready')) {
-          resolve()
+      ipfsProcess.stdout.on("data", (data) => {
+        if (data.match("Daemon is ready")) {
+          resolve();
         }
-      })
-    })
+      });
+    });
 
-  return ipfsDaemonIsReady()
-}
+  return ipfsDaemonIsReady();
+};
 
-export default startIpfs
+export default startIpfs;

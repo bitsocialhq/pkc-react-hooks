@@ -1,4 +1,4 @@
-import { UseCommentsOptions, UseCommentsResult, UseCommentOptions, UseCommentResult, UseValidateCommentOptions, UseValidateCommentResult } from '../types';
+import { UseCommentsOptions, UseCommentsResult, UseCommentOptions, UseCommentResult, UseValidateCommentOptions, UseValidateCommentResult } from "../types";
 /**
  * @param commentCid - The IPFS CID of the comment to get
  * @param acountName - The nickname of the account, e.g. 'Account 1'. If no accountName is provided, use

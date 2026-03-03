@@ -17,6 +17,13 @@ declare const testUtils: {
     resetStores: () => Promise<void>;
     resetDatabasesAndStores: () => Promise<void>;
     createWaitFor: (rendered: any, waitForOptions?: WaitForOptions) => (waitForFunction: Function) => Promise<void>;
+    renderHookWithHistory: <Result, Props>(callback: (props: Props) => Result, options?: any) => {
+        result: {
+            current: Result;
+        };
+        rerender: (props?: Props | undefined) => void;
+        unmount: () => void;
+    };
     silenceWaitForWarning: boolean;
 };
 export default testUtils;

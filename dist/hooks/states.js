@@ -1,9 +1,9 @@
-import { useMemo } from 'react';
-import Logger from '@plebbit/plebbit-logger';
-const log = Logger('pkc-react-hooks:states:hooks');
-import assert from 'assert';
-import { useSubplebbits } from './subplebbits';
-import { subplebbitPostsCacheExpired } from '../lib/utils';
+import { useMemo } from "react";
+import Logger from "@plebbit/plebbit-logger";
+const log = Logger("pkc-react-hooks:states:hooks");
+import assert from "assert";
+import { useSubplebbits } from "./subplebbits";
+import { subplebbitPostsCacheExpired } from "../lib/utils";
 // TODO: implement getting peers
 const peers = {};
 /**
@@ -13,10 +13,10 @@ const peers = {};
  * the active account.
  */
 export function useClientsStates(options) {
-    assert(!options || typeof options === 'object', `useClientsStates options argument '${options}' not an object`);
+    assert(!options || typeof options === "object", `useClientsStates options argument '${options}' not an object`);
     const { comment, subplebbit } = options || {};
-    assert(!comment || typeof comment === 'object', `useClientsStates options.comment argument '${comment}' not an object`);
-    assert(!subplebbit || typeof subplebbit === 'object', `useClientsStates options.subplebbit argument '${subplebbit}' not an object`);
+    assert(!comment || typeof comment === "object", `useClientsStates options.comment argument '${comment}' not an object`);
+    assert(!subplebbit || typeof subplebbit === "object", `useClientsStates options.subplebbit argument '${subplebbit}' not an object`);
     assert(!(comment && subplebbit), `useClientsStates options.comment and options.subplebbit arguments cannot be defined at the same time`);
     const commentOrSubplebbit = comment || subplebbit;
     const states = useMemo(() => {
@@ -31,7 +31,7 @@ export function useClientsStates(options) {
         }
         const clients = commentOrSubplebbit === null || commentOrSubplebbit === void 0 ? void 0 : commentOrSubplebbit.clients;
         const addState = (state, clientUrl) => {
-            if (!state || state === 'stopped') {
+            if (!state || state === "stopped") {
                 return;
             }
             if (!states[state]) {
@@ -69,7 +69,7 @@ export function useClientsStates(options) {
                 for (const sortType in pages.clients[clientType]) {
                     for (const clientUrl in pages.clients[clientType][sortType]) {
                         let state = pages.clients[clientType][sortType][clientUrl].state;
-                        if (state === 'stopped') {
+                        if (state === "stopped") {
                             continue;
                         }
                         state += `-page-${sortType}`;
@@ -81,7 +81,7 @@ export function useClientsStates(options) {
                 }
             }
         }
-        log('useClientsStates', {
+        log("useClientsStates", {
             subplebbitAddress: commentOrSubplebbit === null || commentOrSubplebbit === void 0 ? void 0 : commentOrSubplebbit.address,
             commentCid: commentOrSubplebbit === null || commentOrSubplebbit === void 0 ? void 0 : commentOrSubplebbit.cid,
             states,
@@ -92,7 +92,7 @@ export function useClientsStates(options) {
     return useMemo(() => ({
         states,
         peers,
-        state: 'initializing',
+        state: "initializing",
         error: undefined,
         errors: [],
     }), [states, peers]);
@@ -103,11 +103,11 @@ export function useClientsStates(options) {
  * the active account.
  */
 export function useSubplebbitsStates(options) {
-    assert(!options || typeof options === 'object', `useClientsStatesCounts options argument '${options}' not an object`);
+    assert(!options || typeof options === "object", `useClientsStatesCounts options argument '${options}' not an object`);
     const { subplebbitAddresses } = options || {};
     assert(!subplebbitAddresses || Array.isArray(subplebbitAddresses), `useClientsStatesCounts subplebbitAddresses '${subplebbitAddresses}' not an array`);
     for (const subplebbitAddress of subplebbitAddresses || []) {
-        assert(typeof subplebbitAddress === 'string', `useClientsStatesCounts subplebbitAddresses '${subplebbitAddresses}' subplebbitAddress '${subplebbitAddress}' not a string`);
+        assert(typeof subplebbitAddress === "string", `useClientsStatesCounts subplebbitAddresses '${subplebbitAddresses}' subplebbitAddress '${subplebbitAddress}' not a string`);
     }
     const { subplebbits } = useSubplebbits({ subplebbitAddresses });
     const states = useMemo(() => {
@@ -118,20 +118,25 @@ export function useSubplebbitsStates(options) {
                 continue;
             }
             // dont show subplebbit state if data is already fetched
-            if ((!subplebbit.updatedAt || subplebbitPostsCacheExpired(subplebbit)) && (subplebbit === null || subplebbit === void 0 ? void 0 : subplebbit.updatingState) !== 'stopped' && (subplebbit === null || subplebbit === void 0 ? void 0 : subplebbit.updatingState) !== 'succeeded') {
+            if ((!subplebbit.updatedAt || subplebbitPostsCacheExpired(subplebbit)) &&
+                (subplebbit === null || subplebbit === void 0 ? void 0 : subplebbit.updatingState) !== "stopped" &&
+                (subplebbit === null || subplebbit === void 0 ? void 0 : subplebbit.updatingState) !== "succeeded") {
                 if (!states[subplebbit.updatingState]) {
-                    states[subplebbit.updatingState] = { subplebbitAddresses: new Set(), clientUrls: new Set() };
+                    states[subplebbit.updatingState] = {
+                        subplebbitAddresses: new Set(),
+                        clientUrls: new Set(),
+                    };
                 }
                 states[subplebbit.updatingState].subplebbitAddresses.add(subplebbit.address);
                 // find client urls
                 for (const clientType in subplebbit.clients) {
-                    if (clientType === 'chainProviders') {
+                    if (clientType === "chainProviders") {
                         for (const chainTicker in subplebbit.clients.chainProviders) {
                             for (const clientUrl in subplebbit.clients.chainProviders[chainTicker]) {
                                 const state = subplebbit.clients.chainProviders[chainTicker][clientUrl].state;
                                 // TODO: client states should always be the same as subplebbit.updatingState
                                 // but possibly because of a plebbit-js bug they are sometimes not
-                                if (state !== 'stopped' && state === subplebbit.updatingState) {
+                                if (state !== "stopped" && state === subplebbit.updatingState) {
                                     states[subplebbit.updatingState].clientUrls.add(clientUrl);
                                 }
                             }
@@ -142,7 +147,7 @@ export function useSubplebbitsStates(options) {
                             const state = subplebbit.clients[clientType][clientUrl].state;
                             // TODO: client states should always be the same as subplebbit.updatingState
                             // but possibly because of a plebbit-js bug they are sometimes not
-                            if (state !== 'stopped' && state === subplebbit.updatingState) {
+                            if (state !== "stopped" && state === subplebbit.updatingState) {
                                 states[subplebbit.updatingState].clientUrls.add(clientUrl);
                             }
                         }
@@ -155,7 +160,7 @@ export function useSubplebbitsStates(options) {
                 for (const sortType in subplebbit.posts.clients[clientType]) {
                     for (const clientUrl in subplebbit.posts.clients[clientType][sortType]) {
                         let state = subplebbit.posts.clients[clientType][sortType][clientUrl].state;
-                        if (state !== 'stopped') {
+                        if (state !== "stopped") {
                             state += `-page-${sortType}`;
                             if (!pagesClientsUrls[state]) {
                                 pagesClientsUrls[state] = [];
@@ -182,7 +187,7 @@ export function useSubplebbitsStates(options) {
                 clientUrls: [...states[state].clientUrls],
             };
         }
-        log('useSubplebbitsStates', {
+        log("useSubplebbitsStates", {
             subplebbitAddresses,
             states: _states,
             subplebbits,
@@ -192,7 +197,7 @@ export function useSubplebbitsStates(options) {
     return useMemo(() => ({
         states,
         peers,
-        state: 'initializing',
+        state: "initializing",
         error: undefined,
         errors: [],
     }), [states, peers]);
