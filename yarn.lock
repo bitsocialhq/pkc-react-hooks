@@ -3245,6 +3245,15 @@
     "@typescript/native-preview-win32-arm64" "7.0.0-dev.20260303.1"
     "@typescript/native-preview-win32-x64" "7.0.0-dev.20260303.1"
 
+"@vitest/browser-playwright@4.0.18":
+  version "4.0.18"
+  resolved "https://registry.yarnpkg.com/@vitest/browser-playwright/-/browser-playwright-4.0.18.tgz#1a844a44cf2f1e2321ca70e405063104350e5472"
+  integrity sha512-gfajTHVCiwpxRj1qh0Sh/5bbGLG4F/ZH/V9xvFVoFddpITfMta9YGow0W6ZpTTORv2vdJuz9TnrNSmjKvpOf4g==
+  dependencies:
+    "@vitest/browser" "4.0.18"
+    "@vitest/mocker" "4.0.18"
+    tinyrainbow "^3.0.3"
+
 "@vitest/browser@4.0.18":
   version "4.0.18"
   resolved "https://registry.yarnpkg.com/@vitest/browser/-/browser-4.0.18.tgz#9d826cc21f09c27f8fe758715a92a6a878236a02"

@@ -1,4 +1,5 @@
 import { defineConfig } from "vitest/config";
+import { playwright } from "@vitest/browser-playwright";
 
 // more time to debug when not ci
 const testTimeout = process.env.CI ? 300_000 : 600_000;
@@ -6,12 +7,12 @@ const testTimeout = process.env.CI ? 300_000 : 600_000;
 const headless = Boolean(process.env.CI || process.env.HEADLESS);
 
 let browser = process.env.FIREFOX ? "firefox" : "chromium";
-let launchOptions;
+let launch;
 if (process.env.CHROME_BIN) {
-  launchOptions = { executablePath: process.env.CHROME_BIN };
+  launch = { executablePath: process.env.CHROME_BIN };
 }
 if (process.env.FIREFOX_BIN) {
-  launchOptions = { executablePath: process.env.FIREFOX_BIN };
+  launch = { executablePath: process.env.FIREFOX_BIN };
   browser = "firefox";
 }
 
@@ -32,21 +33,18 @@ export default defineConfig({
     globals: true,
     reporter: ["default", "json"],
     outputFile: "./.vitest-reports/browser-tests.json",
-    poolOptions: {
-      threads: { singleThread: true },
-    },
+    maxWorkers: 1,
     include,
     setupFiles: ["./config/vitest-e2e.setup.js"],
     testTimeout,
     browser: {
       enabled: true,
-      provider: "playwright",
+      provider: playwright(),
       instances: [
         {
           browser,
           headless,
-          // this doesn't seem to work, ci still has to install playwright
-          launchOptions,
+          launch,
         },
       ],
     },
