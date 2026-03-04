@@ -122,6 +122,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
             const feed = useFeed({ subplebbitAddresses });
             return { account, accountSubplebbits, subplebbit, modQueue, feed, ...accountsActions };
           });
+          rendered.detach();
           waitFor = testUtils.createWaitFor(rendered, { timeout });
 
           await waitFor(() => rendered.result.current.account.name === "Account 1");
@@ -427,6 +428,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
           const subplebbit = useSubplebbit({ subplebbitAddress });
           return { account, subplebbit, ...accountsActions };
         });
+        rendered.detach();
         waitFor = testUtils.createWaitFor(rendered, { timeout });
 
         await waitFor(() => rendered.result.current.account.name === "Account 1");
@@ -522,9 +524,11 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
             notifications,
             comment,
             replies,
+
             ...accountsActions,
           };
         });
+        rendered.detach();
         waitFor = testUtils.createWaitFor(rendered, { timeout });
 
         await waitFor(() => rendered.result.current.account.name === "Account 1");

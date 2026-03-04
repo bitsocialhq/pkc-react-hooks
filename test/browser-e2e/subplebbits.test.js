@@ -72,6 +72,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
           const comment = useComment({ commentCid });
           return { account, subplebbit, comment, accountVotes, ...accountsActions };
         });
+        rendered.detach();
         waitFor = testUtils.createWaitFor(rendered, { timeout });
 
         await waitFor(() => rendered.result.current.account.name === "Account 1");
