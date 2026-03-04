@@ -1,4 +1,5 @@
-import { act, renderHook } from "@testing-library/react";
+import { act } from "@testing-library/react";
+import { renderHook } from "../test-utils";
 import { useFeed, setPlebbitJs, restorePlebbitJs } from "../../dist";
 import debugUtils from "../../dist/lib/debug-utils";
 import PlebbitJsMock from "../../dist/lib/plebbit-js/plebbit-js-mock";

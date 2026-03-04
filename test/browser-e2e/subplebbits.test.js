@@ -1,5 +1,6 @@
 import { assertTestServerDidntCrash } from "../test-server/monitor-test-server";
-import { act, renderHook } from "@testing-library/react";
+import { act } from "@testing-library/react";
+import { renderHook } from "../test-utils";
 import { useAccount, useSubplebbit, useAccountVotes, useComment } from "../../dist";
 import debugUtils from "../../dist/lib/debug-utils";
 import * as accountsActions from "../../dist/stores/accounts/accounts-actions";

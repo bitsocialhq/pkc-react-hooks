@@ -1,5 +1,6 @@
 import { assertTestServerDidntCrash } from "../test-server/monitor-test-server";
-import { act, renderHook } from "@testing-library/react";
+import { act } from "@testing-library/react";
+import { renderHook } from "../test-utils";
 import {
   useFeed,
   useBufferedFeeds,

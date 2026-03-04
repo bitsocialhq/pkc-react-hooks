@@ -17,7 +17,8 @@ import PlebbitJsMockContent from "../../dist/lib/plebbit-js/plebbit-js-mock-cont
 setPlebbitJs(PlebbitJsMockContent);
 
 import * as accountsActions from "../../dist/stores/accounts/accounts-actions";
-import { act, renderHook } from "@testing-library/react";
+import { act } from "@testing-library/react";
+import { renderHook } from "../test-utils";
 import testUtils from "../../dist/lib/test-utils";
 
 const timeout = 180_000;
