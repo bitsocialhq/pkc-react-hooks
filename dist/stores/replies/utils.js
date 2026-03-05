@@ -301,43 +301,58 @@ export const getBufferedFeedsWithoutLoadedFeeds = (bufferedFeeds, loadedFeeds) =
 };
 export const getUpdatedFeeds = (feedsOptions, filteredSortedFeeds, updatedFeeds, loadedFeeds, accounts) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c;
-    // contruct a list of replies already loaded to remove them from buffered feeds
-    const updatedFeedsReplies = {};
-    for (const feedName in updatedFeeds) {
-        updatedFeedsReplies[feedName] = {};
-        for (const [index, updatedReply] of updatedFeeds[feedName].entries()) {
-            updatedFeedsReplies[feedName][updatedReply.cid] = { index, updatedReply };
-        }
-    }
     const newUpdatedFeeds = Object.assign({}, updatedFeeds);
-    for (const feedName in filteredSortedFeeds) {
+    const feedNames = new Set([
+        ...Object.keys(filteredSortedFeeds || {}),
+        ...Object.keys(loadedFeeds || {}),
+        ...Object.keys(updatedFeeds || {}),
+    ]);
+    for (const feedName of feedNames) {
         const plebbit = (_b = accounts[(_a = feedsOptions[feedName]) === null || _a === void 0 ? void 0 : _a.accountId]) === null || _b === void 0 ? void 0 : _b.plebbit;
-        const updatedFeed = [...(updatedFeeds[feedName] || [])];
-        const onlyHasNewReplies = updatedFeed.length === 0;
+        const loadedFeed = loadedFeeds[feedName] || [];
+        const previousUpdatedFeed = updatedFeeds[feedName] || [];
+        const updatedFeed = [...loadedFeed];
         let updatedFeedChanged = false;
-        // add new replies from loadedFeed replies
-        while (updatedFeed.length < loadedFeeds[feedName].length) {
-            updatedFeed[updatedFeed.length] = loadedFeeds[feedName][updatedFeed.length];
+        // Keep updated feeds in lock-step with loaded feeds so local deletions
+        // (e.g. abandoned pending replies) disappear without requiring a feed reset.
+        if (previousUpdatedFeed.length !== updatedFeed.length) {
             updatedFeedChanged = true;
         }
-        // add updated replies from filteredSortedFeed
-        if (!onlyHasNewReplies) {
-            const promises = [];
-            for (const reply of filteredSortedFeeds[feedName]) {
-                if ((_c = updatedFeedsReplies[feedName]) === null || _c === void 0 ? void 0 : _c[reply.cid]) {
-                    const { index, updatedReply } = updatedFeedsReplies[feedName][reply.cid];
-                    promises.push((() => __awaiter(void 0, void 0, void 0, function* () {
-                        if ((reply.updatedAt || 0) > (updatedReply.updatedAt || 0) &&
-                            (yield commentIsValid(reply, { validateReplies: false }, plebbit))) {
-                            updatedFeed[index] = reply;
-                            updatedFeedChanged = true;
-                        }
-                    }))());
-                }
+        const filteredRepliesByCid = new Map();
+        for (const reply of filteredSortedFeeds[feedName] || []) {
+            if (reply === null || reply === void 0 ? void 0 : reply.cid) {
+                filteredRepliesByCid.set(reply.cid, reply);
             }
-            yield Promise.all(promises);
+        }
+        for (let i = 0; i < updatedFeed.length; i++) {
+            const loadedReply = updatedFeed[i];
+            if (!(loadedReply === null || loadedReply === void 0 ? void 0 : loadedReply.cid)) {
+                continue;
+            }
+            const previousUpdatedReply = previousUpdatedFeed[i];
+            if ((previousUpdatedReply === null || previousUpdatedReply === void 0 ? void 0 : previousUpdatedReply.cid) === loadedReply.cid &&
+                (previousUpdatedReply.updatedAt || 0) > (loadedReply.updatedAt || 0)) {
+                updatedFeed[i] = previousUpdatedReply;
+                updatedFeedChanged = true;
+            }
+            const candidateReply = filteredRepliesByCid.get(loadedReply.cid);
+            if (!candidateReply) {
+                continue;
+            }
+            if ((candidateReply.updatedAt || 0) <= (((_c = updatedFeed[i]) === null || _c === void 0 ? void 0 : _c.updatedAt) || 0)) {
+                continue;
+            }
+            if (!(yield commentIsValid(candidateReply, { validateReplies: false }, plebbit))) {
+                continue;
+            }
+            updatedFeed[i] = candidateReply;
+            updatedFeedChanged = true;
         }
         if (updatedFeedChanged) {
+            newUpdatedFeeds[feedName] = updatedFeed;
+            continue;
+        }
+        if (!updatedFeeds[feedName]) {
             newUpdatedFeeds[feedName] = updatedFeed;
         }
     }

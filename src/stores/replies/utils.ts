@@ -366,51 +366,67 @@ export const getUpdatedFeeds = async (
   loadedFeeds: Feeds,
   accounts: Accounts,
 ) => {
-  // contruct a list of replies already loaded to remove them from buffered feeds
-  const updatedFeedsReplies: { [feedName: string]: { [replyCid: string]: any } } = {};
-  for (const feedName in updatedFeeds) {
-    updatedFeedsReplies[feedName] = {};
-    for (const [index, updatedReply] of updatedFeeds[feedName].entries()) {
-      updatedFeedsReplies[feedName][updatedReply.cid] = { index, updatedReply };
-    }
-  }
-
   const newUpdatedFeeds: Feeds = { ...updatedFeeds };
-  for (const feedName in filteredSortedFeeds) {
+  const feedNames = new Set([
+    ...Object.keys(filteredSortedFeeds || {}),
+    ...Object.keys(loadedFeeds || {}),
+    ...Object.keys(updatedFeeds || {}),
+  ]);
+  for (const feedName of feedNames) {
     const plebbit = accounts[feedsOptions[feedName]?.accountId]?.plebbit;
-    const updatedFeed = [...(updatedFeeds[feedName] || [])];
-    const onlyHasNewReplies = updatedFeed.length === 0;
+    const loadedFeed = loadedFeeds[feedName] || [];
+    const previousUpdatedFeed = updatedFeeds[feedName] || [];
+    const updatedFeed = [...loadedFeed];
     let updatedFeedChanged = false;
 
-    // add new replies from loadedFeed replies
-    while (updatedFeed.length < loadedFeeds[feedName].length) {
-      updatedFeed[updatedFeed.length] = loadedFeeds[feedName][updatedFeed.length];
+    // Keep updated feeds in lock-step with loaded feeds so local deletions
+    // (e.g. abandoned pending replies) disappear without requiring a feed reset.
+    if (previousUpdatedFeed.length !== updatedFeed.length) {
       updatedFeedChanged = true;
     }
 
-    // add updated replies from filteredSortedFeed
-    if (!onlyHasNewReplies) {
-      const promises = [];
-      for (const reply of filteredSortedFeeds[feedName]) {
-        if (updatedFeedsReplies[feedName]?.[reply.cid]) {
-          const { index, updatedReply } = updatedFeedsReplies[feedName][reply.cid];
-          promises.push(
-            (async () => {
-              if (
-                (reply.updatedAt || 0) > (updatedReply.updatedAt || 0) &&
-                (await commentIsValid(reply, { validateReplies: false }, plebbit))
-              ) {
-                updatedFeed[index] = reply;
-                updatedFeedChanged = true;
-              }
-            })(),
-          );
-        }
+    const filteredRepliesByCid = new Map<string, Comment>();
+    for (const reply of filteredSortedFeeds[feedName] || []) {
+      if (reply?.cid) {
+        filteredRepliesByCid.set(reply.cid, reply);
       }
-      await Promise.all(promises);
+    }
+
+    for (let i = 0; i < updatedFeed.length; i++) {
+      const loadedReply = updatedFeed[i];
+      if (!loadedReply?.cid) {
+        continue;
+      }
+
+      const previousUpdatedReply = previousUpdatedFeed[i];
+      if (
+        previousUpdatedReply?.cid === loadedReply.cid &&
+        (previousUpdatedReply.updatedAt || 0) > (loadedReply.updatedAt || 0)
+      ) {
+        updatedFeed[i] = previousUpdatedReply;
+        updatedFeedChanged = true;
+      }
+
+      const candidateReply = filteredRepliesByCid.get(loadedReply.cid);
+      if (!candidateReply) {
+        continue;
+      }
+      if ((candidateReply.updatedAt || 0) <= (updatedFeed[i]?.updatedAt || 0)) {
+        continue;
+      }
+      if (!(await commentIsValid(candidateReply, { validateReplies: false }, plebbit))) {
+        continue;
+      }
+      updatedFeed[i] = candidateReply;
+      updatedFeedChanged = true;
     }
 
     if (updatedFeedChanged) {
+      newUpdatedFeeds[feedName] = updatedFeed;
+      continue;
+    }
+
+    if (!updatedFeeds[feedName]) {
       newUpdatedFeeds[feedName] = updatedFeed;
     }
   }
