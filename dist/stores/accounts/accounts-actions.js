@@ -627,7 +627,7 @@ export const publishComment = (publishCommentOptions, accountName) => __awaiter(
     return createdAccountComment;
 });
 export const deleteComment = (commentCidOrAccountCommentIndex, accountName) => __awaiter(void 0, void 0, void 0, function* () {
-    const { accounts, accountsComments, accountNamesToAccountIds, activeAccountId, commentCidsToAccountsComments } = accountsStore.getState();
+    const { accounts, accountsComments, accountNamesToAccountIds, activeAccountId, commentCidsToAccountsComments, } = accountsStore.getState();
     assert(accounts && accountNamesToAccountIds && activeAccountId, `can't use accountsStore.accountActions before initialized`);
     let account = accounts[activeAccountId];
     if (accountName) {

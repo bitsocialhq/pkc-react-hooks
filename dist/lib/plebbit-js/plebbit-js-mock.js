@@ -7,7 +7,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import EventEmitter from 'events';
+import EventEmitter from "events";
 const loadingTime = 10;
 export const simulateLoadingTime = () => new Promise((r) => setTimeout(r, loadingTime));
 // keep a list of created and edited owner subplebbits
@@ -27,20 +27,20 @@ export class Plebbit extends EventEmitter {
         super(...arguments);
         this.clients = {
             plebbitRpcClients: {
-                'http://localhost:9138': new PlebbitRpcClient(),
+                "http://localhost:9138": new PlebbitRpcClient(),
             },
         };
     }
     resolveAuthorAddress(options) {
         return __awaiter(this, void 0, void 0, function* () {
-            return 'resolved author address';
+            return "resolved author address";
         });
     }
     createSigner() {
         return __awaiter(this, void 0, void 0, function* () {
             return {
-                privateKey: 'private key',
-                address: 'address',
+                privateKey: "private key",
+                address: "address",
             };
         });
     }
@@ -50,17 +50,20 @@ export class Plebbit extends EventEmitter {
                 createSubplebbitOptions = {};
             }
             // no address provided so probably a user creating an owner subplebbit
-            if (!createSubplebbitOptions.address && !createdOwnerSubplebbits[createSubplebbitOptions.address]) {
-                createSubplebbitOptions = Object.assign(Object.assign({}, createSubplebbitOptions), { address: 'created subplebbit address' });
+            if (!createSubplebbitOptions.address &&
+                !createdOwnerSubplebbits[createSubplebbitOptions.address]) {
+                createSubplebbitOptions = Object.assign(Object.assign({}, createSubplebbitOptions), { address: "created subplebbit address" });
                 // createdSubplebbitAddresses.push('created subplebbit address')
                 createdOwnerSubplebbits[createSubplebbitOptions.address] = Object.assign({}, createSubplebbitOptions);
             }
             // only address provided, so could be a previously created owner subplebbit
             // add props from previously created sub
-            else if (createdOwnerSubplebbits[createSubplebbitOptions.address] && JSON.stringify(Object.keys(createSubplebbitOptions)) === '["address"]') {
+            else if (createdOwnerSubplebbits[createSubplebbitOptions.address] &&
+                JSON.stringify(Object.keys(createSubplebbitOptions)) === '["address"]') {
                 for (const prop in createdOwnerSubplebbits[createSubplebbitOptions.address]) {
                     if (createdOwnerSubplebbits[createSubplebbitOptions.address][prop]) {
-                        createSubplebbitOptions[prop] = createdOwnerSubplebbits[createSubplebbitOptions.address][prop];
+                        createSubplebbitOptions[prop] =
+                            createdOwnerSubplebbits[createSubplebbitOptions.address][prop];
                     }
                 }
             }
@@ -68,7 +71,8 @@ export class Plebbit extends EventEmitter {
             if (editedOwnerSubplebbits[createSubplebbitOptions.address]) {
                 for (const prop in editedOwnerSubplebbits[createSubplebbitOptions.address]) {
                     if (editedOwnerSubplebbits[createSubplebbitOptions.address][prop]) {
-                        createSubplebbitOptions[prop] = editedOwnerSubplebbits[createSubplebbitOptions.address][prop];
+                        createSubplebbitOptions[prop] =
+                            editedOwnerSubplebbits[createSubplebbitOptions.address][prop];
                     }
                 }
             }
@@ -81,24 +85,30 @@ export class Plebbit extends EventEmitter {
             yield simulateLoadingTime();
             const createSubplebbitOptions = { address };
             const subplebbit = new Subplebbit(createSubplebbitOptions);
-            subplebbit.title = subplebbit.address + ' title';
-            const hotPageCid = subplebbit.address + ' page cid hot';
+            subplebbit.title = subplebbit.address + " title";
+            const hotPageCid = subplebbit.address + " page cid hot";
             subplebbit.posts.pages.hot = subplebbit.posts.pageToGet(hotPageCid);
             subplebbit.posts.pageCids = {
                 hot: hotPageCid,
-                topAll: subplebbit.address + ' page cid topAll',
-                new: subplebbit.address + ' page cid new',
-                active: subplebbit.address + ' page cid active',
+                topAll: subplebbit.address + " page cid topAll",
+                new: subplebbit.address + " page cid new",
+                active: subplebbit.address + " page cid active",
             };
             subplebbit.modQueue.pageCids = {
-                pendingApproval: subplebbit.address + ' page cid pendingApproval',
+                pendingApproval: subplebbit.address + " page cid pendingApproval",
             };
             return subplebbit;
         });
     }
     // TODO: implement event subplebbitschange
     get subplebbits() {
-        return [...new Set(['list subplebbit address 1', 'list subplebbit address 2', ...Object.keys(createdOwnerSubplebbits)])];
+        return [
+            ...new Set([
+                "list subplebbit address 1",
+                "list subplebbit address 2",
+                ...Object.keys(createdOwnerSubplebbits),
+            ]),
+        ];
     }
     createComment(createCommentOptions) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -146,7 +156,7 @@ export class Plebbit extends EventEmitter {
     fetchCid(options) {
         return __awaiter(this, void 0, void 0, function* () {
             const cid = options === null || options === void 0 ? void 0 : options.cid;
-            if (cid === null || cid === void 0 ? void 0 : cid.startsWith('statscid')) {
+            if (cid === null || cid === void 0 ? void 0 : cid.startsWith("statscid")) {
                 return JSON.stringify({ hourActiveUserCount: 1 });
             }
             throw Error(`plebbit.fetchCid not implemented in plebbit-js mock for cid '${cid}'`);
@@ -165,20 +175,20 @@ export class Plebbit extends EventEmitter {
 class PlebbitRpcClient extends EventEmitter {
     constructor() {
         super();
-        this.state = 'connecting';
+        this.state = "connecting";
         this.settings = undefined;
         // simulate connecting to the rpc
         setTimeout(() => {
-            this.state = 'connected';
+            this.state = "connected";
             this.settings = { challenges: {} };
-            this.emit('statechange', this.state);
-            this.emit('settingschange', this.settings);
+            this.emit("statechange", this.state);
+            this.emit("settingschange", this.settings);
         }, 10);
     }
     setSettings(settings) {
         return __awaiter(this, void 0, void 0, function* () {
             this.settings = settings;
-            this.emit('settingschange', this.settings);
+            this.emit("settingschange", this.settings);
         });
     }
 }
@@ -186,8 +196,11 @@ export class Pages {
     constructor(pagesOptions) {
         this.pageCids = {};
         this.pages = {};
-        Object.defineProperty(this, 'subplebbit', { value: pagesOptions === null || pagesOptions === void 0 ? void 0 : pagesOptions.subplebbit, enumerable: false });
-        Object.defineProperty(this, 'comment', { value: pagesOptions === null || pagesOptions === void 0 ? void 0 : pagesOptions.comment, enumerable: false });
+        Object.defineProperty(this, "subplebbit", {
+            value: pagesOptions === null || pagesOptions === void 0 ? void 0 : pagesOptions.subplebbit,
+            enumerable: false,
+        });
+        Object.defineProperty(this, "comment", { value: pagesOptions === null || pagesOptions === void 0 ? void 0 : pagesOptions.comment, enumerable: false });
     }
     getPage(options) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -205,7 +218,7 @@ export class Pages {
         var _a, _b;
         const subplebbitAddress = ((_a = this.subplebbit) === null || _a === void 0 ? void 0 : _a.address) || ((_b = this.comment) === null || _b === void 0 ? void 0 : _b.subplebbitAddress);
         const page = {
-            nextCid: subplebbitAddress + ' ' + pageCid + ' - next page cid',
+            nextCid: subplebbitAddress + " " + pageCid + " - next page cid",
             comments: [],
         };
         const postCount = 100;
@@ -213,12 +226,12 @@ export class Pages {
         while (index++ < postCount) {
             page.comments.push({
                 timestamp: index,
-                cid: pageCid + ' comment cid ' + index,
+                cid: pageCid + " comment cid " + index,
                 subplebbitAddress,
                 upvoteCount: index,
                 downvoteCount: 10,
                 author: {
-                    address: pageCid + ' author address ' + index,
+                    address: pageCid + " author address " + index,
                 },
                 updatedAt: index,
             });
@@ -236,9 +249,9 @@ export class Subplebbit extends EventEmitter {
         this.address = createSubplebbitOptions === null || createSubplebbitOptions === void 0 ? void 0 : createSubplebbitOptions.address;
         this.title = createSubplebbitOptions === null || createSubplebbitOptions === void 0 ? void 0 : createSubplebbitOptions.title;
         this.description = createSubplebbitOptions === null || createSubplebbitOptions === void 0 ? void 0 : createSubplebbitOptions.description;
-        this.statsCid = 'statscid';
-        this.state = 'stopped';
-        this.updatingState = 'stopped';
+        this.statsCid = "statscid";
+        this.state = "stopped";
+        this.updatingState = "stopped";
         this.updatedAt = createSubplebbitOptions === null || createSubplebbitOptions === void 0 ? void 0 : createSubplebbitOptions.updatedAt;
         this.posts = new Pages({ subplebbit: this });
         // add subplebbit.posts from createSubplebbitOptions
@@ -262,7 +275,7 @@ export class Subplebbit extends EventEmitter {
         return __awaiter(this, void 0, void 0, function* () {
             this.updateCalledTimes++;
             if (this.updateCalledTimes > 1) {
-                throw Error('with the current hooks, subplebbit.update() should be called maximum 1 times, this number might change if the hooks change and is only there to catch bugs, the real comment.update() can be called infinite times');
+                throw Error("with the current hooks, subplebbit.update() should be called maximum 1 times, this number might change if the hooks change and is only there to catch bugs, the real comment.update() can be called infinite times");
             }
             if (!this.address) {
                 throw Error(`can't update without subplebbit.address`);
@@ -272,10 +285,10 @@ export class Subplebbit extends EventEmitter {
                 return;
             }
             this.updating = true;
-            this.state = 'updating';
-            this.updatingState = 'fetching-ipns';
-            this.emit('statechange', 'updating');
-            this.emit('updatingstatechange', 'fetching-ipns');
+            this.state = "updating";
+            this.updatingState = "fetching-ipns";
+            this.emit("statechange", "updating");
+            this.emit("updatingstatechange", "fetching-ipns");
             simulateLoadingTime().then(() => {
                 this.simulateUpdateEvent();
             });
@@ -294,37 +307,37 @@ export class Subplebbit extends EventEmitter {
             this.simulateFirstUpdateEvent();
             return;
         }
-        this.description = this.address + ' description updated';
+        this.description = this.address + " description updated";
         // @ts-ignore
         this.updatedAt = this.updatedAt + 1;
-        this.updatingState = 'succeeded';
-        this.emit('update', this);
-        this.emit('updatingstatechange', 'succeeded');
+        this.updatingState = "succeeded";
+        this.emit("update", this);
+        this.emit("updatingstatechange", "succeeded");
     }
     // the first update event adds all the field from getSubplebbit
     simulateFirstUpdateEvent() {
         return __awaiter(this, void 0, void 0, function* () {
             this.firstUpdate = false;
             this.updatedAt = Math.floor(Date.now() / 1000);
-            this.title = this.address + ' title';
-            const hotPageCid = this.address + ' page cid hot';
+            this.title = this.address + " title";
+            const hotPageCid = this.address + " page cid hot";
             this.posts.pages.hot = this.posts.pageToGet(hotPageCid);
             this.posts.pageCids = {
                 hot: hotPageCid,
-                topAll: this.address + ' page cid topAll',
-                new: this.address + ' page cid new',
-                active: this.address + ' page cid active',
+                topAll: this.address + " page cid topAll",
+                new: this.address + " page cid new",
+                active: this.address + " page cid active",
             };
             this.modQueue.pageCids = {
-                pendingApproval: this.address + ' page cid pendingApproval',
+                pendingApproval: this.address + " page cid pendingApproval",
             };
             // simulate the ipns update
-            this.updatingState = 'succeeded';
-            this.emit('update', this);
-            this.emit('updatingstatechange', 'succeeded');
+            this.updatingState = "succeeded";
+            this.emit("update", this);
+            this.emit("updatingstatechange", "succeeded");
             // simulate the next update
-            this.updatingState = 'fetching-ipns';
-            this.emit('updatingstatechange', 'fetching-ipns');
+            this.updatingState = "fetching-ipns";
+            this.emit("updatingstatechange", "fetching-ipns");
             simulateLoadingTime().then(() => {
                 this.simulateUpdateEvent();
             });
@@ -340,7 +353,7 @@ export class Subplebbit extends EventEmitter {
     }
     edit(editSubplebbitOptions) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this.address || typeof this.address !== 'string') {
+            if (!this.address || typeof this.address !== "string") {
                 throw Error(`can't subplebbit.edit with no subplebbit.address`);
             }
             const previousAddress = this.address;
@@ -375,7 +388,7 @@ export class Subplebbit extends EventEmitter {
     }
 }
 // make roles enumarable so it acts like a regular prop
-Object.defineProperty(Subplebbit.prototype, 'roles', { enumerable: true });
+Object.defineProperty(Subplebbit.prototype, "roles", { enumerable: true });
 let challengeRequestCount = 0;
 let challengeAnswerCount = 0;
 class Publication extends EventEmitter {
@@ -386,32 +399,32 @@ class Publication extends EventEmitter {
     }
     publish() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.state = 'publishing';
-            this.publishingState = 'publishing-challenge-request';
-            this.emit('statechange', 'publishing');
-            this.emit('publishingstatechange', 'publishing-challenge-request');
+            this.state = "publishing";
+            this.publishingState = "publishing-challenge-request";
+            this.emit("statechange", "publishing");
+            this.emit("publishingstatechange", "publishing-challenge-request");
             yield simulateLoadingTime();
             this.simulateChallengeEvent();
         });
     }
     simulateChallengeEvent() {
-        this.publishingState = 'waiting-challenge-answers';
-        this.emit('publishingstatechange', 'waiting-challenge-answers');
-        const challenge = { type: 'text', challenge: '2+2=?' };
+        this.publishingState = "waiting-challenge-answers";
+        this.emit("publishingstatechange", "waiting-challenge-answers");
+        const challenge = { type: "text", challenge: "2+2=?" };
         const challengeMessage = {
-            type: 'CHALLENGE',
+            type: "CHALLENGE",
             challengeRequestId: this.challengeRequestId,
             challenges: [challenge],
         };
-        this.emit('challenge', challengeMessage, this);
+        this.emit("challenge", challengeMessage, this);
     }
     publishChallengeAnswers(challengeAnswers) {
         return __awaiter(this, void 0, void 0, function* () {
-            this.publishingState = 'publishing-challenge-answer';
-            this.emit('publishingstatechange', 'publishing-challenge-answer');
+            this.publishingState = "publishing-challenge-answer";
+            this.emit("publishingstatechange", "publishing-challenge-answer");
             yield simulateLoadingTime();
-            this.publishingState = 'waiting-challenge-verification';
-            this.emit('publishingstatechange', 'waiting-challenge-verification');
+            this.publishingState = "waiting-challenge-verification";
+            this.emit("publishingstatechange", "waiting-challenge-verification");
             yield simulateLoadingTime();
             this.simulateChallengeVerificationEvent();
         });
@@ -421,22 +434,22 @@ class Publication extends EventEmitter {
         this.cid = this.content && `${this.content} cid`;
         const commentUpdate = this.cid && { cid: this.cid };
         const challengeVerificationMessage = {
-            type: 'CHALLENGEVERIFICATION',
+            type: "CHALLENGEVERIFICATION",
             challengeRequestId: this.challengeRequestId,
             challengeAnswerId: this.challengeAnswerId,
             challengeSuccess: true,
             commentUpdate,
         };
-        this.emit('challengeverification', challengeVerificationMessage, this);
-        this.publishingState = 'succeeded';
-        this.emit('publishingstatechange', 'succeeded');
+        this.emit("challengeverification", challengeVerificationMessage, this);
+        this.publishingState = "succeeded";
+        this.emit("publishingstatechange", "succeeded");
     }
     stop() {
-        if (this.state === 'publishing' || this.publishingState !== 'stopped') {
-            this.state = 'stopped';
-            this.publishingState = 'stopped';
-            this.emit('statechange', 'stopped');
-            this.emit('publishingstatechange', 'stopped');
+        if (this.state === "publishing" || this.publishingState !== "stopped") {
+            this.state = "stopped";
+            this.publishingState = "stopped";
+            this.emit("statechange", "stopped");
+            this.emit("publishingstatechange", "stopped");
         }
     }
 }
@@ -454,9 +467,9 @@ export class Comment extends Publication {
         this.timestamp = createCommentOptions === null || createCommentOptions === void 0 ? void 0 : createCommentOptions.timestamp;
         this.parentCid = createCommentOptions === null || createCommentOptions === void 0 ? void 0 : createCommentOptions.parentCid;
         this.subplebbitAddress = createCommentOptions === null || createCommentOptions === void 0 ? void 0 : createCommentOptions.subplebbitAddress;
-        this.state = 'stopped';
-        this.updatingState = 'stopped';
-        this.publishingState = 'stopped';
+        this.state = "stopped";
+        this.updatingState = "stopped";
+        this.publishingState = "stopped";
         if ((_a = createCommentOptions === null || createCommentOptions === void 0 ? void 0 : createCommentOptions.author) === null || _a === void 0 ? void 0 : _a.address) {
             this.author.shortAddress = `short ${createCommentOptions.author.address}`;
         }
@@ -473,17 +486,17 @@ export class Comment extends Publication {
         return __awaiter(this, void 0, void 0, function* () {
             this.updateCalledTimes++;
             if (this.updateCalledTimes > 2) {
-                throw Error('with the current hooks, comment.update() should be called maximum 2 times, this number might change if the hooks change and is only there to catch bugs, the real comment.update() can be called infinite times');
+                throw Error("with the current hooks, comment.update() should be called maximum 2 times, this number might change if the hooks change and is only there to catch bugs, the real comment.update() can be called infinite times");
             }
             // don't update twice
             if (this.updating) {
                 return;
             }
             this.updating = true;
-            this.state = 'updating';
-            this.updatingState = 'fetching-ipfs';
-            this.emit('statechange', 'updating');
-            this.emit('updatingstatechange', 'fetching-ipfs');
+            this.state = "updating";
+            this.updatingState = "fetching-ipfs";
+            this.emit("statechange", "updating");
+            this.emit("updatingstatechange", "fetching-ipfs");
             simulateLoadingTime().then(() => {
                 this.simulateUpdateEvent();
             });
@@ -496,26 +509,26 @@ export class Comment extends Publication {
             return;
         }
         // simulate finding vote counts on an IPNS record
-        this.upvoteCount = typeof this.upvoteCount === 'number' ? this.upvoteCount + 2 : 3;
-        this.downvoteCount = typeof this.downvoteCount === 'number' ? this.downvoteCount + 1 : 1;
+        this.upvoteCount = typeof this.upvoteCount === "number" ? this.upvoteCount + 2 : 3;
+        this.downvoteCount = typeof this.downvoteCount === "number" ? this.downvoteCount + 1 : 1;
         this.updatedAt = Math.floor(Date.now() / 1000);
-        this.updatingState = 'succeeded';
-        this.emit('update', this);
-        this.emit('updatingstatechange', 'succeeded');
+        this.updatingState = "succeeded";
+        this.emit("update", this);
+        this.emit("updatingstatechange", "succeeded");
     }
     simulateFetchCommentIpfsUpdateEvent() {
         return __awaiter(this, void 0, void 0, function* () {
             // use plebbit.getComment() so mocking Plebbit.prototype.getComment works
-            const commentIpfs = yield new Plebbit().getComment({ cid: this.cid || '' });
+            const commentIpfs = yield new Plebbit().getComment({ cid: this.cid || "" });
             this.content = commentIpfs.content;
             this.author = commentIpfs.author;
             this.timestamp = commentIpfs.timestamp;
             this.parentCid = commentIpfs.parentCid;
             this.subplebbitAddress = commentIpfs.subplebbitAddress;
             // simulate the ipns update
-            this.updatingState = 'fetching-update-ipns';
-            this.emit('update', this);
-            this.emit('updatingstatechange', 'fetching-update-ipns');
+            this.updatingState = "fetching-update-ipns";
+            this.emit("update", this);
+            this.emit("updatingstatechange", "fetching-update-ipns");
             simulateLoadingTime().then(() => {
                 this.simulateUpdateEvent();
             });
@@ -535,7 +548,7 @@ const createPlebbit = (...args) => __awaiter(void 0, void 0, void 0, function* (
 });
 createPlebbit.getShortAddress = (options) => {
     const address = options === null || options === void 0 ? void 0 : options.address;
-    if (address.includes('.')) {
+    if (address.includes(".")) {
         return address;
     }
     return address.substring(2, 14);

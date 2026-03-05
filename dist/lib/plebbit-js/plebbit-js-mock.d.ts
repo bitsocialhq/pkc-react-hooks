@@ -1,4 +1,4 @@
-import EventEmitter from 'events';
+import EventEmitter from "events";
 export declare const simulateLoadingTime: () => Promise<unknown>;
 export declare const resetPlebbitJsMock: () => void;
 export declare const debugPlebbitJsMock: () => void;
@@ -31,7 +31,7 @@ export declare class Plebbit extends EventEmitter {
     pubsubUnsubscribe(subplebbitAddress: string): Promise<void>;
     clients: {
         plebbitRpcClients: {
-            'http://localhost:9138': PlebbitRpcClient;
+            "http://localhost:9138": PlebbitRpcClient;
         };
     };
     validateComment(comment: any, validateCommentOptions: any): Promise<void>;

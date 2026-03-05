@@ -1,42 +1,42 @@
-import polyfill from './lib/polyfill';
+import polyfill from "./lib/polyfill";
 polyfill();
 // fix DEBUG_DEPTH bug https://github.com/debug-js/debug/issues/746
 try {
     if (process.env.DEBUG_DEPTH) {
-        require('util').inspect.defaultOptions.depth = process.env.DEBUG_DEPTH;
+        require("util").inspect.defaultOptions.depth = process.env.DEBUG_DEPTH;
     }
     if (process.env.DEBUG_ARRAY) {
-        require('util').inspect.defaultOptions.maxArrayLength = process.env.DEBUG_ARRAY;
+        require("util").inspect.defaultOptions.maxArrayLength = process.env.DEBUG_ARRAY;
     }
 }
 catch (e) { }
 // accounts
-import { useAccount, useAccounts, useAccountComment, useAccountComments, useAccountVotes, useAccountVote, useAccountEdits, useEditedComment, useNotifications, useAccountSubplebbits, usePubsubSubscribe, } from './hooks/accounts';
+import { useAccount, useAccounts, useAccountComment, useAccountComments, useAccountVotes, useAccountVote, useAccountEdits, useEditedComment, useNotifications, useAccountSubplebbits, usePubsubSubscribe, } from "./hooks/accounts";
 // comments
-import { useComment, useComments, useValidateComment } from './hooks/comments';
+import { useComment, useComments, useValidateComment } from "./hooks/comments";
 // replies
-import { useReplies } from './hooks/replies';
+import { useReplies } from "./hooks/replies";
 // subplebbits
-import { useSubplebbit, useSubplebbits, useSubplebbitStats, useResolvedSubplebbitAddress } from './hooks/subplebbits';
+import { useSubplebbit, useSubplebbits, useSubplebbitStats, useResolvedSubplebbitAddress, } from "./hooks/subplebbits";
 // feeds
-import { useFeed, useBufferedFeeds } from './hooks/feeds';
+import { useFeed, useBufferedFeeds } from "./hooks/feeds";
 // authors
-import { useAuthor, useAuthorComments, useAuthorAvatar, useResolvedAuthorAddress, useAuthorAddress, setAuthorAvatarsWhitelistedTokenAddresses } from './hooks/authors';
+import { useAuthor, useAuthorComments, useAuthorAvatar, useResolvedAuthorAddress, useAuthorAddress, setAuthorAvatarsWhitelistedTokenAddresses, } from "./hooks/authors";
 // actions
-import { useSubscribe, useBlock, usePublishComment, usePublishVote, useCreateSubplebbit, usePublishCommentEdit, usePublishCommentModeration, usePublishSubplebbitEdit, } from './hooks/actions';
+import { useSubscribe, useBlock, usePublishComment, usePublishVote, useCreateSubplebbit, usePublishCommentEdit, usePublishCommentModeration, usePublishSubplebbitEdit, } from "./hooks/actions";
 // actions that don't have their own hooks yet
-import { createAccount, deleteAccount, deleteComment, setAccount, setActiveAccount, setAccountsOrder, importAccount, exportAccount, deleteSubplebbit, } from './stores/accounts/accounts-actions';
+import { createAccount, deleteAccount, deleteComment, setAccount, setActiveAccount, setAccountsOrder, importAccount, exportAccount, deleteSubplebbit, } from "./stores/accounts/accounts-actions";
 // states
-import { useClientsStates, useSubplebbitsStates } from './hooks/states';
+import { useClientsStates, useSubplebbitsStates } from "./hooks/states";
 // plebbit-rpc
-import { usePlebbitRpcSettings } from './hooks/plebbit-rpc';
+import { usePlebbitRpcSettings } from "./hooks/plebbit-rpc";
 // chain
-import { getEthWalletFromPlebbitPrivateKey, getSolWalletFromPlebbitPrivateKey, getEthPrivateKeyFromPlebbitPrivateKey, getSolPrivateKeyFromPlebbitPrivateKey, validateEthWallet, validateSolWallet, } from './lib/chain';
+import { getEthWalletFromPlebbitPrivateKey, getSolWalletFromPlebbitPrivateKey, getEthPrivateKeyFromPlebbitPrivateKey, getSolPrivateKeyFromPlebbitPrivateKey, validateEthWallet, validateSolWallet, } from "./lib/chain";
 // utils
-import { setPlebbitJs, restorePlebbitJs } from './lib/plebbit-js';
-import { deleteDatabases, deleteCaches } from './lib/debug-utils';
+import { setPlebbitJs, restorePlebbitJs } from "./lib/plebbit-js";
+import { deleteDatabases, deleteCaches } from "./lib/debug-utils";
 // types
-export * from './types';
+export * from "./types";
 // IMPORTANT: should be the same as 'export default hooks'
 export { 
 // accounts
