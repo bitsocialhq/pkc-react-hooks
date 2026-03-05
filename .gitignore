@@ -24,7 +24,12 @@ packages/example/.next/
 yarn-error.log
 .env
 
+# agent files
 .cursor
+.codex
 
 # generated browser test screenshots
 test/**/__screenshots__/
+
+# macOS specific files
+.DS_Store
