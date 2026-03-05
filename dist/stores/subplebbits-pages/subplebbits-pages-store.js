@@ -20,6 +20,8 @@ const subplebbitsPagesDatabase = localForageLru.createInstance({
     name: "plebbitReactHooks-subplebbitsPages",
     size: 500,
 });
+/** Freshness for comparison: max(updatedAt, timestamp, 0). Used to decide add vs replace per CID. */
+const getCommentFreshness = (comment) => { var _a, _b; return Math.max((_a = comment === null || comment === void 0 ? void 0 : comment.updatedAt) !== null && _a !== void 0 ? _a : 0, (_b = comment === null || comment === void 0 ? void 0 : comment.timestamp) !== null && _b !== void 0 ? _b : 0, 0); };
 // reset all event listeners in between tests
 export const listeners = [];
 const subplebbitsPagesStore = createStore((setState, getState) => ({
@@ -27,7 +29,7 @@ const subplebbitsPagesStore = createStore((setState, getState) => ({
     subplebbitsPages: {},
     comments: {},
     addNextSubplebbitPageToStore: (subplebbit, sortType, account, modQueue) => __awaiter(void 0, void 0, void 0, function* () {
-        var _a, _b, _c;
+        var _a, _b;
         assert((subplebbit === null || subplebbit === void 0 ? void 0 : subplebbit.address) && typeof (subplebbit === null || subplebbit === void 0 ? void 0 : subplebbit.address) === "string", `subplebbitsPagesStore.addNextSubplebbitPageToStore subplebbit '${subplebbit}' invalid`);
         assert(sortType && typeof sortType === "string", `subplebbitsPagesStore.addNextSubplebbitPageToStore sortType '${sortType}' invalid`);
         assert(typeof ((_a = account === null || account === void 0 ? void 0 : account.plebbit) === null || _a === void 0 ? void 0 : _a.createSubplebbit) === "function", `subplebbitsPagesStore.addNextSubplebbitPageToStore account '${account}' invalid`);
@@ -97,7 +99,9 @@ const subplebbitsPagesStore = createStore((setState, getState) => ({
         let hasNewComments = false;
         const newComments = {};
         for (const comment of flattenedComments) {
-            if (comment.cid && (comment.updatedAt || 0) > (((_c = comments[comment.cid]) === null || _c === void 0 ? void 0 : _c.updatedAt) || 0)) {
+            const existing = comments[comment.cid];
+            if (comment.cid &&
+                (!existing || getCommentFreshness(comment) > getCommentFreshness(existing))) {
                 // don't clone the comment to save memory, comments remain a pointer to the page object
                 newComments[comment.cid] = comment;
                 hasNewComments = true;
@@ -129,7 +133,7 @@ const subplebbitsPagesStore = createStore((setState, getState) => ({
     }),
     // subplebbits contain preloaded pages, those page comments must be added separately
     addSubplebbitPageCommentsToStore: (subplebbit) => {
-        var _a, _b;
+        var _a;
         if (!((_a = subplebbit.posts) === null || _a === void 0 ? void 0 : _a.pages)) {
             return;
         }
@@ -139,7 +143,9 @@ const subplebbitsPagesStore = createStore((setState, getState) => ({
         let hasNewComments = false;
         const newComments = {};
         for (const comment of flattenedComments) {
-            if (comment.cid && (comment.updatedAt || 0) > (((_b = comments[comment.cid]) === null || _b === void 0 ? void 0 : _b.updatedAt) || 0)) {
+            const existing = comments[comment.cid];
+            if (comment.cid &&
+                (!existing || getCommentFreshness(comment) > getCommentFreshness(existing))) {
                 // don't clone the comment to save memory, comments remain a pointer to the page object
                 newComments[comment.cid] = comment;
                 hasNewComments = true;

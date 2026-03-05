@@ -10,12 +10,26 @@ import { commentIsValid } from "../lib/utils";
 import useSubplebbitsPagesStore from "../stores/subplebbits-pages";
 import useRepliesPagesStore from "../stores/replies-pages";
 import shallow from "zustand/shallow";
+function getCommentFreshness(comment) {
+    var _a, _b;
+    if (!comment)
+        return 0;
+    return Math.max((_a = comment.updatedAt) !== null && _a !== void 0 ? _a : 0, (_b = comment.timestamp) !== null && _b !== void 0 ? _b : 0, 0);
+}
+function preferFresher(current, candidate) {
+    if (!candidate)
+        return current;
+    if (!current)
+        return candidate;
+    return getCommentFreshness(candidate) > getCommentFreshness(current) ? candidate : current;
+}
 /**
  * @param commentCid - The IPFS CID of the comment to get
  * @param acountName - The nickname of the account, e.g. 'Account 1'. If no accountName is provided, use
  * the active account.
  */
 export function useComment(options) {
+    var _a, _b;
     assert(!options || typeof options === "object", `useComment options argument '${options}' not an object`);
     const { commentCid, accountName, onlyIfCached } = options || {};
     const account = useAccount({ accountName });
@@ -41,14 +55,14 @@ export function useComment(options) {
         }
     }, [commentCid, account === null || account === void 0 ? void 0 : account.id, onlyIfCached]);
     let comment = commentFromStore;
-    // if comment from subplebbit pages is more recent, use it instead
-    if (commentCid && ((subplebbitsPagesComment === null || subplebbitsPagesComment === void 0 ? void 0 : subplebbitsPagesComment.updatedAt) || 0) > ((comment === null || comment === void 0 ? void 0 : comment.updatedAt) || 0)) {
-        comment = subplebbitsPagesComment;
+    // if comment from subplebbit pages exists and is fresher (or current missing), use it instead
+    if (commentCid && subplebbitsPagesComment) {
+        comment = (_a = preferFresher(comment, subplebbitsPagesComment)) !== null && _a !== void 0 ? _a : comment;
         // TODO: subplebbit pages comments aren't auto validated, need to validate
     }
-    // if comment from replies pages is more recent, use it instead
-    if (commentCid && ((repliesPagesComment === null || repliesPagesComment === void 0 ? void 0 : repliesPagesComment.updatedAt) || 0) > ((comment === null || comment === void 0 ? void 0 : comment.updatedAt) || 0)) {
-        comment = repliesPagesComment;
+    // if comment from replies pages exists and is fresher (or current missing), use it instead
+    if (commentCid && repliesPagesComment) {
+        comment = (_b = preferFresher(comment, repliesPagesComment)) !== null && _b !== void 0 ? _b : comment;
         // TODO: replies pages comments aren't auto validated, need to validate
     }
     // if comment is still not defined, but account comment is, use account comment
@@ -127,13 +141,14 @@ export function useComments(options) {
             account,
         });
     }
-    // if comment from subplebbit pages is more recent, use it instead
+    // if comment from subplebbit pages exists and is fresher (or current missing), use it instead
     const comments = useMemo(() => {
-        var _a, _b;
+        var _a;
         const comments = [...commentsStoreComments];
         for (const i in comments) {
-            if ((((_a = subplebbitsPagesComments[i]) === null || _a === void 0 ? void 0 : _a.updatedAt) || 0) > (((_b = comments[i]) === null || _b === void 0 ? void 0 : _b.updatedAt) || 0)) {
-                comments[i] = subplebbitsPagesComments[i];
+            const candidate = subplebbitsPagesComments[i];
+            if (candidate) {
+                comments[i] = (_a = preferFresher(comments[i], candidate)) !== null && _a !== void 0 ? _a : comments[i];
             }
         }
         return comments;

@@ -28,7 +28,7 @@ const repliesPagesStore = createStore((setState, getState) => ({
     repliesPages: {},
     comments: {},
     addNextRepliesPageToStore: (comment, sortType, account) => __awaiter(void 0, void 0, void 0, function* () {
-        var _a, _b, _c;
+        var _a, _b;
         assert((comment === null || comment === void 0 ? void 0 : comment.cid) && typeof (comment === null || comment === void 0 ? void 0 : comment.cid) === "string", `repliesPagesStore.addNextRepliesPageToStore comment '${comment}' invalid`);
         assert(sortType && typeof sortType === "string", `repliesPagesStore.addNextRepliesPageToStore sortType '${sortType}' invalid`);
         assert(typeof ((_a = account === null || account === void 0 ? void 0 : account.plebbit) === null || _a === void 0 ? void 0 : _a.createSubplebbit) === "function", `repliesPagesStore.addNextRepliesPageToStore account '${account}' invalid`);
@@ -87,13 +87,20 @@ const repliesPagesStore = createStore((setState, getState) => ({
         if (!page) {
             return;
         }
-        // find new comments in the page
+        // find new comments in the page (missing-or-fresher: insert when absent or incoming is fresher)
         const flattenedComments = utils.flattenCommentsPages(page);
         const { comments } = getState();
         let hasNewComments = false;
         const newComments = {};
         for (const comment of flattenedComments) {
-            if (comment.cid && (comment.updatedAt || 0) > (((_c = comments[comment.cid]) === null || _c === void 0 ? void 0 : _c.updatedAt) || 0)) {
+            if (!comment.cid)
+                continue;
+            const existing = comments[comment.cid];
+            const incomingFresh = Math.max(comment.updatedAt || 0, comment.timestamp || 0, 0);
+            const existingFresh = existing
+                ? Math.max(existing.updatedAt || 0, existing.timestamp || 0, 0)
+                : -1;
+            if (!existing || incomingFresh > existingFresh) {
                 // don't clone the comment to save memory, comments remain a pointer to the page object
                 newComments[comment.cid] = comment;
                 hasNewComments = true;
@@ -130,19 +137,26 @@ const repliesPagesStore = createStore((setState, getState) => ({
     }),
     // comments contain preloaded pages, those page comments must be added separately
     addRepliesPageCommentsToStore: (comment) => {
-        var _a, _b;
+        var _a;
         if (!((_a = comment.replies) === null || _a === void 0 ? void 0 : _a.pages)) {
             return;
         }
-        // find new comments in the page
+        // find new comments in the page (missing-or-fresher: insert when absent or incoming is fresher)
         const flattenedComments = utils.flattenCommentsPages(comment.replies.pages);
         const { comments } = getState();
         let hasNewComments = false;
         const newComments = {};
-        for (const comment of flattenedComments) {
-            if (comment.cid && (comment.updatedAt || 0) > (((_b = comments[comment.cid]) === null || _b === void 0 ? void 0 : _b.updatedAt) || 0)) {
+        for (const c of flattenedComments) {
+            if (!c.cid)
+                continue;
+            const existing = comments[c.cid];
+            const incomingFresh = Math.max(c.updatedAt || 0, c.timestamp || 0, 0);
+            const existingFresh = existing
+                ? Math.max(existing.updatedAt || 0, existing.timestamp || 0, 0)
+                : -1;
+            if (!existing || incomingFresh > existingFresh) {
                 // don't clone the comment to save memory, comments remain a pointer to the page object
-                newComments[comment.cid] = comment;
+                newComments[c.cid] = c;
                 hasNewComments = true;
             }
         }
