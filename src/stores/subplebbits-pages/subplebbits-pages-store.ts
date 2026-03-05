@@ -21,6 +21,10 @@ const subplebbitsPagesDatabase = localForageLru.createInstance({
   size: 500,
 });
 
+/** Freshness for comparison: max(updatedAt, timestamp, 0). Used to decide add vs replace per CID. */
+const getCommentFreshness = (comment: Comment | undefined): number =>
+  Math.max(comment?.updatedAt ?? 0, comment?.timestamp ?? 0, 0);
+
 // reset all event listeners in between tests
 export const listeners: any = [];
 
@@ -132,7 +136,11 @@ const subplebbitsPagesStore = createStore<SubplebbitsPagesState>(
       let hasNewComments = false;
       const newComments: Comments = {};
       for (const comment of flattenedComments) {
-        if (comment.cid && (comment.updatedAt || 0) > (comments[comment.cid]?.updatedAt || 0)) {
+        const existing = comments[comment.cid];
+        if (
+          comment.cid &&
+          (!existing || getCommentFreshness(comment) > getCommentFreshness(existing))
+        ) {
           // don't clone the comment to save memory, comments remain a pointer to the page object
           newComments[comment.cid] = comment;
           hasNewComments = true;
@@ -182,7 +190,11 @@ const subplebbitsPagesStore = createStore<SubplebbitsPagesState>(
       let hasNewComments = false;
       const newComments: Comments = {};
       for (const comment of flattenedComments) {
-        if (comment.cid && (comment.updatedAt || 0) > (comments[comment.cid]?.updatedAt || 0)) {
+        const existing = comments[comment.cid];
+        if (
+          comment.cid &&
+          (!existing || getCommentFreshness(comment) > getCommentFreshness(existing))
+        ) {
           // don't clone the comment to save memory, comments remain a pointer to the page object
           newComments[comment.cid] = comment;
           hasNewComments = true;

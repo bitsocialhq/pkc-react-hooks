@@ -37,3 +37,13 @@ If uncertain, ask the developer before adding an entry.
 - **Impact:** agents may mistake generated screenshots for intended source files or leave noisy untracked changes behind.
 - **Mitigation:** treat `test/**/__screenshots__/` as generated output and keep it gitignored.
 - **Status:** confirmed
+
+### updatedAt-only page comment indexing can drop pending comments
+
+- **Date:** 2026-03-05
+- **Observed by:** agent
+- **Context:** replies-pages and subplebbits-pages stores; indexing comments by `updatedAt` only
+- **What was surprising:** indexing page comments solely by `updatedAt` can drop pending comments that have not yet received an `updatedAt` value.
+- **Impact:** pending comments may be omitted from page results or overwritten.
+- **Mitigation:** use missing-or-fresher logic with timestamp fallback when merging/indexing page comments.
+- **Status:** confirmed

@@ -21,6 +21,20 @@ import useSubplebbitsPagesStore from "../stores/subplebbits-pages";
 import useRepliesPagesStore from "../stores/replies-pages";
 import shallow from "zustand/shallow";
 
+function getCommentFreshness(comment: Comment | undefined): number {
+  if (!comment) return 0;
+  return Math.max(comment.updatedAt ?? 0, comment.timestamp ?? 0, 0);
+}
+
+function preferFresher(
+  current: Comment | undefined,
+  candidate: Comment | undefined,
+): Comment | undefined {
+  if (!candidate) return current;
+  if (!current) return candidate;
+  return getCommentFreshness(candidate) > getCommentFreshness(current) ? candidate : current;
+}
+
 /**
  * @param commentCid - The IPFS CID of the comment to get
  * @param acountName - The nickname of the account, e.g. 'Account 1'. If no accountName is provided, use
@@ -69,15 +83,15 @@ export function useComment(options?: UseCommentOptions): UseCommentResult {
 
   let comment = commentFromStore;
 
-  // if comment from subplebbit pages is more recent, use it instead
-  if (commentCid && (subplebbitsPagesComment?.updatedAt || 0) > (comment?.updatedAt || 0)) {
-    comment = subplebbitsPagesComment;
+  // if comment from subplebbit pages exists and is fresher (or current missing), use it instead
+  if (commentCid && subplebbitsPagesComment) {
+    comment = preferFresher(comment, subplebbitsPagesComment) ?? comment;
     // TODO: subplebbit pages comments aren't auto validated, need to validate
   }
 
-  // if comment from replies pages is more recent, use it instead
-  if (commentCid && (repliesPagesComment?.updatedAt || 0) > (comment?.updatedAt || 0)) {
-    comment = repliesPagesComment;
+  // if comment from replies pages exists and is fresher (or current missing), use it instead
+  if (commentCid && repliesPagesComment) {
+    comment = preferFresher(comment, repliesPagesComment) ?? comment;
     // TODO: replies pages comments aren't auto validated, need to validate
   }
 
@@ -187,12 +201,13 @@ export function useComments(options?: UseCommentsOptions): UseCommentsResult {
     });
   }
 
-  // if comment from subplebbit pages is more recent, use it instead
+  // if comment from subplebbit pages exists and is fresher (or current missing), use it instead
   const comments = useMemo(() => {
     const comments = [...commentsStoreComments];
     for (const i in comments) {
-      if ((subplebbitsPagesComments[i]?.updatedAt || 0) > (comments[i]?.updatedAt || 0)) {
-        comments[i] = subplebbitsPagesComments[i];
+      const candidate = subplebbitsPagesComments[i];
+      if (candidate) {
+        comments[i] = preferFresher(comments[i], candidate) ?? comments[i];
       }
     }
     return comments;

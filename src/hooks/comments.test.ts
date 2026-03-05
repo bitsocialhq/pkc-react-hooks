@@ -237,6 +237,66 @@ describe("comments", () => {
       expect(rendered.result.current.comments[1].replyCount).toBe(100);
     });
 
+    test("useComment returns page-store pending comment when it has no updatedAt (timestamp-only freshness fallback)", async () => {
+      const rendered = renderHook<any, any>((options: any) => useComment(options));
+      const waitFor = testUtils.createWaitFor(rendered);
+
+      const pendingCommentCid = "comment cid 99";
+      const pendingTimestamp = Math.round(Date.now() / 1000) - 60;
+      const pendingComment = {
+        cid: pendingCommentCid,
+        timestamp: pendingTimestamp,
+        replyCount: 42,
+        subplebbitAddress: "subplebbit address 1",
+      };
+      act(() => {
+        subplebbitsPagesStore.setState((state: any) => ({
+          comments: { [pendingCommentCid]: pendingComment },
+        }));
+      });
+
+      rendered.rerender({ commentCid: pendingCommentCid, onlyIfCached: true });
+      await waitFor(() => rendered.result.current.cid === pendingCommentCid);
+      expect(rendered.result.current.cid).toBe(pendingCommentCid);
+      expect(rendered.result.current.replyCount).toBe(42);
+      expect(rendered.result.current.timestamp).toBe(pendingTimestamp);
+      expect(rendered.result.current.updatedAt).toBeUndefined();
+    });
+
+    test("preserve existing fresher comment precedence (no regression)", async () => {
+      const rendered = renderHook<any, any>((commentCid) => useComment({ commentCid }));
+      const waitFor = testUtils.createWaitFor(rendered);
+
+      rendered.rerender("comment cid 1");
+      await waitFor(() => typeof rendered.result.current.cid === "string");
+      await waitFor(
+        () =>
+          typeof rendered.result.current.cid === "string" &&
+          typeof rendered.result.current.upvoteCount === "number",
+      );
+      const mainStoreUpvoteCount = rendered.result.current.upvoteCount;
+      const mainStoreUpdatedAt = rendered.result.current.updatedAt;
+
+      const olderTimestamp = Math.round(Date.now() / 1000) - 3600;
+      const pageStoreComment = {
+        ...rendered.result.current,
+        replyCount: 999,
+        timestamp: olderTimestamp,
+        updatedAt: undefined,
+      };
+      act(() => {
+        subplebbitsPagesStore.setState((state: any) => ({
+          comments: { "comment cid 1": pageStoreComment },
+        }));
+      });
+
+      await new Promise((r) => setTimeout(r, 50));
+      expect(rendered.result.current.cid).toBe("comment cid 1");
+      expect(rendered.result.current.upvoteCount).toBe(mainStoreUpvoteCount);
+      expect(rendered.result.current.updatedAt).toBe(mainStoreUpdatedAt);
+      expect(rendered.result.current.replyCount).not.toBe(999);
+    });
+
     test("has updating state", async () => {
       const rendered = renderHook<any, any>((commentCid) => useComment({ commentCid }));
       const waitFor = testUtils.createWaitFor(rendered);

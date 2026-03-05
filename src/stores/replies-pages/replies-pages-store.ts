@@ -108,13 +108,19 @@ const repliesPagesStore = createStore<RepliesPagesState>(
         return;
       }
 
-      // find new comments in the page
+      // find new comments in the page (missing-or-fresher: insert when absent or incoming is fresher)
       const flattenedComments = utils.flattenCommentsPages(page);
       const { comments } = getState();
       let hasNewComments = false;
       const newComments: Comments = {};
       for (const comment of flattenedComments) {
-        if (comment.cid && (comment.updatedAt || 0) > (comments[comment.cid]?.updatedAt || 0)) {
+        if (!comment.cid) continue;
+        const existing = comments[comment.cid];
+        const incomingFresh = Math.max(comment.updatedAt || 0, comment.timestamp || 0, 0);
+        const existingFresh = existing
+          ? Math.max(existing.updatedAt || 0, existing.timestamp || 0, 0)
+          : -1;
+        if (!existing || incomingFresh > existingFresh) {
           // don't clone the comment to save memory, comments remain a pointer to the page object
           newComments[comment.cid] = comment;
           hasNewComments = true;
@@ -161,15 +167,21 @@ const repliesPagesStore = createStore<RepliesPagesState>(
         return;
       }
 
-      // find new comments in the page
+      // find new comments in the page (missing-or-fresher: insert when absent or incoming is fresher)
       const flattenedComments = utils.flattenCommentsPages(comment.replies.pages);
       const { comments } = getState();
       let hasNewComments = false;
       const newComments: Comments = {};
-      for (const comment of flattenedComments) {
-        if (comment.cid && (comment.updatedAt || 0) > (comments[comment.cid]?.updatedAt || 0)) {
+      for (const c of flattenedComments) {
+        if (!c.cid) continue;
+        const existing = comments[c.cid];
+        const incomingFresh = Math.max(c.updatedAt || 0, c.timestamp || 0, 0);
+        const existingFresh = existing
+          ? Math.max(existing.updatedAt || 0, existing.timestamp || 0, 0)
+          : -1;
+        if (!existing || incomingFresh > existingFresh) {
           // don't clone the comment to save memory, comments remain a pointer to the page object
-          newComments[comment.cid] = comment;
+          newComments[c.cid] = c;
           hasNewComments = true;
         }
       }

@@ -277,4 +277,96 @@ describe("subplebbits pages store", () => {
     // restore mock
     MockPages.prototype.getPage = getPage;
   });
+
+  test("page comments without updatedAt are still indexed on first insert", async () => {
+    const mockSubplebbit = await mockAccount.plebbit.createSubplebbit({
+      address: "subplebbit address 1",
+    });
+    const sortType = "new";
+    const firstPageCid = mockSubplebbit.posts.pageCids[sortType];
+    const commentCid = firstPageCid + " comment-no-updated-at";
+    const getPageOriginal = MockPages.prototype.getPage;
+    MockPages.prototype.getPage = async (options) => {
+      const cid = options?.cid;
+      await sleep(200);
+      return {
+        nextCid: cid + " - next page cid",
+        comments: [
+          {
+            cid: commentCid,
+            timestamp: 100,
+            subplebbitAddress: "subplebbit address 1",
+            // no updatedAt - should still be indexed via max(updatedAt??0, timestamp, 0)
+          },
+        ],
+      };
+    };
+    act(() => {
+      rendered.result.current.addNextSubplebbitPageToStore(mockSubplebbit, sortType, mockAccount);
+    });
+    await waitFor(() => {
+      expect(rendered.result.current.comments[commentCid]).toBeDefined();
+    });
+    expect(rendered.result.current.comments[commentCid].cid).toBe(commentCid);
+    expect(rendered.result.current.comments[commentCid].timestamp).toBe(100);
+    expect(rendered.result.current.comments[commentCid].updatedAt).toBeUndefined();
+    MockPages.prototype.getPage = getPageOriginal;
+  });
+
+  test("existing fresher indexed comment is not overwritten by older/empty-freshness page data", async () => {
+    const mockSubplebbit = await mockAccount.plebbit.createSubplebbit({
+      address: "subplebbit address 2",
+    });
+    const sortType = "new";
+    const firstPageCid = mockSubplebbit.posts.pageCids[sortType];
+    const secondPageCid = firstPageCid + " - next page cid";
+    const sharedCommentCid = "shared-comment-fresher-wins";
+    const getPageOriginal = MockPages.prototype.getPage;
+    MockPages.prototype.getPage = async (options) => {
+      const cid = options?.cid;
+      await sleep(200);
+      if (cid === firstPageCid) {
+        return {
+          nextCid: secondPageCid,
+          comments: [
+            {
+              cid: sharedCommentCid,
+              timestamp: 50,
+              updatedAt: 100,
+              subplebbitAddress: "subplebbit address 2",
+            },
+          ],
+        };
+      }
+      if (cid === secondPageCid) {
+        return {
+          nextCid: secondPageCid + " - next page cid",
+          comments: [
+            {
+              cid: sharedCommentCid,
+              timestamp: 50,
+              updatedAt: 10,
+              subplebbitAddress: "subplebbit address 2",
+            },
+          ],
+        };
+      }
+      return { nextCid: undefined, comments: [] };
+    };
+    act(() => {
+      rendered.result.current.addNextSubplebbitPageToStore(mockSubplebbit, sortType, mockAccount);
+    });
+    await waitFor(() => {
+      expect(rendered.result.current.comments[sharedCommentCid]).toBeDefined();
+    });
+    expect(rendered.result.current.comments[sharedCommentCid].updatedAt).toBe(100);
+    act(() => {
+      rendered.result.current.addNextSubplebbitPageToStore(mockSubplebbit, sortType, mockAccount);
+    });
+    await waitFor(() => {
+      expect(rendered.result.current.subplebbitsPages[secondPageCid]).toBeDefined();
+    });
+    expect(rendered.result.current.comments[sharedCommentCid].updatedAt).toBe(100);
+    MockPages.prototype.getPage = getPageOriginal;
+  });
 });

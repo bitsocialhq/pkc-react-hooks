@@ -273,4 +273,83 @@ describe("replies pages store", () => {
     // restore mock
     MockPages.prototype.getPage = getPage;
   });
+
+  test("page comments without updatedAt are still indexed on first insert", () => {
+    const commentWithoutUpdatedAt = {
+      cid: "no-updated-at-cid",
+      timestamp: 5,
+      subplebbitAddress: "test-sub",
+    };
+    const comment = {
+      cid: "parent-cid",
+      replies: {
+        pages: {
+          best: {
+            comments: [commentWithoutUpdatedAt],
+            nextCid: "page-next-cid",
+          },
+        },
+      },
+    };
+
+    act(() => {
+      rendered.result.current.addRepliesPageCommentsToStore(comment);
+    });
+
+    expect(rendered.result.current.comments["no-updated-at-cid"]).toBeDefined();
+    expect(rendered.result.current.comments["no-updated-at-cid"].cid).toBe("no-updated-at-cid");
+    expect(rendered.result.current.comments["no-updated-at-cid"].timestamp).toBe(5);
+    expect(rendered.result.current.comments["no-updated-at-cid"].updatedAt).toBeUndefined();
+  });
+
+  test("existing fresher indexed comment is not overwritten by older/empty-freshness page data", () => {
+    const fresherComment = {
+      cid: "shared-cid",
+      timestamp: 100,
+      updatedAt: 100,
+      subplebbitAddress: "test-sub",
+    };
+    const commentWithFresher = {
+      cid: "parent-1",
+      replies: {
+        pages: {
+          best: {
+            comments: [fresherComment],
+            nextCid: "page-1-next",
+          },
+        },
+      },
+    };
+
+    act(() => {
+      rendered.result.current.addRepliesPageCommentsToStore(commentWithFresher);
+    });
+
+    expect(rendered.result.current.comments["shared-cid"].timestamp).toBe(100);
+    expect(rendered.result.current.comments["shared-cid"].updatedAt).toBe(100);
+
+    const olderComment = {
+      cid: "shared-cid",
+      timestamp: 1,
+      subplebbitAddress: "test-sub",
+    };
+    const commentWithOlder = {
+      cid: "parent-2",
+      replies: {
+        pages: {
+          best: {
+            comments: [olderComment],
+            nextCid: "page-2-next",
+          },
+        },
+      },
+    };
+
+    act(() => {
+      rendered.result.current.addRepliesPageCommentsToStore(commentWithOlder);
+    });
+
+    expect(rendered.result.current.comments["shared-cid"].timestamp).toBe(100);
+    expect(rendered.result.current.comments["shared-cid"].updatedAt).toBe(100);
+  });
 });
