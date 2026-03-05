@@ -138,7 +138,12 @@ export function usePublishComment(options) {
     const [challengeVerification, setChallengeVerification] = useState();
     const [publishChallengeAnswers, setPublishChallengeAnswers] = useState();
     const indexRef = useRef(undefined);
+    const publishRequestIdRef = useRef(0);
+    const activePublishRequestIdRef = useRef(undefined);
     const onPendingCommentIndex = (pendingIndex) => {
+        if (activePublishRequestIdRef.current === undefined) {
+            return;
+        }
         indexRef.current = pendingIndex;
         setIndex(pendingIndex);
     };
@@ -158,6 +163,9 @@ export function usePublishComment(options) {
     // define onChallenge if not defined
     const originalOnChallenge = publishCommentOptions.onChallenge;
     const onChallenge = (challenge, comment) => __awaiter(this, void 0, void 0, function* () {
+        if (activePublishRequestIdRef.current === undefined) {
+            return;
+        }
         // cannot set a function directly with setState
         setPublishChallengeAnswers(() => comment === null || comment === void 0 ? void 0 : comment.publishChallengeAnswers.bind(comment));
         setChallenge(challenge);
@@ -167,27 +175,43 @@ export function usePublishComment(options) {
     // define onChallengeVerification if not defined
     const originalOnChallengeVerification = publishCommentOptions.onChallengeVerification;
     const onChallengeVerification = (challengeVerification, comment) => __awaiter(this, void 0, void 0, function* () {
+        if (activePublishRequestIdRef.current === undefined) {
+            return;
+        }
         setChallengeVerification(challengeVerification);
         originalOnChallengeVerification === null || originalOnChallengeVerification === void 0 ? void 0 : originalOnChallengeVerification(challengeVerification, comment);
     });
     publishCommentOptions.onChallengeVerification = onChallengeVerification;
     // change state on publishing state change
     publishCommentOptions.onPublishingStateChange = (publishingState) => {
+        if (activePublishRequestIdRef.current === undefined) {
+            return;
+        }
         setPublishingState(publishingState);
     };
     const publishComment = () => __awaiter(this, void 0, void 0, function* () {
         var _a;
+        const requestId = publishRequestIdRef.current + 1;
+        publishRequestIdRef.current = requestId;
+        activePublishRequestIdRef.current = requestId;
         try {
             const { index } = yield accountsActions.publishComment(publishCommentOptions, accountName);
+            if (activePublishRequestIdRef.current !== requestId) {
+                return;
+            }
             indexRef.current = index;
             setIndex(index);
         }
         catch (e) {
+            if (activePublishRequestIdRef.current !== requestId) {
+                return;
+            }
             setErrors((errors) => [...errors, e]);
             (_a = publishCommentOptions.onError) === null || _a === void 0 ? void 0 : _a.call(publishCommentOptions, e);
         }
     });
     const abandonPublish = () => __awaiter(this, void 0, void 0, function* () {
+        activePublishRequestIdRef.current = undefined;
         const idx = indexRef.current;
         if (idx !== undefined) {
             yield accountsActions.deleteComment(idx, accountName);

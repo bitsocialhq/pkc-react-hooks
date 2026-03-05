@@ -169,7 +169,12 @@ export function usePublishComment(options?: UsePublishCommentOptions): UsePublis
   const [challengeVerification, setChallengeVerification] = useState<ChallengeVerification>();
   const [publishChallengeAnswers, setPublishChallengeAnswers] = useState<PublishChallengeAnswers>();
   const indexRef = useRef<number | undefined>(undefined);
+  const publishRequestIdRef = useRef(0);
+  const activePublishRequestIdRef = useRef<number | undefined>(undefined);
   const onPendingCommentIndex = (pendingIndex: number) => {
+    if (activePublishRequestIdRef.current === undefined) {
+      return;
+    }
     indexRef.current = pendingIndex;
     setIndex(pendingIndex);
   };
@@ -192,6 +197,9 @@ export function usePublishComment(options?: UsePublishCommentOptions): UsePublis
   // define onChallenge if not defined
   const originalOnChallenge = publishCommentOptions.onChallenge;
   const onChallenge = async (challenge: Challenge, comment: Comment) => {
+    if (activePublishRequestIdRef.current === undefined) {
+      return;
+    }
     // cannot set a function directly with setState
     setPublishChallengeAnswers(() => comment?.publishChallengeAnswers.bind(comment));
     setChallenge(challenge);
@@ -205,6 +213,9 @@ export function usePublishComment(options?: UsePublishCommentOptions): UsePublis
     challengeVerification: ChallengeVerification,
     comment: Comment,
   ) => {
+    if (activePublishRequestIdRef.current === undefined) {
+      return;
+    }
     setChallengeVerification(challengeVerification);
     originalOnChallengeVerification?.(challengeVerification, comment);
   };
@@ -212,21 +223,34 @@ export function usePublishComment(options?: UsePublishCommentOptions): UsePublis
 
   // change state on publishing state change
   publishCommentOptions.onPublishingStateChange = (publishingState: string) => {
+    if (activePublishRequestIdRef.current === undefined) {
+      return;
+    }
     setPublishingState(publishingState);
   };
 
   const publishComment = async () => {
+    const requestId = publishRequestIdRef.current + 1;
+    publishRequestIdRef.current = requestId;
+    activePublishRequestIdRef.current = requestId;
     try {
       const { index } = await accountsActions.publishComment(publishCommentOptions, accountName);
+      if (activePublishRequestIdRef.current !== requestId) {
+        return;
+      }
       indexRef.current = index;
       setIndex(index);
     } catch (e: any) {
+      if (activePublishRequestIdRef.current !== requestId) {
+        return;
+      }
       setErrors((errors) => [...errors, e]);
       publishCommentOptions.onError?.(e);
     }
   };
 
   const abandonPublish = async () => {
+    activePublishRequestIdRef.current = undefined;
     const idx = indexRef.current;
     if (idx !== undefined) {
       await accountsActions.deleteComment(idx, accountName);
