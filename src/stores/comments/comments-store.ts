@@ -1,112 +1,127 @@
-import validator from '../../lib/validator'
-import localForageLru from '../../lib/localforage-lru'
-const commentsDatabase = localForageLru.createInstance({name: 'plebbitReactHooks-comments', size: 5000})
-import Logger from '@plebbit/plebbit-logger'
-const log = Logger('pkc-react-hooks:comments:stores')
-import {Comment, Comments, Account} from '../../types'
-import utils from '../../lib/utils'
-import createStore from 'zustand'
-import accountsStore from '../accounts'
-import repliesPagesStore from '../replies-pages'
+import validator from "../../lib/validator";
+import localForageLru from "../../lib/localforage-lru";
+const commentsDatabase = localForageLru.createInstance({
+  name: "plebbitReactHooks-comments",
+  size: 5000,
+});
+import Logger from "@plebbit/plebbit-logger";
+const log = Logger("bitsocial-react-hooks:comments:stores");
+import { Comment, Comments, Account } from "../../types";
+import utils from "../../lib/utils";
+import createStore from "zustand";
+import accountsStore from "../accounts";
+import repliesPagesStore from "../replies-pages";
 
-let plebbitGetCommentPending: {[key: string]: boolean} = {}
+let plebbitGetCommentPending: { [key: string]: boolean } = {};
 
 // reset all event listeners in between tests
-export const listeners: any = []
+export const listeners: any = [];
 
 export type CommentsState = {
-  comments: Comments
-  errors: {[commentCid: string]: Error[]}
-  addCommentToStore: Function
-}
+  comments: Comments;
+  errors: { [commentCid: string]: Error[] };
+  addCommentToStore: Function;
+};
 
 const commentsStore = createStore<CommentsState>((setState: Function, getState: Function) => ({
   comments: {},
   errors: {},
 
   async addCommentToStore(commentCid: string, account: Account) {
-    const {comments} = getState()
+    const { comments } = getState();
 
     // comment is in store already, do nothing
-    let comment: Comment | undefined = comments[commentCid]
+    let comment: Comment | undefined = comments[commentCid];
     if (comment || plebbitGetCommentPending[commentCid + account.id]) {
-      return
+      return;
     }
-    plebbitGetCommentPending[commentCid + account.id] = true
+    plebbitGetCommentPending[commentCid + account.id] = true;
 
     // try to find comment in database
-    comment = await getCommentFromDatabase(commentCid, account)
+    comment = await getCommentFromDatabase(commentCid, account);
 
     if (comment) {
       // add comment replies pages to repliesPagesStore so they can be used in useComment
-      repliesPagesStore.getState().addRepliesPageCommentsToStore(comment)
+      repliesPagesStore.getState().addRepliesPageCommentsToStore(comment);
     }
 
     // comment not in database, fetch from plebbit-js
     try {
       if (!comment) {
-        comment = await account.plebbit.createComment({cid: commentCid})
-        await commentsDatabase.setItem(commentCid, utils.clone(comment))
+        comment = await account.plebbit.createComment({ cid: commentCid });
+        await commentsDatabase.setItem(commentCid, utils.clone(comment));
       }
-      log('commentsStore.addCommentToStore', {commentCid, comment, account})
-      setState((state: CommentsState) => ({comments: {...state.comments, [commentCid]: utils.clone(comment)}}))
+      log("commentsStore.addCommentToStore", { commentCid, comment, account });
+      setState((state: CommentsState) => ({
+        comments: { ...state.comments, [commentCid]: utils.clone(comment) },
+      }));
     } catch (e: any) {
       setState((state: CommentsState) => {
-        let commentErrors = state.errors[commentCid] || []
-        commentErrors = [...commentErrors, e]
-        return {...state, errors: {...state.errors, [commentCid]: commentErrors}}
-      })
-      throw e
+        let commentErrors = state.errors[commentCid] || [];
+        commentErrors = [...commentErrors, e];
+        return { ...state, errors: { ...state.errors, [commentCid]: commentErrors } };
+      });
+      throw e;
     } finally {
-      plebbitGetCommentPending[commentCid + account.id] = false
+      plebbitGetCommentPending[commentCid + account.id] = false;
     }
 
     // the comment is still missing up to date mutable data like upvotes, edits, replies, etc
-    comment?.on('update', async (updatedComment: Comment) => {
-      updatedComment = utils.clone(updatedComment)
-      await commentsDatabase.setItem(commentCid, updatedComment)
-      log('commentsStore comment update', {commentCid, updatedComment, account})
-      setState((state: CommentsState) => ({comments: {...state.comments, [commentCid]: updatedComment}}))
+    comment?.on("update", async (updatedComment: Comment) => {
+      updatedComment = utils.clone(updatedComment);
+      await commentsDatabase.setItem(commentCid, updatedComment);
+      log("commentsStore comment update", { commentCid, updatedComment, account });
+      setState((state: CommentsState) => ({
+        comments: { ...state.comments, [commentCid]: updatedComment },
+      }));
 
       // add comment replies pages to repliesPagesStore so they can be used in useComment
-      repliesPagesStore.getState().addRepliesPageCommentsToStore(comment)
-    })
+      repliesPagesStore.getState().addRepliesPageCommentsToStore(comment);
+    });
 
-    comment?.on('updatingstatechange', (updatingState: string) => {
+    comment?.on("updatingstatechange", (updatingState: string) => {
       setState((state: CommentsState) => ({
         comments: {
           ...state.comments,
-          [commentCid]: {...state.comments[commentCid], updatingState},
+          [commentCid]: { ...state.comments[commentCid], updatingState },
         },
-      }))
-    })
+      }));
+    });
 
-    comment?.on('error', (error: Error) => {
+    comment?.on("error", (error: Error) => {
       setState((state: CommentsState) => {
-        let commentErrors = state.errors[commentCid] || []
-        commentErrors = [...commentErrors, error]
-        return {...state, errors: {...state.errors, [commentCid]: commentErrors}}
-      })
-    })
+        let commentErrors = state.errors[commentCid] || [];
+        commentErrors = [...commentErrors, error];
+        return { ...state, errors: { ...state.errors, [commentCid]: commentErrors } };
+      });
+    });
 
     // set clients on comment so the frontend can display it, dont persist in db because a reload cancels updating
-    utils.clientsOnStateChange(comment?.clients, (clientState: string, clientType: string, clientUrl: string, chainTicker?: string) => {
-      setState((state: CommentsState) => {
-        // make sure not undefined, sometimes happens in e2e tests
-        if (!state.comments[commentCid]) {
-          return {}
-        }
-        const clients = {...state.comments[commentCid]?.clients}
-        const client = {state: clientState}
-        if (chainTicker) {
-          const chainProviders = {...clients[clientType][chainTicker], [clientUrl]: client}
-          clients[clientType] = {...clients[clientType], [chainTicker]: chainProviders}
-        } else {
-          clients[clientType] = {...clients[clientType], [clientUrl]: client}
-        }
-        return {comments: {...state.comments, [commentCid]: {...state.comments[commentCid], clients}}}
-      })
-    })
+    utils.clientsOnStateChange(
+      comment?.clients,
+      (clientState: string, clientType: string, clientUrl: string, chainTicker?: string) => {
+        setState((state: CommentsState) => {
+          // make sure not undefined, sometimes happens in e2e tests
+          if (!state.comments[commentCid]) {
+            return {};
+          }
+          const clients = { ...state.comments[commentCid]?.clients };
+          const client = { state: clientState };
+          if (chainTicker) {
+            const chainProviders = { ...clients[clientType][chainTicker], [clientUrl]: client };
+            clients[clientType] = { ...clients[clientType], [chainTicker]: chainProviders };
+          } else {
+            clients[clientType] = { ...clients[clientType], [clientUrl]: client };
+          }
+          return {
+            comments: {
+              ...state.comments,
+              [commentCid]: { ...state.comments[commentCid], clients },
+            },
+          };
+        });
+      },
+    );
 
     // when publishing a comment, you don't yet know its CID
     // so when a new comment is fetched, check to see if it's your own
@@ -114,50 +129,57 @@ const commentsStore = createStore<CommentsState>((setState: Function, getState: 
     // if comment.timestamp isn't defined, it means the next update will contain the timestamp and author
     // which is used in addCidToAccountComment
     if (!comment?.timestamp) {
-      comment?.once('update', () =>
+      comment?.once("update", () =>
         accountsStore
           .getState()
           .accountsActionsInternal.addCidToAccountComment(comment)
-          .catch((error: any) => log.error('accountsActionsInternal.addCidToAccountComment error', {comment, error}))
-      )
+          .catch((error: any) =>
+            log.error("accountsActionsInternal.addCidToAccountComment error", { comment, error }),
+          ),
+      );
     }
 
-    listeners.push(comment)
-    comment?.update().catch((error: unknown) => log.trace('comment.update error', {comment, error}))
+    listeners.push(comment);
+    comment
+      ?.update()
+      .catch((error: unknown) => log.trace("comment.update error", { comment, error }));
   },
-}))
+}));
 
 const getCommentFromDatabase = async (commentCid: string, account: Account) => {
-  const commentData: any = await commentsDatabase.getItem(commentCid)
+  const commentData: any = await commentsDatabase.getItem(commentCid);
   if (!commentData) {
-    return
+    return;
   }
   try {
-    const comment = await account.plebbit.createComment(commentData)
-    return comment
+    const comment = await account.plebbit.createComment(commentData);
+    return comment;
   } catch (e) {
     // need to log this always or it could silently fail in production and cache never be used
-    console.error('failed plebbit.createComment(cachedComment)', {cachedComment: commentData, error: e})
+    console.error("failed plebbit.createComment(cachedComment)", {
+      cachedComment: commentData,
+      error: e,
+    });
   }
-}
+};
 
 // reset store in between tests
-const originalState = commentsStore.getState()
+const originalState = commentsStore.getState();
 // async function because some stores have async init
 export const resetCommentsStore = async () => {
-  plebbitGetCommentPending = {}
+  plebbitGetCommentPending = {};
   // remove all event listeners
-  listeners.forEach((listener: any) => listener.removeAllListeners())
+  listeners.forEach((listener: any) => listener.removeAllListeners());
   // destroy all component subscriptions to the store
-  commentsStore.destroy()
+  commentsStore.destroy();
   // restore original state
-  commentsStore.setState(originalState)
-}
+  commentsStore.setState(originalState);
+};
 
 // reset database and store in between tests
 export const resetCommentsDatabaseAndStore = async () => {
-  await localForageLru.createInstance({name: 'plebbitReactHooks-comments'}).clear()
-  await resetCommentsStore()
-}
+  await localForageLru.createInstance({ name: "plebbitReactHooks-comments" }).clear();
+  await resetCommentsStore();
+};
 
-export default commentsStore
+export default commentsStore;

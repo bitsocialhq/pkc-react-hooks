@@ -1,12 +1,11 @@
 {
-  "name": "@bitsocialhq/pkc-react-hooks",
+  "name": "@bitsocialhq/bitsocial-react-hooks",
   "type": "module",
   "author": "Bitsocial Labs",
   "keywords": [
-    "bitsocial",
-    "pkc"
+    "bitsocial"
   ],
-  "repository": "github:bitsocialhq/pkc-react-hooks",
+  "repository": "github:bitsocialhq/bitsocial-react-hooks",
   "license": "GPL-2.0-only",
   "publishConfig": {
     "access": "public"

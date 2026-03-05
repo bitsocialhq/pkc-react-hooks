@@ -1,25 +1,25 @@
-import localForageLru from './localforage-lru'
+import localForageLru from "./localforage-lru";
 
 try {
   // for debugging without caching
   if (process.env.REACT_APP_PLEBBIT_REACT_HOOKS_NO_CACHE) {
     // @ts-ignore
     localForageLru.createInstance = () => {
-      console.warn('@bitsocialhq/pkc-react-hooks cache is disabled for testing')
+      console.warn("@bitsocialhq/bitsocial-react-hooks cache is disabled for testing");
       return {
         getItem: async function (key: string) {},
         setItem: async function (key: string, value: any) {},
         removeItem: async function (key: string) {},
         clear: async function () {},
         keys: async function () {
-          return []
+          return [];
         },
         entries: async function () {
-          return []
+          return [];
         },
-      }
-    }
+      };
+    };
   }
 } catch (e) {}
 
-export default localForageLru
+export default localForageLru;

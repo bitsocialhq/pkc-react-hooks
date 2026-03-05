@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useAccount } from "./accounts";
 import Logger from "@plebbit/plebbit-logger";
-const log = Logger("pkc-react-hooks:states:plebbit-rpc");
+const log = Logger("bitsocial-react-hooks:states:plebbit-rpc");
 import assert from "assert";
 import {
   UsePlebbitRpcSettingsOptions,

@@ -2,7 +2,7 @@
 
 ```js
 import { useMemo } from 'react'
-import { useClientsStates } from '@bitsocialhq/pkc-react-hooks'
+import { useClientsStates } from '@bitsocialhq/bitsocial-react-hooks'
 
 const clientHosts = {}
 const getClientHost = (clientUrl) => {
@@ -116,7 +116,7 @@ if (errorString) {
 
 ```js
 import { useMemo } from 'react'
-import { useSubplebbit, useSubplebbitsStates } from '@bitsocialhq/pkc-react-hooks'
+import { useSubplebbit, useSubplebbitsStates } from '@bitsocialhq/bitsocial-react-hooks'
 
 const clientHosts = {}
 const getClientHost = (clientUrl) => {

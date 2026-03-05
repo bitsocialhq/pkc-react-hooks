@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useAccount } from "./accounts";
 import validator from "../lib/validator";
 import Logger from "@plebbit/plebbit-logger";
-const log = Logger("pkc-react-hooks:comments:hooks");
+const log = Logger("bitsocial-react-hooks:comments:hooks");
 import assert from "assert";
 import {
   Comment,

@@ -1,4 +1,4 @@
-import assert from 'assert'
+import assert from "assert";
 import type {
   Account,
   AccountsCommentsReplies,
@@ -9,77 +9,100 @@ import type {
   AccountsNotifications,
   Notification,
   AccountCommentReply,
-} from '../../types'
-import {useMemo, useState, useEffect} from 'react'
+} from "../../types";
+import { useMemo, useState, useEffect } from "react";
 // @ts-ignore
-import memoize from 'memoizee'
-import utils from '../../lib/utils'
-import PlebbitJs from '../../lib/plebbit-js'
-import Logger from '@plebbit/plebbit-logger'
-const log = Logger('pkc-react-hooks:accounts:hooks')
+import memoize from "memoizee";
+import utils from "../../lib/utils";
+import PlebbitJs from "../../lib/plebbit-js";
+import Logger from "@plebbit/plebbit-logger";
+const log = Logger("bitsocial-react-hooks:accounts:hooks");
 
-export const useCalculatedNotifications = (account?: Account, accountCommentsReplies?: AccountCommentsReplies) => {
+export const useCalculatedNotifications = (
+  account?: Account,
+  accountCommentsReplies?: AccountCommentsReplies,
+) => {
   return useMemo(() => {
     if (!account || !accountCommentsReplies) {
-      return []
+      return [];
     }
     // get reply notifications only
     // TODO: at some point we should also add upvote notifications like 'your post has gotten 10 upvotes'
-    return getReplyNotificationsFromAccountCommentsReplies(accountCommentsReplies, account?.blockedAddresses, account?.blockedCids)
-  }, [accountCommentsReplies, account?.blockedAddresses, account?.blockedCids])
-}
+    return getReplyNotificationsFromAccountCommentsReplies(
+      accountCommentsReplies,
+      account?.blockedAddresses,
+      account?.blockedCids,
+    );
+  }, [accountCommentsReplies, account?.blockedAddresses, account?.blockedCids]);
+};
 
 // accountsBlockedAddresses must be cached to prevent rerenders
 // TODO: add accountsBlockedAddresses as an object in the store that can easily be === checked for equality
 const getAccountsBlockedAddressesNoCache = (...args: any) => {
-  const accountsBlockedAddresses: {[accountId: string]: {[address: string]: boolean}} = {}
-  const separator = Math.ceil(args.length / 2)
+  const accountsBlockedAddresses: { [accountId: string]: { [address: string]: boolean } } = {};
+  const separator = Math.ceil(args.length / 2);
   for (const [i] of args.entries()) {
-    const accountId = args[i]
-    const accountBlockedAddresses = args[i + separator]
+    const accountId = args[i];
+    const accountBlockedAddresses = args[i + separator];
     if (accountBlockedAddresses) {
-      accountsBlockedAddresses[accountId] = accountBlockedAddresses
+      accountsBlockedAddresses[accountId] = accountBlockedAddresses;
     }
   }
-  return accountsBlockedAddresses
-}
+  return accountsBlockedAddresses;
+};
 // length false because variable arguments legnth
-const getAccountsBlockedAddressesCached = memoize(getAccountsBlockedAddressesNoCache, {max: 100, length: false})
+const getAccountsBlockedAddressesCached = memoize(getAccountsBlockedAddressesNoCache, {
+  max: 100,
+  length: false,
+});
 
 // accountsBlockedCids must be cached to prevent rerenders
 // TODO: add accountsBlockedCids as an object in the store that can easily be === checked for equality
 const getAccountsBlockedCidsNoCache = (...args: any) => {
-  const accountsBlockedCids: {[accountId: string]: {[cid: string]: boolean}} = {}
-  const separator = Math.ceil(args.length / 2)
+  const accountsBlockedCids: { [accountId: string]: { [cid: string]: boolean } } = {};
+  const separator = Math.ceil(args.length / 2);
   for (const [i] of args.entries()) {
-    const accountId = args[i]
-    const accountBlockedCids = args[i + separator]
+    const accountId = args[i];
+    const accountBlockedCids = args[i + separator];
     if (accountBlockedCids) {
-      accountsBlockedCids[accountId] = accountBlockedCids
+      accountsBlockedCids[accountId] = accountBlockedCids;
     }
   }
-  return accountsBlockedCids
-}
+  return accountsBlockedCids;
+};
 // length false because variable arguments legnth
-const getAccountsBlockedCidsCached = memoize(getAccountsBlockedCidsNoCache, {max: 100, length: false})
+const getAccountsBlockedCidsCached = memoize(getAccountsBlockedCidsNoCache, {
+  max: 100,
+  length: false,
+});
 
-export const useCalculatedAccountsNotifications = (accounts?: Accounts, accountsCommentsReplies?: AccountsCommentsReplies) => {
+export const useCalculatedAccountsNotifications = (
+  accounts?: Accounts,
+  accountsCommentsReplies?: AccountsCommentsReplies,
+) => {
   // accountsBlockedAddresses and accountsBlockedCids must be cached to prevent rerenders
   // TODO: add accountsBlockedAddresses and accountsBlockedCids as objects in the store that can easily be === checked for equality
-  let accountsBlockedAddresses: any
-  let accountsBlockedCids: any
+  let accountsBlockedAddresses: any;
+  let accountsBlockedCids: any;
   if (accounts && accountsCommentsReplies) {
-    const accountIds = Object.keys(accountsCommentsReplies)
-    const accountsBlockedAddressesArray = accountIds.map((accountId) => accounts[accountId]?.blockedAddresses)
-    accountsBlockedAddresses = getAccountsBlockedAddressesCached(...accountIds, ...accountsBlockedAddressesArray)
-    const accountsBlockedCidsArray = accountIds.map((accountId) => accounts[accountId]?.blockedCids)
-    accountsBlockedCids = getAccountsBlockedCidsCached(...accountIds, ...accountsBlockedCidsArray)
+    const accountIds = Object.keys(accountsCommentsReplies);
+    const accountsBlockedAddressesArray = accountIds.map(
+      (accountId) => accounts[accountId]?.blockedAddresses,
+    );
+    accountsBlockedAddresses = getAccountsBlockedAddressesCached(
+      ...accountIds,
+      ...accountsBlockedAddressesArray,
+    );
+    const accountsBlockedCidsArray = accountIds.map(
+      (accountId) => accounts[accountId]?.blockedCids,
+    );
+    accountsBlockedCids = getAccountsBlockedCidsCached(...accountIds, ...accountsBlockedCidsArray);
   }
 
   return useMemo(() => {
-    const accountsNotifications: AccountsNotifications = {}
+    const accountsNotifications: AccountsNotifications = {};
     if (!accountsCommentsReplies) {
-      return accountsNotifications
+      return accountsNotifications;
     }
     for (const accountId in accountsCommentsReplies) {
       // get reply notifications only
@@ -87,85 +110,119 @@ export const useCalculatedAccountsNotifications = (accounts?: Accounts, accounts
       accountsNotifications[accountId] = getReplyNotificationsFromAccountCommentsReplies(
         accountsCommentsReplies[accountId],
         accountsBlockedAddresses[accountId],
-        accountsBlockedCids[accountId]
-      )
+        accountsBlockedCids[accountId],
+      );
     }
-    return accountsNotifications
-  }, [accountsCommentsReplies, accountsBlockedAddresses, accountsBlockedCids])
-}
+    return accountsNotifications;
+  }, [accountsCommentsReplies, accountsBlockedAddresses, accountsBlockedCids]);
+};
 
 const getReplyNotificationsFromAccountCommentsReplies = (
   accountCommentsReplies: AccountCommentsReplies,
-  accountBlockedAddresses?: {[address: string]: boolean},
-  accountBlockedCids?: {[cid: string]: boolean}
+  accountBlockedAddresses?: { [address: string]: boolean },
+  accountBlockedCids?: { [cid: string]: boolean },
 ) => {
   // get reply notifications
-  const replyNotifications: AccountCommentReply[] = []
+  const replyNotifications: AccountCommentReply[] = [];
   for (const replyCid in accountCommentsReplies) {
-    const reply = accountCommentsReplies[replyCid]
-    if (accountBlockedAddresses?.[reply.subplebbitAddress] || accountBlockedAddresses?.[reply.author?.address]) {
-      continue
+    const reply = accountCommentsReplies[replyCid];
+    if (
+      accountBlockedAddresses?.[reply.subplebbitAddress] ||
+      accountBlockedAddresses?.[reply.author?.address]
+    ) {
+      continue;
     }
-    if (accountBlockedCids?.[reply.cid] || accountBlockedCids?.[reply.parentCid] || accountBlockedCids?.[reply.postCid]) {
-      continue
+    if (
+      accountBlockedCids?.[reply.cid] ||
+      accountBlockedCids?.[reply.parentCid] ||
+      accountBlockedCids?.[reply.postCid]
+    ) {
+      continue;
     }
-    replyNotifications.push(reply)
+    replyNotifications.push(reply);
   }
-  return replyNotifications.sort((a, b) => b.timestamp - a.timestamp)
-}
+  return replyNotifications.sort((a, b) => b.timestamp - a.timestamp);
+};
 
 // add calculated properties to accounts, like karma and unreadNotificationCount
-const useAccountCalculatedProperties = (account?: Account, accountComments?: AccountComments, accountCommentsReplies?: AccountCommentsReplies) => {
-  const notifications = useCalculatedNotifications(account, accountCommentsReplies)
+const useAccountCalculatedProperties = (
+  account?: Account,
+  accountComments?: AccountComments,
+  accountCommentsReplies?: AccountCommentsReplies,
+) => {
+  const notifications = useCalculatedNotifications(account, accountCommentsReplies);
   return useMemo(() => {
-    return getAccountCalculatedProperties(accountComments, notifications)
-  }, [accountComments, accountCommentsReplies])
-}
+    return getAccountCalculatedProperties(accountComments, notifications);
+  }, [accountComments, accountCommentsReplies]);
+};
 
-export const useAccountWithCalculatedProperties = (account?: Accounts, accountComments?: AccountComments, accountCommentsReplies?: AccountCommentsReplies) => {
-  const accountCalculatedProperties = useAccountCalculatedProperties(account, accountComments, accountCommentsReplies)
-  const shortAddress = account?.author?.address && PlebbitJs.Plebbit.getShortAddress({address: account?.author?.address})
+export const useAccountWithCalculatedProperties = (
+  account?: Accounts,
+  accountComments?: AccountComments,
+  accountCommentsReplies?: AccountCommentsReplies,
+) => {
+  const accountCalculatedProperties = useAccountCalculatedProperties(
+    account,
+    accountComments,
+    accountCommentsReplies,
+  );
+  const shortAddress =
+    account?.author?.address &&
+    PlebbitJs.Plebbit.getShortAddress({ address: account?.author?.address });
   return useMemo(() => {
     if (!account) {
-      return
+      return;
     }
 
     if (shortAddress) {
-      account = {...account, author: {...account.author, shortAddress}}
+      account = { ...account, author: { ...account.author, shortAddress } };
     }
 
-    return {...account, ...accountCalculatedProperties}
-  }, [account, accountCalculatedProperties, shortAddress])
-}
+    return { ...account, ...accountCalculatedProperties };
+  }, [account, accountCalculatedProperties, shortAddress]);
+};
 
 // add calculated properties to accounts, like karma and unreadNotificationCount
-export const useAccountsWithCalculatedProperties = (accounts?: Accounts, accountsComments?: AccountsComments, accountsCommentsReplies?: AccountsCommentsReplies) => {
-  const accountsNotifications = useCalculatedAccountsNotifications(accounts, accountsCommentsReplies)
-  const accountsShortAuthorAddresses = useAccountsAuthorShortAddresses(accounts)
+export const useAccountsWithCalculatedProperties = (
+  accounts?: Accounts,
+  accountsComments?: AccountsComments,
+  accountsCommentsReplies?: AccountsCommentsReplies,
+) => {
+  const accountsNotifications = useCalculatedAccountsNotifications(
+    accounts,
+    accountsCommentsReplies,
+  );
+  const accountsShortAuthorAddresses = useAccountsAuthorShortAddresses(accounts);
 
   return useMemo(() => {
     if (!accounts) {
-      return
+      return;
     }
     if (!accountsComments) {
-      return accounts
+      return accounts;
     }
-    const accountsWithCalculatedProperties: Accounts = {}
+    const accountsWithCalculatedProperties: Accounts = {};
     for (const accountId in accounts) {
       // must cache getAccountCalculatedProperties() or it recalculates every account, instead of only the one changed
-      const accountCalculatedProperties = getAccountCalculatedProperties(accountsComments[accountId], accountsNotifications[accountId])
-      const account = {...accounts[accountId], ...accountCalculatedProperties}
+      const accountCalculatedProperties = getAccountCalculatedProperties(
+        accountsComments[accountId],
+        accountsNotifications[accountId],
+      );
+      const account = { ...accounts[accountId], ...accountCalculatedProperties };
       if (accountsShortAuthorAddresses[accountId] && account.author) {
-        account.author.shortAddress = accountsShortAuthorAddresses[accountId]
+        account.author.shortAddress = accountsShortAuthorAddresses[accountId];
       }
-      accountsWithCalculatedProperties[accountId] = account
+      accountsWithCalculatedProperties[accountId] = account;
     }
-    return accountsWithCalculatedProperties
-  }, [accounts, accountsComments, accountsCommentsReplies, accountsShortAuthorAddresses])
-}
+    return accountsWithCalculatedProperties;
+  }, [accounts, accountsComments, accountsCommentsReplies, accountsShortAuthorAddresses]);
+};
 
-const getAccountCalculatedPropertiesNoCache = (accountComments?: AccountComments, notifications?: Notification[]) => {
-  const accountCalculatedProperties: any = {}
+const getAccountCalculatedPropertiesNoCache = (
+  accountComments?: AccountComments,
+  notifications?: Notification[],
+) => {
+  const accountCalculatedProperties: any = {};
 
   // add karma
   const karma = {
@@ -178,58 +235,58 @@ const getAccountCalculatedPropertiesNoCache = (accountComments?: AccountComments
     upvoteCount: 0,
     downvoteCount: 0,
     score: 0,
-  }
+  };
   for (const comment of accountComments || []) {
     if (comment.parentCid && comment.upvoteCount) {
-      karma.replyUpvoteCount += comment.upvoteCount
+      karma.replyUpvoteCount += comment.upvoteCount;
     }
     if (comment.parentCid && comment.downvoteCount) {
-      karma.replyDownvoteCount += comment.downvoteCount
+      karma.replyDownvoteCount += comment.downvoteCount;
     }
     if (!comment.parentCid && comment.upvoteCount) {
-      karma.postUpvoteCount += comment.upvoteCount
+      karma.postUpvoteCount += comment.upvoteCount;
     }
     if (!comment.parentCid && comment.downvoteCount) {
-      karma.postDownvoteCount += comment.downvoteCount
+      karma.postDownvoteCount += comment.downvoteCount;
     }
   }
-  karma.replyScore = karma.replyUpvoteCount - karma.replyDownvoteCount
-  karma.postScore = karma.postUpvoteCount - karma.postDownvoteCount
-  karma.upvoteCount = karma.replyUpvoteCount + karma.postUpvoteCount
-  karma.downvoteCount = karma.replyDownvoteCount + karma.postDownvoteCount
-  karma.score = karma.upvoteCount - karma.downvoteCount
-  accountCalculatedProperties.karma = karma
+  karma.replyScore = karma.replyUpvoteCount - karma.replyDownvoteCount;
+  karma.postScore = karma.postUpvoteCount - karma.postDownvoteCount;
+  karma.upvoteCount = karma.replyUpvoteCount + karma.postUpvoteCount;
+  karma.downvoteCount = karma.replyDownvoteCount + karma.postDownvoteCount;
+  karma.score = karma.upvoteCount - karma.downvoteCount;
+  accountCalculatedProperties.karma = karma;
 
   // add unreadNotificationCount
-  let unreadNotificationCount = 0
+  let unreadNotificationCount = 0;
   for (const notification of notifications || []) {
     if (!notification.markedAsRead) {
-      unreadNotificationCount++
+      unreadNotificationCount++;
     }
   }
-  accountCalculatedProperties.unreadNotificationCount = unreadNotificationCount
+  accountCalculatedProperties.unreadNotificationCount = unreadNotificationCount;
 
-  return accountCalculatedProperties
-}
-const getAccountCalculatedProperties = memoize(getAccountCalculatedPropertiesNoCache, {max: 100})
+  return accountCalculatedProperties;
+};
+const getAccountCalculatedProperties = memoize(getAccountCalculatedPropertiesNoCache, { max: 100 });
 
 const useAccountsAuthorShortAddresses = (accounts?: Accounts) => {
-  const [shortAddresses, setShortAddresses] = useState<{[accountId: string]: string}>({})
+  const [shortAddresses, setShortAddresses] = useState<{ [accountId: string]: string }>({});
   useEffect(() => {
-    ;(async () => {
-      const newShortAddresses: {[accountId: string]: string} = {}
-      let shouldUpdate = false
+    (async () => {
+      const newShortAddresses: { [accountId: string]: string } = {};
+      let shouldUpdate = false;
       for (const accountId in accounts || {}) {
-        const address: string | undefined = accounts?.[accountId]?.author?.address
-        newShortAddresses[accountId] = PlebbitJs.Plebbit.getShortAddress({address})
+        const address: string | undefined = accounts?.[accountId]?.author?.address;
+        newShortAddresses[accountId] = PlebbitJs.Plebbit.getShortAddress({ address });
         if (shortAddresses[accountId] !== newShortAddresses[accountId]) {
-          shouldUpdate = true
+          shouldUpdate = true;
         }
       }
       if (shouldUpdate) {
-        setShortAddresses(newShortAddresses)
+        setShortAddresses(newShortAddresses);
       }
-    })()
-  }, [accounts])
-  return shortAddresses
-}
+    })();
+  }, [accounts]);
+  return shortAddresses;
+};

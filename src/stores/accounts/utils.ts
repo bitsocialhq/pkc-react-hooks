@@ -1,228 +1,266 @@
-import {Account, Role, Subplebbits, AccountComment, AccountsComments, CommentCidsToAccountsComments, Comment} from '../../types'
-import assert from 'assert'
-import Logger from '@plebbit/plebbit-logger'
-const log = Logger('pkc-react-hooks:accounts:stores')
-import commentsStore from '../comments'
-import repliesPagesStore from '../replies-pages'
-import subplebbitsPagesStore from '../subplebbits-pages'
-import PlebbitJs from '../../lib/plebbit-js'
+import {
+  Account,
+  Role,
+  Subplebbits,
+  AccountComment,
+  AccountsComments,
+  CommentCidsToAccountsComments,
+  Comment,
+} from "../../types";
+import assert from "assert";
+import Logger from "@plebbit/plebbit-logger";
+const log = Logger("bitsocial-react-hooks:accounts:stores");
+import commentsStore from "../comments";
+import repliesPagesStore from "../replies-pages";
+import subplebbitsPagesStore from "../subplebbits-pages";
+import PlebbitJs from "../../lib/plebbit-js";
 
 const getAuthorAddressRolesFromSubplebbits = (authorAddress: string, subplebbits: Subplebbits) => {
-  const roles: {[subplebbitAddress: string]: Role} = {}
+  const roles: { [subplebbitAddress: string]: Role } = {};
   for (const subplebbitAddress in subplebbits) {
-    const role = subplebbits[subplebbitAddress]?.roles?.[authorAddress]
+    const role = subplebbits[subplebbitAddress]?.roles?.[authorAddress];
     if (role) {
-      roles[subplebbitAddress] = role
+      roles[subplebbitAddress] = role;
     }
   }
-  return roles
-}
+  return roles;
+};
 
 export const getAccountSubplebbits = (account: Account, subplebbits: Subplebbits) => {
   assert(
-    account?.author?.address && typeof account?.author?.address === 'string',
-    `accountsStore utils getAccountSubplebbits invalid account.author.address '${account?.author?.address}'`
-  )
-  assert(subplebbits && typeof subplebbits === 'object', `accountsStore utils getAccountSubplebbits invalid subplebbits '${subplebbits}'`)
+    account?.author?.address && typeof account?.author?.address === "string",
+    `accountsStore utils getAccountSubplebbits invalid account.author.address '${account?.author?.address}'`,
+  );
+  assert(
+    subplebbits && typeof subplebbits === "object",
+    `accountsStore utils getAccountSubplebbits invalid subplebbits '${subplebbits}'`,
+  );
 
-  const roles = getAuthorAddressRolesFromSubplebbits(account.author.address, subplebbits)
-  const accountSubplebbits = {...account.subplebbits}
+  const roles = getAuthorAddressRolesFromSubplebbits(account.author.address, subplebbits);
+  const accountSubplebbits = { ...account.subplebbits };
   for (const subplebbitAddress in roles) {
-    accountSubplebbits[subplebbitAddress] = {...accountSubplebbits[subplebbitAddress]}
-    accountSubplebbits[subplebbitAddress].role = roles[subplebbitAddress]
+    accountSubplebbits[subplebbitAddress] = { ...accountSubplebbits[subplebbitAddress] };
+    accountSubplebbits[subplebbitAddress].role = roles[subplebbitAddress];
   }
-  return accountSubplebbits
-}
+  return accountSubplebbits;
+};
 
 export const getCommentCidsToAccountsComments = (accountsComments: AccountsComments) => {
-  const commentCidsToAccountsComments: CommentCidsToAccountsComments = {}
+  const commentCidsToAccountsComments: CommentCidsToAccountsComments = {};
   for (const accountId in accountsComments) {
     for (const accountComment of accountsComments[accountId]) {
       if (accountComment.cid) {
-        commentCidsToAccountsComments[accountComment.cid] = {accountId, accountCommentIndex: accountComment.index}
+        commentCidsToAccountsComments[accountComment.cid] = {
+          accountId,
+          accountCommentIndex: accountComment.index,
+        };
       }
     }
   }
-  return commentCidsToAccountsComments
-}
+  return commentCidsToAccountsComments;
+};
 
 interface CommentLinkDimensions {
-  linkWidth?: number
-  linkHeight?: number
-  linkHtmlTagName?: 'img' | 'video' | 'audio'
+  linkWidth?: number;
+  linkHeight?: number;
+  linkHtmlTagName?: "img" | "video" | "audio";
 }
 export const fetchCommentLinkDimensions = async (link: string): Promise<CommentLinkDimensions> => {
   if (!link) {
-    return {}
+    return {};
   }
 
   const fetchImageDimensions = (url: string) =>
     new Promise<CommentLinkDimensions>((resolve, reject) => {
-      const image = new Image()
+      const image = new Image();
       image.onload = () => {
         // don't accept 0px value
         if (!image.width || !image.height) {
-          return reject(Error(`failed fetching image dimensions for url '${url}'`))
+          return reject(Error(`failed fetching image dimensions for url '${url}'`));
         }
         resolve({
           linkWidth: image.width,
           linkHeight: image.height,
-          linkHtmlTagName: 'img',
-        })
+          linkHtmlTagName: "img",
+        });
 
         // remove image from memory
         try {
-          image.src = ''
+          image.src = "";
         } catch (e) {}
-      }
+      };
       image.onerror = (error) => {
-        reject(Error(`failed fetching image dimensions for url '${url}'`))
-      }
+        reject(Error(`failed fetching image dimensions for url '${url}'`));
+      };
 
       // max loading time
-      const timeout = 10000
-      setTimeout(() => reject(Error(`failed fetching image dimensions for url '${url}' timeout '${timeout}'`)), timeout)
+      const timeout = 10000;
+      setTimeout(
+        () =>
+          reject(Error(`failed fetching image dimensions for url '${url}' timeout '${timeout}'`)),
+        timeout,
+      );
 
       // start loading
-      image.src = url
-    })
+      image.src = url;
+    });
 
   const fetchVideoDimensions = (url: string) =>
     new Promise<CommentLinkDimensions>((resolve, reject) => {
-      const video = document.createElement('video')
-      video.muted = true
-      video.loop = false
-      video.addEventListener('loadeddata', () => {
+      const video = document.createElement("video");
+      video.muted = true;
+      video.loop = false;
+      video.addEventListener("loadeddata", () => {
         // don't accept 0px value
         if (!video.videoWidth || !video.videoHeight) {
-          return reject(Error(`failed fetching video dimensions for url '${url}'`))
+          return reject(Error(`failed fetching video dimensions for url '${url}'`));
         }
         resolve({
           linkWidth: video.videoWidth,
           linkHeight: video.videoHeight,
-          linkHtmlTagName: 'video',
-        })
+          linkHtmlTagName: "video",
+        });
         // prevent video from playing
         try {
-          video.pause()
+          video.pause();
         } catch (e) {}
         // prevent video from loading
         try {
-          video.src = ''
+          video.src = "";
         } catch (e) {}
-      })
-      video.addEventListener('error', (error) => {
-        reject(Error(`failed fetching video dimensions for url '${url}'`))
-      })
+      });
+      video.addEventListener("error", (error) => {
+        reject(Error(`failed fetching video dimensions for url '${url}'`));
+      });
 
       // max loading time
-      const timeout = 30000
-      setTimeout(() => reject(Error(`failed fetching video dimensions for url '${url}' timeout '${timeout}'`)), timeout)
+      const timeout = 30000;
+      setTimeout(
+        () =>
+          reject(Error(`failed fetching video dimensions for url '${url}' timeout '${timeout}'`)),
+        timeout,
+      );
 
       // start loading
-      video.src = url
-    })
+      video.src = url;
+    });
 
   const fetchAudio = (url: string) =>
     new Promise<CommentLinkDimensions>((resolve, reject) => {
-      const audio = document.createElement('audio')
-      audio.addEventListener('loadeddata', () => {
+      const audio = document.createElement("audio");
+      audio.addEventListener("loadeddata", () => {
         resolve({
-          linkHtmlTagName: 'audio',
-        })
+          linkHtmlTagName: "audio",
+        });
         try {
-          audio.pause()
+          audio.pause();
         } catch {}
         try {
-          audio.src = ''
+          audio.src = "";
         } catch {}
-      })
-      audio.addEventListener('error', () => reject(Error(`failed fetching audio html tag name for url '${url}'`)))
+      });
+      audio.addEventListener("error", () =>
+        reject(Error(`failed fetching audio html tag name for url '${url}'`)),
+      );
 
-      const timeout = 20000
-      setTimeout(() => reject(Error(`failed fetching audio html tag name for url '${url}' timeout '${timeout}'`)), timeout)
+      const timeout = 20000;
+      setTimeout(
+        () =>
+          reject(
+            Error(`failed fetching audio html tag name for url '${url}' timeout '${timeout}'`),
+          ),
+        timeout,
+      );
 
-      audio.src = url
-    })
+      audio.src = url;
+    });
 
   // polyfill Promise.any
   const PromiseAny = <T>(promises: Promise<T>[]): Promise<T> =>
     new Promise((res, rej) => {
-      let count = promises.length
-      if (count === 0) return rej(Error('all promises rejected'))
+      let count = promises.length;
+      if (count === 0) return rej(Error("all promises rejected"));
       promises.forEach((p) =>
         Promise.resolve(p)
           .then(res)
           .catch((e) => {
-            if (--count === 0) rej(Error('all promises rejected'))
-          })
-      )
-    })
+            if (--count === 0) rej(Error("all promises rejected"));
+          }),
+      );
+    });
 
   try {
-    if (new URL(link).protocol !== 'https:') {
-      throw Error(`failed fetching comment.link dimensions for link '${link}' not https protocol`)
+    if (new URL(link).protocol !== "https:") {
+      throw Error(`failed fetching comment.link dimensions for link '${link}' not https protocol`);
     }
-    const dimensions = await PromiseAny([fetchImageDimensions(link), fetchVideoDimensions(link), fetchAudio(link)])
-    return dimensions
+    const dimensions = await PromiseAny([
+      fetchImageDimensions(link),
+      fetchVideoDimensions(link),
+      fetchAudio(link),
+    ]);
+    return dimensions;
   } catch (error: any) {
-    log.error('fetchCommentLinkDimensions error', {error, link})
-    return {}
+    log.error("fetchCommentLinkDimensions error", { error, link });
+    return {};
   }
-}
+};
 
 export const getInitAccountCommentsToUpdate = (accountsComments: AccountsComments) => {
-  const accountCommentsToUpdate: {accountComment: AccountComment; accountId: string}[] = []
+  const accountCommentsToUpdate: { accountComment: AccountComment; accountId: string }[] = [];
   for (const accountId in accountsComments) {
     for (const accountComment of accountsComments[accountId]) {
-      accountCommentsToUpdate.push({accountComment, accountId})
+      accountCommentsToUpdate.push({ accountComment, accountId });
     }
   }
 
   // update newer comments first, more likely to have notifications
-  accountCommentsToUpdate.sort((a, b) => b.accountComment.timestamp - a.accountComment.timestamp)
+  accountCommentsToUpdate.sort((a, b) => b.accountComment.timestamp - a.accountComment.timestamp);
 
   // updating too many comments during init slows down fetching comments/subs
   if (accountCommentsToUpdate.length > 10) {
-    accountCommentsToUpdate.length = 10
+    accountCommentsToUpdate.length = 10;
   }
 
   // TODO: add some algo to fetch all notifications (even old), but not on init
   // during downtimes when we're not fetching anything else
-  return accountCommentsToUpdate
-}
+  return accountCommentsToUpdate;
+};
 
 export const getAccountCommentDepth = (comment: Comment) => {
   if (!comment.parentCid) {
-    return 0
+    return 0;
   }
-  let parentCommentDepth = commentsStore.getState().comments[comment.parentCid]?.depth
-  if (typeof parentCommentDepth === 'number') {
-    return parentCommentDepth + 1
+  let parentCommentDepth = commentsStore.getState().comments[comment.parentCid]?.depth;
+  if (typeof parentCommentDepth === "number") {
+    return parentCommentDepth + 1;
   }
-  parentCommentDepth = repliesPagesStore.getState().comments[comment.parentCid]?.depth
-  if (typeof parentCommentDepth === 'number') {
-    return parentCommentDepth + 1
+  parentCommentDepth = repliesPagesStore.getState().comments[comment.parentCid]?.depth;
+  if (typeof parentCommentDepth === "number") {
+    return parentCommentDepth + 1;
   }
-  parentCommentDepth = subplebbitsPagesStore.getState().comments[comment.parentCid]?.depth
-  if (typeof parentCommentDepth === 'number') {
-    return parentCommentDepth + 1
+  parentCommentDepth = subplebbitsPagesStore.getState().comments[comment.parentCid]?.depth;
+  if (typeof parentCommentDepth === "number") {
+    return parentCommentDepth + 1;
   }
   // if can't find the parent comment depth anywhere, don't include it with the account comment
   // it will be added automatically when challenge verification is received
-}
+};
 
 export const addShortAddressesToAccountComment = (comment: Comment) => {
-  comment = {...comment}
+  comment = { ...comment };
   try {
-    comment.shortSubplebbitAddress = PlebbitJs.Plebbit.getShortAddress({address: comment.subplebbitAddress})
+    comment.shortSubplebbitAddress = PlebbitJs.Plebbit.getShortAddress({
+      address: comment.subplebbitAddress,
+    });
   } catch (e) {}
   try {
-    comment.author = {...comment.author}
-    comment.author.shortAddress = PlebbitJs.Plebbit.getShortAddress({address: comment.author.address})
+    comment.author = { ...comment.author };
+    comment.author.shortAddress = PlebbitJs.Plebbit.getShortAddress({
+      address: comment.author.address,
+    });
   } catch (e) {}
-  return comment
-}
+  return comment;
+};
 
 const utils = {
   getAccountSubplebbits,
@@ -231,6 +269,6 @@ const utils = {
   getInitAccountCommentsToUpdate,
   getAccountCommentDepth,
   addShortAddressesToAccountComment,
-}
+};
 
-export default utils
+export default utils;

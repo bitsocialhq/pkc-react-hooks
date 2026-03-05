@@ -12,10 +12,10 @@
 
 ```
 DEBUG=* yarn test
-DEBUG=pkc-react-hooks:* yarn test
-DEBUG=pkc-react-hooks:hooks:* yarn test
-DEBUG=pkc-react-hooks:hooks:accounts yarn test
-DEBUG=pkc-react-hooks:hooks:accounts DEBUG_DEPTH=6 yarn test feeds
+DEBUG=bitsocial-react-hooks:* yarn test
+DEBUG=bitsocial-react-hooks:hooks:* yarn test
+DEBUG=bitsocial-react-hooks:hooks:accounts yarn test
+DEBUG=bitsocial-react-hooks:hooks:accounts DEBUG_DEPTH=6 yarn test feeds
 ```
 
 #### Preapre for E2E tests
@@ -30,7 +30,7 @@ DEBUG=pkc-react-hooks:hooks:accounts DEBUG_DEPTH=6 yarn test feeds
 #### E2E tests
 
 - `yarn test:e2e`
-- `DEBUG=pkc-react-hooks:* yarn test:e2e` for tests with logs
+- `DEBUG=bitsocial-react-hooks:* yarn test:e2e` for tests with logs
 
 #### Build
 
