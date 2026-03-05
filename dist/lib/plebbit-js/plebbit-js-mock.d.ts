@@ -88,6 +88,7 @@ declare class Publication extends EventEmitter {
     simulateChallengeEvent(): void;
     publishChallengeAnswers(challengeAnswers: string[]): Promise<void>;
     simulateChallengeVerificationEvent(): void;
+    stop(): void;
 }
 export declare class Comment extends Publication {
     updateCalledTimes: number;

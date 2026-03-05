@@ -25,7 +25,7 @@ import { useAuthor, useAuthorComments, useAuthorAvatar, useResolvedAuthorAddress
 // actions
 import { useSubscribe, useBlock, usePublishComment, usePublishVote, useCreateSubplebbit, usePublishCommentEdit, usePublishCommentModeration, usePublishSubplebbitEdit, } from './hooks/actions';
 // actions that don't have their own hooks yet
-import { createAccount, deleteAccount, setAccount, setActiveAccount, setAccountsOrder, importAccount, exportAccount, deleteSubplebbit, } from './stores/accounts/accounts-actions';
+import { createAccount, deleteAccount, deleteComment, setAccount, setActiveAccount, setAccountsOrder, importAccount, exportAccount, deleteSubplebbit, } from './stores/accounts/accounts-actions';
 // states
 import { useClientsStates, useSubplebbitsStates } from './hooks/states';
 // plebbit-rpc
@@ -54,7 +54,7 @@ useFeed, useBufferedFeeds,
 // actions
 useSubscribe, useBlock, usePublishComment, usePublishVote, usePublishCommentEdit, usePublishCommentModeration, usePublishSubplebbitEdit, useCreateSubplebbit, 
 // actions that don't have their own hooks yet
-createAccount, deleteAccount, setAccount, setActiveAccount, setAccountsOrder, importAccount, exportAccount, deleteSubplebbit, 
+createAccount, deleteAccount, deleteComment, setAccount, setActiveAccount, setAccountsOrder, importAccount, exportAccount, deleteSubplebbit, 
 // states
 useClientsStates, useSubplebbitsStates, 
 // plebbit-rpc
@@ -110,6 +110,7 @@ const hooks = {
     // actions that don't have their own hooks yet
     createAccount,
     deleteAccount,
+    deleteComment,
     setAccount,
     setActiveAccount,
     setAccountsOrder,

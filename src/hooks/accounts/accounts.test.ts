@@ -589,6 +589,115 @@ describe("accounts", () => {
       });
     });
 
+    describe("deleteComment", () => {
+      const subplebbitAddress = "12D3KooW... deleteComment.test";
+
+      test(`deleteComment(index) removes pending comment, reindexes list, and persists after store reset`, async () => {
+        const publishCommentOptions = {
+          subplebbitAddress,
+          parentCid: "Qm...",
+          content: "pending to delete",
+          onChallenge: () => {},
+          onChallengeVerification: () => {},
+        };
+        let pendingComment: any;
+        await act(async () => {
+          pendingComment = await rendered.result.current.publishComment(publishCommentOptions);
+        });
+        expect(pendingComment.index).toBe(0);
+        await waitFor(() => rendered.result.current.accountComments?.length >= 1);
+        expect(rendered.result.current.accountComments[0].content).toBe("pending to delete");
+
+        await act(async () => {
+          await rendered.result.current.deleteComment(0);
+        });
+        await waitFor(() => rendered.result.current.accountComments?.length === 0);
+        expect(rendered.result.current.accountComments.length).toBe(0);
+
+        await testUtils.resetStores();
+        const rendered2 = renderHook<any, any>(() => useAccountComments());
+        const waitFor2 = testUtils.createWaitFor(rendered2);
+        await waitFor2(() => rendered2.result.current.state === "succeeded");
+        expect(rendered2.result.current.accountComments.length).toBe(0);
+      });
+
+      test(`deleteComment(cid) removes succeeded comment and reindexes/mapping remains correct`, async () => {
+        const publishCommentOptions = {
+          subplebbitAddress,
+          onChallenge: (challenge: any, comment: any) => comment.publishChallengeAnswers(["4"]),
+        };
+        let cvCount = 0;
+        const opts = {
+          ...publishCommentOptions,
+          onChallengeVerification: () => cvCount++,
+        };
+        await act(async () => {
+          await rendered.result.current.publishComment({ ...opts, content: "first" });
+          await waitFor(() => rendered.result.current.accountComments?.[0]?.cid);
+          await rendered.result.current.publishComment({ ...opts, content: "second" });
+          await rendered.result.current.publishComment({ ...opts, content: "third" });
+        });
+        await waitFor(() => cvCount === 3);
+        expect(rendered.result.current.accountComments.length).toBe(3);
+        const firstCid = rendered.result.current.accountComments[0].cid;
+        const secondCid = rendered.result.current.accountComments[1].cid;
+        const thirdCid = rendered.result.current.accountComments[2].cid;
+
+        await act(async () => {
+          await rendered.result.current.deleteComment(secondCid);
+        });
+        await waitFor(() => rendered.result.current.accountComments?.length === 2);
+        expect(rendered.result.current.accountComments.length).toBe(2);
+        expect(rendered.result.current.accountComments[0].content).toBe("first");
+        expect(rendered.result.current.accountComments[0].cid).toBe(firstCid);
+        expect(rendered.result.current.accountComments[0].index).toBe(0);
+        expect(rendered.result.current.accountComments[1].content).toBe("third");
+        expect(rendered.result.current.accountComments[1].cid).toBe(thirdCid);
+        expect(rendered.result.current.accountComments[1].index).toBe(1);
+
+        const renderedComment = renderHook(() => useAccountComment({ commentIndex: 0 }));
+        const waitForComment = testUtils.createWaitFor(renderedComment);
+        await waitForComment(() => renderedComment.result.current.cid);
+        expect(renderedComment.result.current.cid).toBe(firstCid);
+      });
+
+      test(`deleting one entry while another pending publish exists does not cause wrong comment mutation from later publish callbacks`, async () => {
+        let cvCount = 0;
+        const publishCommentOptions = {
+          subplebbitAddress,
+          onChallenge: (challenge: any, comment: any) => comment.publishChallengeAnswers(["4"]),
+          onChallengeVerification: () => cvCount++,
+        };
+        await act(async () => {
+          await rendered.result.current.publishComment({
+            ...publishCommentOptions,
+            content: "to delete",
+          });
+          await waitFor(() => rendered.result.current.accountComments?.length >= 1);
+          await rendered.result.current.publishComment({
+            ...publishCommentOptions,
+            content: "to keep",
+          });
+        });
+        await waitFor(() => rendered.result.current.accountComments?.length === 2);
+        expect(rendered.result.current.accountComments[0].content).toBe("to delete");
+        expect(rendered.result.current.accountComments[1].content).toBe("to keep");
+        expect(rendered.result.current.accountComments[1].cid).toBeUndefined();
+
+        await act(async () => {
+          await rendered.result.current.deleteComment(0);
+        });
+        await waitFor(() => rendered.result.current.accountComments?.length === 1);
+        expect(rendered.result.current.accountComments[0].content).toBe("to keep");
+
+        await waitFor(() => cvCount === 2);
+        await waitFor(() => rendered.result.current.accountComments?.[0]?.cid);
+        expect(rendered.result.current.accountComments.length).toBe(1);
+        expect(rendered.result.current.accountComments[0].content).toBe("to keep");
+        expect(rendered.result.current.accountComments[0].cid).toBe("to keep cid");
+      });
+    });
+
     test(`change account order`, async () => {
       expect(rendered.result.current.accounts[0].name).toBe("Account 1");
       expect(rendered.result.current.accounts[1].name).toBe("Account 2");

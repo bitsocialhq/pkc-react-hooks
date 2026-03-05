@@ -15,6 +15,7 @@ import repliesStore, { defaultRepliesPerPage as repliesPerPage } from "../stores
 import repliesPagesStore from "../stores/replies-pages";
 import accountsStore from "../stores/accounts";
 import * as accountsActions from "../stores/accounts/accounts-actions";
+import { getCommentCidsToAccountsComments } from "../stores/accounts/utils";
 
 const plebbitJsMockRepliesPageLength = 100;
 
@@ -1877,6 +1878,45 @@ describe("replies", () => {
       expect(rendered.result.current.repliesDepth1.replies[0].timestamp).toBeGreaterThan(
         rendered.result.current.repliesDepth1.replies[1].timestamp,
       );
+    });
+
+    test("deleted local account reply/reindex disappears from replies accountComments injection immediately", async () => {
+      rendered.rerender({
+        commentCid: postCid,
+        sortType,
+        accountComments: { newerThan: Infinity },
+      });
+
+      await waitFor(() => rendered.result.current.repliesDepth1.replies.length > 2);
+      expect(rendered.result.current.repliesDepth1.replies[0].cid).toBe(accountReplyCid1);
+
+      await act(async () => {
+        const { accountsComments, activeAccountId, accounts } = accountsStore.getState();
+        const accountId = accounts[activeAccountId].id;
+        const accountCommentsList = accountsComments[accountId] || [];
+        const spliced = [...accountCommentsList];
+        spliced.splice(2, 1);
+        const reindexed = spliced.map((c, i) => ({ ...c, index: i, accountId }));
+        accountsStore.setState({
+          accountsComments: { ...accountsComments, [accountId]: reindexed },
+          commentCidsToAccountsComments: getCommentCidsToAccountsComments({
+            ...accountsComments,
+            [accountId]: reindexed,
+          }),
+        });
+      });
+
+      await waitFor(
+        () =>
+          !rendered.result.current.repliesDepth1.replies.some(
+            (r: { cid?: string }) => r.cid === accountReplyCid1,
+          ),
+      );
+      expect(
+        rendered.result.current.repliesDepth1.replies.some(
+          (r: { cid?: string }) => r.cid === accountReplyCid1,
+        ),
+      ).toBe(false);
     });
 
     test("change accountComments options, append, prepend, newerThan", async () => {

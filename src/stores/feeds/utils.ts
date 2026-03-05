@@ -259,11 +259,39 @@ export const addAccountsComments = (feedsOptions: FeedsOptions, loadedFeeds: Fee
       }
       return subplebbitAddressesSet.has(comment.subplebbitAddress);
     });
+    const validAccountIndices = new Set(accountPosts.map((p) => p.index));
+    const accountCidToPost = new Map<string, Comment>();
+    for (const p of accountPosts) {
+      if (p.cid) accountCidToPost.set(p.cid, p);
+    }
+
+    let loadedFeed = loadedFeeds[feedName] || [];
+    // prune stale local-account entries and replace when cid matches but index changed
+    const prunedLoadedFeed: Comment[] = [];
+    for (const post of loadedFeed) {
+      if (post.index === undefined) {
+        prunedLoadedFeed.push(post);
+        continue;
+      }
+      if (!validAccountIndices.has(post.index)) {
+        loadedFeedsChanged = true;
+        continue;
+      }
+      if (post.cid) {
+        const freshAccountPost = accountCidToPost.get(post.cid);
+        if (freshAccountPost && freshAccountPost.index !== post.index) {
+          prunedLoadedFeed.push(freshAccountPost);
+          loadedFeedsChanged = true;
+          continue;
+        }
+      }
+      prunedLoadedFeed.push(post);
+    }
+    loadedFeed = loadedFeeds[feedName] = prunedLoadedFeed;
+
     if (!accountPosts.length) {
       continue;
     }
-
-    const loadedFeed = loadedFeeds[feedName];
     // if a loaded comment doesn't have a cid, then it's pending
     // and pending account comments should always have unique timestamps
     const loadedFeedMap = new Map();

@@ -3,6 +3,7 @@ import testUtils, { renderHook } from "../../lib/test-utils";
 import { Comment } from "../../types";
 import { useFeed, useBufferedFeeds, useAccount, useSubplebbit, setPlebbitJs } from "../..";
 import * as accountsActions from "../../stores/accounts/accounts-actions";
+import { getCommentCidsToAccountsComments } from "../../stores/accounts/utils";
 import localForageLru from "../../lib/localforage-lru";
 import localForage from "localforage";
 import feedsStore, { defaultPostsPerPage as postsPerPage } from "../../stores/feeds";
@@ -2054,6 +2055,48 @@ describe("feeds", () => {
         expect(rendered.result.current.feed[4].cid).not.toBe(undefined);
         expect(rendered.result.current.feed[4].author.address).not.toBe(authorAddress);
         expect(rendered.result.current.hasMore).toBe(true);
+      });
+
+      test("deleted local account post/reindex disappears from feed accountComments injection immediately", async () => {
+        rendered.rerender({
+          subplebbitAddresses,
+          sortType,
+          accountComments: { newerThan: Infinity },
+        });
+
+        await waitFor(() => rendered.result.current.feed.length > 0);
+        expect(rendered.result.current.feed.length).toBe(postsPerPage);
+
+        addMockAccountCommentsToStore();
+        await waitFor(() => rendered.result.current.feed[0].cid === accountPostCid1);
+
+        expect(rendered.result.current.feed.length).toBe(postsPerPage + 2);
+        expect(rendered.result.current.feed[0].cid).toBe(accountPostCid1);
+
+        await act(async () => {
+          const { accountsComments, activeAccountId, accounts } = accountsStore.getState();
+          const accountId = accounts[activeAccountId].id;
+          const accountCommentsList = accountsComments[accountId] || [];
+          const spliced = [...accountCommentsList];
+          spliced.splice(3, 1);
+          const reindexed = spliced.map((c, i) => ({ ...c, index: i, accountId }));
+          accountsStore.setState({
+            accountsComments: { ...accountsComments, [accountId]: reindexed },
+            commentCidsToAccountsComments: getCommentCidsToAccountsComments({
+              ...accountsComments,
+              [accountId]: reindexed,
+            }),
+          });
+        });
+
+        await waitFor(
+          () =>
+            rendered.result.current.feed.length === postsPerPage + 1 &&
+            rendered.result.current.feed[0].cid !== accountPostCid1,
+        );
+        expect(rendered.result.current.feed.some((p: Comment) => p.cid === accountPostCid1)).toBe(
+          false,
+        );
       });
     });
 

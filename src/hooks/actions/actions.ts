@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import useAccountsStore from "../../stores/accounts";
 import Logger from "@plebbit/plebbit-logger";
 const log = Logger("bitsocial-react-hooks:actions:hooks");
@@ -168,6 +168,7 @@ export function usePublishComment(options?: UsePublishCommentOptions): UsePublis
   const [challenge, setChallenge] = useState<Challenge>();
   const [challengeVerification, setChallengeVerification] = useState<ChallengeVerification>();
   const [publishChallengeAnswers, setPublishChallengeAnswers] = useState<PublishChallengeAnswers>();
+  const indexRef = useRef<number | undefined>(undefined);
 
   let initialState = "initializing";
   // before the accountId and options is defined, nothing can happen
@@ -212,11 +213,25 @@ export function usePublishComment(options?: UsePublishCommentOptions): UsePublis
   const publishComment = async () => {
     try {
       const { index } = await accountsActions.publishComment(publishCommentOptions, accountName);
+      indexRef.current = index;
       setIndex(index);
     } catch (e: any) {
       setErrors((errors) => [...errors, e]);
       publishCommentOptions.onError?.(e);
     }
+  };
+
+  const abandonPublish = async () => {
+    const idx = indexRef.current;
+    if (idx !== undefined) {
+      await accountsActions.deleteComment(idx, accountName);
+    }
+    indexRef.current = undefined;
+    setChallenge(undefined);
+    setChallengeVerification(undefined);
+    setPublishChallengeAnswers(undefined);
+    setIndex(undefined);
+    setPublishingState(undefined);
   };
 
   return useMemo(
@@ -225,6 +240,7 @@ export function usePublishComment(options?: UsePublishCommentOptions): UsePublis
       challenge,
       challengeVerification,
       publishComment,
+      abandonPublish,
       publishChallengeAnswers: publishChallengeAnswers || publishChallengeAnswersNotReady,
       state: publishingState || initialState,
       error: errors[errors.length - 1],

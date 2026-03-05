@@ -259,6 +259,23 @@ const getAccountCommentsDatabase = (accountId) => {
     }
     return accountsCommentsDatabases[accountId];
 };
+const deleteAccountComment = (accountId, accountCommentIndex) => __awaiter(void 0, void 0, void 0, function* () {
+    const accountCommentsDatabase = getAccountCommentsDatabase(accountId);
+    const length = (yield accountCommentsDatabase.getItem("length")) || 0;
+    assert(accountCommentIndex >= 0 && accountCommentIndex < length, `deleteAccountComment accountCommentIndex '${accountCommentIndex}' out of range [0, ${length})`);
+    const items = yield getDatabaseAsArray(accountCommentsDatabase);
+    items.splice(accountCommentIndex, 1);
+    const newLength = length - 1;
+    const promises = [];
+    for (let i = 0; i < newLength; i++) {
+        promises.push(accountCommentsDatabase.setItem(String(i), items[i]));
+    }
+    if (newLength < length) {
+        promises.push(accountCommentsDatabase.removeItem(String(length - 1)));
+    }
+    promises.push(accountCommentsDatabase.setItem("length", newLength));
+    yield Promise.all(promises);
+});
 const addAccountComment = (accountId, comment, accountCommentIndex) => __awaiter(void 0, void 0, void 0, function* () {
     const accountCommentsDatabase = getAccountCommentsDatabase(accountId);
     const length = (yield accountCommentsDatabase.getItem("length")) || 0;
@@ -480,6 +497,7 @@ const database = {
     getAccountsComments,
     getAccountComments,
     addAccountComment,
+    deleteAccountComment,
     addAccount,
     removeAccount,
     getExportedAccountJson,

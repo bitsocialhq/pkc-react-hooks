@@ -336,6 +336,7 @@ export interface UsePublishCommentResult extends Result {
   challenge: Challenge | undefined;
   challengeVerification: ChallengeVerification | undefined;
   publishComment(): Promise<void>;
+  abandonPublish(): Promise<void>;
   publishChallengeAnswers(challengeAnswers: string[]): Promise<void>;
 }
 

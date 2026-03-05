@@ -1,13 +1,13 @@
-import polyfill from './lib/polyfill'
-polyfill()
+import polyfill from "./lib/polyfill";
+polyfill();
 
 // fix DEBUG_DEPTH bug https://github.com/debug-js/debug/issues/746
 try {
   if (process.env.DEBUG_DEPTH) {
-    require('util').inspect.defaultOptions.depth = process.env.DEBUG_DEPTH
+    require("util").inspect.defaultOptions.depth = process.env.DEBUG_DEPTH;
   }
   if (process.env.DEBUG_ARRAY) {
-    require('util').inspect.defaultOptions.maxArrayLength = process.env.DEBUG_ARRAY
+    require("util").inspect.defaultOptions.maxArrayLength = process.env.DEBUG_ARRAY;
   }
 } catch (e) {}
 
@@ -24,22 +24,34 @@ import {
   useNotifications,
   useAccountSubplebbits,
   usePubsubSubscribe,
-} from './hooks/accounts'
+} from "./hooks/accounts";
 
 // comments
-import {useComment, useComments, useValidateComment} from './hooks/comments'
+import { useComment, useComments, useValidateComment } from "./hooks/comments";
 
 // replies
-import {useReplies} from './hooks/replies'
+import { useReplies } from "./hooks/replies";
 
 // subplebbits
-import {useSubplebbit, useSubplebbits, useSubplebbitStats, useResolvedSubplebbitAddress} from './hooks/subplebbits'
+import {
+  useSubplebbit,
+  useSubplebbits,
+  useSubplebbitStats,
+  useResolvedSubplebbitAddress,
+} from "./hooks/subplebbits";
 
 // feeds
-import {useFeed, useBufferedFeeds} from './hooks/feeds'
+import { useFeed, useBufferedFeeds } from "./hooks/feeds";
 
 // authors
-import {useAuthor, useAuthorComments, useAuthorAvatar, useResolvedAuthorAddress, useAuthorAddress, setAuthorAvatarsWhitelistedTokenAddresses} from './hooks/authors'
+import {
+  useAuthor,
+  useAuthorComments,
+  useAuthorAvatar,
+  useResolvedAuthorAddress,
+  useAuthorAddress,
+  setAuthorAvatarsWhitelistedTokenAddresses,
+} from "./hooks/authors";
 
 // actions
 import {
@@ -51,25 +63,26 @@ import {
   usePublishCommentEdit,
   usePublishCommentModeration,
   usePublishSubplebbitEdit,
-} from './hooks/actions'
+} from "./hooks/actions";
 
 // actions that don't have their own hooks yet
 import {
   createAccount,
   deleteAccount,
+  deleteComment,
   setAccount,
   setActiveAccount,
   setAccountsOrder,
   importAccount,
   exportAccount,
   deleteSubplebbit,
-} from './stores/accounts/accounts-actions'
+} from "./stores/accounts/accounts-actions";
 
 // states
-import {useClientsStates, useSubplebbitsStates} from './hooks/states'
+import { useClientsStates, useSubplebbitsStates } from "./hooks/states";
 
 // plebbit-rpc
-import {usePlebbitRpcSettings} from './hooks/plebbit-rpc'
+import { usePlebbitRpcSettings } from "./hooks/plebbit-rpc";
 
 // chain
 import {
@@ -79,14 +92,14 @@ import {
   getSolPrivateKeyFromPlebbitPrivateKey,
   validateEthWallet,
   validateSolWallet,
-} from './lib/chain'
+} from "./lib/chain";
 
 // utils
-import {setPlebbitJs, restorePlebbitJs} from './lib/plebbit-js'
-import {deleteDatabases, deleteCaches} from './lib/debug-utils'
+import { setPlebbitJs, restorePlebbitJs } from "./lib/plebbit-js";
+import { deleteDatabases, deleteCaches } from "./lib/debug-utils";
 
 // types
-export * from './types'
+export * from "./types";
 
 // IMPORTANT: should be the same as 'export default hooks'
 export {
@@ -135,6 +148,7 @@ export {
   // actions that don't have their own hooks yet
   createAccount,
   deleteAccount,
+  deleteComment,
   setAccount,
   setActiveAccount,
   setAccountsOrder,
@@ -158,7 +172,7 @@ export {
   restorePlebbitJs,
   deleteDatabases,
   deleteCaches,
-}
+};
 
 // IMPORTANT: should be the same as 'export {}'
 const hooks = {
@@ -207,6 +221,7 @@ const hooks = {
   // actions that don't have their own hooks yet
   createAccount,
   deleteAccount,
+  deleteComment,
   setAccount,
   setActiveAccount,
   setAccountsOrder,
@@ -230,6 +245,6 @@ const hooks = {
   restorePlebbitJs,
   deleteDatabases,
   deleteCaches,
-}
+};
 
-export default hooks
+export default hooks;

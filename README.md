@@ -134,7 +134,7 @@ useBufferedFeeds({feedsOptions: UseFeedOptions[]}) // preload or buffer feeds in
 ```
 useSubscribe({subplebbitAddress: string}): {subscribed: boolean | undefined, subscribe: Function, unsubscribe: Function}
 useBlock({address?: string, cid?: string}): {blocked: boolean | undefined, block: Function, unblock: Function}
-usePublishComment(options: UsePublishCommentOptions): {index: number, ...UsePublishCommentResult}
+usePublishComment(options: UsePublishCommentOptions): {index: number, abandonPublish: () => Promise<void>, ...UsePublishCommentResult}
 usePublishVote(options: UsePublishVoteOptions): UsePublishVoteResult
 usePublishCommentEdit(options: UsePublishCommentEditOptions): UsePublishCommentEditResult
 usePublishCommentModeration(options: UsePublishCommentModerationOptions): UsePublishCommentModerationResult
@@ -160,6 +160,7 @@ setAccountsOrder(accountNames: string[])
 importAccount(serializedAccount: string)
 exportAccount(accountName: string): string // don't allow undefined to prevent catastrophic bugs
 deleteSubplebbit(subplebbitAddress: string, accountName?: string)
+deleteComment(commentCidOrAccountCommentIndex: string | number, accountName?: string): Promise<void>
 ```
 #### Utility functions
 ```
@@ -598,23 +599,36 @@ if (editedCommentState === 'failed') {
 
 #### Delete a comment
 
+You can remove a comment from your local account in two ways:
+
+**1. Abandon a pending publish** — if you just published and want to cancel before it propagates:
+
 ```jsx
-const publishCommentEditOptions = {
-  commentCid: 'QmZVYzLChjKrYDVty6e5JokKffGDZivmEJz9318EYfp2ui',
-  removed: true,
-  subplebbitAddress: 'news.eth',
-  onChallenge,
-  onChallengeVerification,
-  onError
-}
-const {state, error, publishCommentEdit} = usePublishCommentEdit(publishCommentEditOptions)
+const {index, publishComment, abandonPublish} = usePublishComment(publishCommentOptions)
 
-await publishCommentEdit()
-console.log(state)
-console.log(error)
-
-// TODO: implement accountActions.deleteComment to remove your comment from your local accountComments database
+await publishComment()
+// User changes mind — abandon the pending comment
+await abandonPublish()
+// Hook state returns to ready; the comment is removed from accountComments
 ```
+
+**2. Delete by index or CID** — remove any of your comments (pending or published):
+
+```jsx
+import {deleteComment, useAccountComment, useAccountComments} from '@bitsocialhq/bitsocial-react-hooks'
+
+// By account comment index (from usePublishComment or useAccountComment)
+const {index} = usePublishComment(publishCommentOptions)
+await publishComment()
+await deleteComment(index, accountName)
+
+// By comment CID (from useAccountComments or useAccountComment)
+const {accountComments} = useAccountComments()
+const accountComment = accountComments[0]
+await deleteComment(accountComment.cid, accountName)
+```
+
+> **Note:** `accountComment.index` can change after deletions. If you delete a comment, indices of comments after it may shift. Prefer using `commentCid` when you need a stable identifier, or re-fetch `accountComments` after deletions.
 
 #### Subscribe to a subplebbit
 
@@ -769,6 +783,7 @@ for (const accountComment of accountComments) {
   // it is recommended to show a label in the UI if accountComment.state is 'pending' or 'failed'
   console.log('comment', accountComment.index, 'is status', accountComment.state)
 }
+// note: accountComment.index can change after deletions; prefer commentCid for stable identifiers
 
 // all my own votes
 const {accountVotes} = useAccountVotes()

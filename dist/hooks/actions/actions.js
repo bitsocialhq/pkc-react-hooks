@@ -18,7 +18,7 @@ var __rest = (this && this.__rest) || function (s, e) {
         }
     return t;
 };
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import useAccountsStore from "../../stores/accounts";
 import Logger from "@plebbit/plebbit-logger";
 const log = Logger("bitsocial-react-hooks:actions:hooks");
@@ -137,6 +137,7 @@ export function usePublishComment(options) {
     const [challenge, setChallenge] = useState();
     const [challengeVerification, setChallengeVerification] = useState();
     const [publishChallengeAnswers, setPublishChallengeAnswers] = useState();
+    const indexRef = useRef(undefined);
     let initialState = "initializing";
     // before the accountId and options is defined, nothing can happen
     if (accountId && options) {
@@ -173,6 +174,7 @@ export function usePublishComment(options) {
         var _a;
         try {
             const { index } = yield accountsActions.publishComment(publishCommentOptions, accountName);
+            indexRef.current = index;
             setIndex(index);
         }
         catch (e) {
@@ -180,11 +182,24 @@ export function usePublishComment(options) {
             (_a = publishCommentOptions.onError) === null || _a === void 0 ? void 0 : _a.call(publishCommentOptions, e);
         }
     });
+    const abandonPublish = () => __awaiter(this, void 0, void 0, function* () {
+        const idx = indexRef.current;
+        if (idx !== undefined) {
+            yield accountsActions.deleteComment(idx, accountName);
+        }
+        indexRef.current = undefined;
+        setChallenge(undefined);
+        setChallengeVerification(undefined);
+        setPublishChallengeAnswers(undefined);
+        setIndex(undefined);
+        setPublishingState(undefined);
+    });
     return useMemo(() => ({
         index,
         challenge,
         challengeVerification,
         publishComment,
+        abandonPublish,
         publishChallengeAnswers: publishChallengeAnswers || publishChallengeAnswersNotReady,
         state: publishingState || initialState,
         error: errors[errors.length - 1],

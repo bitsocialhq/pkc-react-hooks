@@ -431,6 +431,14 @@ class Publication extends EventEmitter {
         this.publishingState = 'succeeded';
         this.emit('publishingstatechange', 'succeeded');
     }
+    stop() {
+        if (this.state === 'publishing' || this.publishingState !== 'stopped') {
+            this.state = 'stopped';
+            this.publishingState = 'stopped';
+            this.emit('statechange', 'stopped');
+            this.emit('publishingstatechange', 'stopped');
+        }
+    }
 }
 export class Comment extends Publication {
     constructor(createCommentOptions) {

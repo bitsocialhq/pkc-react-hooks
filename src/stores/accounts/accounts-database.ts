@@ -319,6 +319,27 @@ const getAccountCommentsDatabase = (accountId: string) => {
   return accountsCommentsDatabases[accountId];
 };
 
+const deleteAccountComment = async (accountId: string, accountCommentIndex: number) => {
+  const accountCommentsDatabase = getAccountCommentsDatabase(accountId);
+  const length = (await accountCommentsDatabase.getItem("length")) || 0;
+  assert(
+    accountCommentIndex >= 0 && accountCommentIndex < length,
+    `deleteAccountComment accountCommentIndex '${accountCommentIndex}' out of range [0, ${length})`,
+  );
+  const items = await getDatabaseAsArray(accountCommentsDatabase);
+  items.splice(accountCommentIndex, 1);
+  const newLength = length - 1;
+  const promises: Promise<void>[] = [];
+  for (let i = 0; i < newLength; i++) {
+    promises.push(accountCommentsDatabase.setItem(String(i), items[i]));
+  }
+  if (newLength < length) {
+    promises.push(accountCommentsDatabase.removeItem(String(length - 1)));
+  }
+  promises.push(accountCommentsDatabase.setItem("length", newLength));
+  await Promise.all(promises);
+};
+
 const addAccountComment = async (
   accountId: string,
   comment: CreateCommentOptions | Comment,
@@ -590,6 +611,7 @@ const database = {
   getAccountsComments,
   getAccountComments,
   addAccountComment,
+  deleteAccountComment,
   addAccount,
   removeAccount,
   getExportedAccountJson,

@@ -8,6 +8,7 @@ declare const database: {
     getAccountsComments: (accountIds: string[]) => Promise<AccountsComments>;
     getAccountComments: (accountId: string) => Promise<any[]>;
     addAccountComment: (accountId: string, comment: CreateCommentOptions | Comment, accountCommentIndex?: number) => Promise<void>;
+    deleteAccountComment: (accountId: string, accountCommentIndex: number) => Promise<void>;
     addAccount: (account: Account) => Promise<void>;
     removeAccount: (account: Account) => Promise<void>;
     getExportedAccountJson: (accountId: string) => Promise<string>;

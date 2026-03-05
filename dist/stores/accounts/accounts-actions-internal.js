@@ -39,12 +39,34 @@ export const startUpdatingAccountCommentOnCommentUpdateEvents = (comment, accoun
     }
     comment.on("update", (updatedComment) => __awaiter(void 0, void 0, void 0, function* () {
         var _a;
+        const mapping = accountsStore.getState().commentCidsToAccountsComments[updatedComment.cid || ""];
+        if (!mapping || mapping.accountId !== account.id) {
+            accountsStore.setState(({ accountsCommentsUpdating }) => {
+                const next = Object.assign({}, accountsCommentsUpdating);
+                delete next[updatedComment.cid || ""];
+                return { accountsCommentsUpdating: next };
+            });
+            try {
+                if (typeof comment.removeAllListeners === "function")
+                    comment.removeAllListeners();
+                if (typeof comment.stop === "function")
+                    comment.stop();
+            }
+            catch (e) {
+                log.trace("startUpdatingAccountCommentOnCommentUpdateEvents stop/removeAllListeners", {
+                    cid: updatedComment.cid,
+                    error: e,
+                });
+            }
+            return;
+        }
+        const currentIndex = mapping.accountCommentIndex;
         // merge should not be needed if plebbit-js is implemented properly, but no harm in fixing potential errors
         updatedComment = utils.merge(commentArgument, comment, updatedComment);
-        yield accountsDatabase.addAccountComment(account.id, updatedComment, accountCommentIndex);
+        yield accountsDatabase.addAccountComment(account.id, updatedComment, currentIndex);
         log("startUpdatingAccountCommentOnCommentUpdateEvents comment update", {
             commentCid: comment.cid,
-            accountCommentIndex,
+            accountCommentIndex: currentIndex,
             updatedComment,
             account,
         });
@@ -55,9 +77,9 @@ export const startUpdatingAccountCommentOnCommentUpdateEvents = (comment, accoun
                 return {};
             }
             const updatedAccountComments = [...accountsComments[account.id]];
-            const previousComment = updatedAccountComments[accountCommentIndex];
-            const updatedAccountComment = utils.clone(Object.assign(Object.assign({}, updatedComment), { index: accountCommentIndex, accountId: account.id }));
-            updatedAccountComments[accountCommentIndex] = updatedAccountComment;
+            const previousComment = updatedAccountComments[currentIndex];
+            const updatedAccountComment = utils.clone(Object.assign(Object.assign({}, updatedComment), { index: currentIndex, accountId: account.id }));
+            updatedAccountComments[currentIndex] = updatedAccountComment;
             return { accountsComments: Object.assign(Object.assign({}, accountsComments), { [account.id]: updatedAccountComments }) };
         });
         // update AccountCommentsReplies with new replies if has any new replies
@@ -122,11 +144,16 @@ export const addCidToAccountComment = (comment) => __awaiter(void 0, void 0, voi
                 accountCommentIndex: accountComment.index,
                 accountComment: commentWithCid,
             });
-            accountsStore.setState(({ accountsComments }) => {
+            accountsStore.setState(({ accountsComments, commentCidsToAccountsComments }) => {
                 const updatedAccountComments = [...accountsComments[accountComment.accountId]];
                 updatedAccountComments[accountComment.index] = commentWithCid;
+                const newAccountsComments = Object.assign(Object.assign({}, accountsComments), { [accountComment.accountId]: updatedAccountComments });
                 return {
-                    accountsComments: Object.assign(Object.assign({}, accountsComments), { [accountComment.accountId]: updatedAccountComments }),
+                    accountsComments: newAccountsComments,
+                    commentCidsToAccountsComments: Object.assign(Object.assign({}, commentCidsToAccountsComments), { [comment.cid]: {
+                            accountId: accountComment.accountId,
+                            accountCommentIndex: accountComment.index,
+                        } }),
                 };
             });
             startUpdatingAccountCommentOnCommentUpdateEvents(comment, accounts[accountComment.accountId], accountComment.index).catch((error) => log.error("accountsActions.addCidToAccountComment startUpdatingAccountCommentOnCommentUpdateEvents error", {

@@ -20,6 +20,63 @@ const log = Logger("bitsocial-react-hooks:accounts:stores");
 import * as accountsActionsInternal from "./accounts-actions-internal";
 import { getAccountSubplebbits, getCommentCidsToAccountsComments, fetchCommentLinkDimensions, getAccountCommentDepth, addShortAddressesToAccountComment, } from "./utils";
 import utils from "../../lib/utils";
+// Active publish-session tracking for pending comments (Task 3)
+const activePublishSessions = new Map();
+const abandonedPublishKeys = new Set();
+const getPublishSessionKey = (accountId, index) => `${accountId}:${index}`;
+const registerPublishSession = (accountId, index, comment) => {
+    activePublishSessions.set(getPublishSessionKey(accountId, index), {
+        comment,
+        abandoned: false,
+        currentIndex: index,
+    });
+};
+const abandonAndStopPublishSession = (accountId, index) => {
+    var _a;
+    const key = getPublishSessionKey(accountId, index);
+    abandonedPublishKeys.add(key);
+    const session = activePublishSessions.get(key);
+    if (!session)
+        return;
+    try {
+        if (typeof ((_a = session.comment) === null || _a === void 0 ? void 0 : _a.stop) === "function") {
+            session.comment.stop();
+        }
+    }
+    catch (e) {
+        log.error("comment.stop() error during abandon", { accountId, index, error: e });
+    }
+    activePublishSessions.delete(key);
+};
+const isPublishSessionAbandoned = (accountId, index) => {
+    return abandonedPublishKeys.has(getPublishSessionKey(accountId, index));
+};
+const getPublishSessionForComment = (accountId, comment) => {
+    for (const [key, session] of activePublishSessions) {
+        const [aid, idxStr] = key.split(":");
+        if (aid === accountId && session.comment === comment) {
+            return {
+                currentIndex: session.currentIndex,
+                sessionKey: key,
+                keyIndex: parseInt(idxStr, 10),
+            };
+        }
+    }
+    return undefined;
+};
+const shiftPublishSessionIndicesAfterDelete = (accountId, deletedIndex) => {
+    for (const [key, session] of activePublishSessions) {
+        const [aid] = key.split(":");
+        if (aid === accountId && session.currentIndex > deletedIndex) {
+            session.currentIndex -= 1;
+        }
+    }
+};
+const cleanupPublishSessionOnTerminal = (accountId, index) => {
+    const key = getPublishSessionKey(accountId, index);
+    activePublishSessions.delete(key);
+    abandonedPublishKeys.delete(key);
+};
 const addNewAccountToDatabaseAndState = (newAccount) => __awaiter(void 0, void 0, void 0, function* () {
     // add to database first to init the account
     yield accountsDatabase.addAccount(newAccount);
@@ -447,12 +504,14 @@ export const publishComment = (publishCommentOptions, accountName) => __awaiter(
     function publishAndRetryFailedChallengeVerification() {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
+            cleanupPublishSessionOnTerminal(account.id, accountCommentIndex);
+            registerPublishSession(account.id, accountCommentIndex, comment);
             comment.once("challenge", (challenge) => __awaiter(this, void 0, void 0, function* () {
                 lastChallenge = challenge;
                 publishCommentOptions.onChallenge(challenge, comment);
             }));
             comment.once("challengeverification", (challengeVerification) => __awaiter(this, void 0, void 0, function* () {
-                var _a;
+                var _a, _b;
                 publishCommentOptions.onChallengeVerification(challengeVerification, comment);
                 if (!challengeVerification.challengeSuccess && lastChallenge) {
                     // publish again automatically on fail
@@ -468,31 +527,38 @@ export const publishComment = (publishCommentOptions, accountName) => __awaiter(
                     // the challengeverification message of a comment publication should in theory send back the CID
                     // of the published comment which is needed to resolve it for replies, upvotes, etc
                     if ((_a = challengeVerification === null || challengeVerification === void 0 ? void 0 : challengeVerification.commentUpdate) === null || _a === void 0 ? void 0 : _a.cid) {
+                        const sessionInfo = getPublishSessionForComment(account.id, comment);
+                        const currentIndex = (_b = sessionInfo === null || sessionInfo === void 0 ? void 0 : sessionInfo.currentIndex) !== null && _b !== void 0 ? _b : accountCommentIndex;
+                        if (!sessionInfo || abandonedPublishKeys.has(sessionInfo.sessionKey))
+                            return;
+                        cleanupPublishSessionOnTerminal(account.id, sessionInfo.keyIndex);
                         const commentWithCid = comment;
-                        yield accountsDatabase.addAccountComment(account.id, commentWithCid, accountCommentIndex);
+                        yield accountsDatabase.addAccountComment(account.id, commentWithCid, currentIndex);
                         accountsStore.setState(({ accountsComments, commentCidsToAccountsComments }) => {
                             var _a;
                             const updatedAccountComments = [...accountsComments[account.id]];
-                            const updatedAccountComment = Object.assign(Object.assign({}, commentWithCid), { index: accountCommentIndex, accountId: account.id });
-                            updatedAccountComments[accountCommentIndex] = updatedAccountComment;
+                            const updatedAccountComment = Object.assign(Object.assign({}, commentWithCid), { index: currentIndex, accountId: account.id });
+                            updatedAccountComments[currentIndex] = updatedAccountComment;
                             return {
                                 accountsComments: Object.assign(Object.assign({}, accountsComments), { [account.id]: updatedAccountComments }),
                                 commentCidsToAccountsComments: Object.assign(Object.assign({}, commentCidsToAccountsComments), { [(_a = challengeVerification === null || challengeVerification === void 0 ? void 0 : challengeVerification.commentUpdate) === null || _a === void 0 ? void 0 : _a.cid]: {
                                         accountId: account.id,
-                                        accountCommentIndex,
+                                        accountCommentIndex: currentIndex,
                                     } }),
                             };
                         });
                         // clone the comment or it bugs publishing callbacks
                         const updatingComment = yield account.plebbit.createComment(Object.assign({}, comment));
                         accountsActionsInternal
-                            .startUpdatingAccountCommentOnCommentUpdateEvents(updatingComment, account, accountCommentIndex)
+                            .startUpdatingAccountCommentOnCommentUpdateEvents(updatingComment, account, currentIndex)
                             .catch((error) => log.error("accountsActions.publishComment startUpdatingAccountCommentOnCommentUpdateEvents error", { comment, account, accountCommentIndex, error }));
                     }
                 }
             }));
             comment.on("error", (error) => {
                 var _a;
+                if (isPublishSessionAbandoned(account.id, accountCommentIndex))
+                    return;
                 accountsStore.setState(({ accountsComments }) => {
                     const accountComments = [...(accountsComments[account.id] || [])];
                     const accountComment = accountComments[accountCommentIndex];
@@ -508,6 +574,8 @@ export const publishComment = (publishCommentOptions, accountName) => __awaiter(
             });
             comment.on("publishingstatechange", (publishingState) => __awaiter(this, void 0, void 0, function* () {
                 var _a;
+                if (isPublishSessionAbandoned(account.id, accountCommentIndex))
+                    return;
                 // set publishing state on account comment so the frontend can display it, dont persist in db because a reload cancels publishing
                 accountsStore.setState(({ accountsComments }) => {
                     const accountComments = [...(accountsComments[account.id] || [])];
@@ -523,6 +591,8 @@ export const publishComment = (publishCommentOptions, accountName) => __awaiter(
             }));
             // set clients on account comment so the frontend can display it, dont persist in db because a reload cancels publishing
             utils.clientsOnStateChange(comment.clients, (clientState, clientType, clientUrl, chainTicker) => {
+                if (isPublishSessionAbandoned(account.id, accountCommentIndex))
+                    return;
                 accountsStore.setState(({ accountsComments }) => {
                     const accountComments = [...(accountsComments[account.id] || [])];
                     const accountComment = accountComments[accountCommentIndex];
@@ -557,7 +627,39 @@ export const publishComment = (publishCommentOptions, accountName) => __awaiter(
     return createdAccountComment;
 });
 export const deleteComment = (commentCidOrAccountCommentIndex, accountName) => __awaiter(void 0, void 0, void 0, function* () {
-    throw Error("TODO: not implemented");
+    const { accounts, accountsComments, accountNamesToAccountIds, activeAccountId, commentCidsToAccountsComments } = accountsStore.getState();
+    assert(accounts && accountNamesToAccountIds && activeAccountId, `can't use accountsStore.accountActions before initialized`);
+    let account = accounts[activeAccountId];
+    if (accountName) {
+        const accountId = accountNamesToAccountIds[accountName];
+        account = accounts[accountId];
+    }
+    assert(account === null || account === void 0 ? void 0 : account.id, `accountsActions.deleteComment account.id '${account === null || account === void 0 ? void 0 : account.id}' doesn't exist`);
+    const accountComments = accountsComments[account.id] || [];
+    assert(accountComments.length > 0, `accountsActions.deleteComment no comments for account`);
+    let accountCommentIndex;
+    if (typeof commentCidOrAccountCommentIndex === "number") {
+        accountCommentIndex = commentCidOrAccountCommentIndex;
+    }
+    else {
+        const mapping = commentCidsToAccountsComments[commentCidOrAccountCommentIndex];
+        assert(mapping && mapping.accountId === account.id, `accountsActions.deleteComment cid '${commentCidOrAccountCommentIndex}' not found for account`);
+        accountCommentIndex = mapping.accountCommentIndex;
+    }
+    assert(accountCommentIndex >= 0 && accountCommentIndex < accountComments.length, `accountsActions.deleteComment index '${accountCommentIndex}' out of range`);
+    abandonAndStopPublishSession(account.id, accountCommentIndex);
+    shiftPublishSessionIndicesAfterDelete(account.id, accountCommentIndex);
+    yield accountsDatabase.deleteAccountComment(account.id, accountCommentIndex);
+    const spliced = [...accountComments];
+    spliced.splice(accountCommentIndex, 1);
+    const reindexed = spliced.map((c, i) => (Object.assign(Object.assign({}, c), { index: i, accountId: account.id })));
+    const newAccountsComments = Object.assign(Object.assign({}, accountsComments), { [account.id]: reindexed });
+    const newCommentCidsToAccountsComments = getCommentCidsToAccountsComments(newAccountsComments);
+    accountsStore.setState({
+        accountsComments: newAccountsComments,
+        commentCidsToAccountsComments: newCommentCidsToAccountsComments,
+    });
+    log("accountsActions.deleteComment", { accountId: account.id, accountCommentIndex });
 });
 export const publishVote = (publishVoteOptions, accountName) => __awaiter(void 0, void 0, void 0, function* () {
     const { accounts, accountNamesToAccountIds, activeAccountId } = accountsStore.getState();

@@ -5,14 +5,14 @@ import { useSubplebbit, useSubplebbits, useSubplebbitStats, useResolvedSubplebbi
 import { useFeed, useBufferedFeeds } from './hooks/feeds';
 import { useAuthor, useAuthorComments, useAuthorAvatar, useResolvedAuthorAddress, useAuthorAddress, setAuthorAvatarsWhitelistedTokenAddresses } from './hooks/authors';
 import { useSubscribe, useBlock, usePublishComment, usePublishVote, useCreateSubplebbit, usePublishCommentEdit, usePublishCommentModeration, usePublishSubplebbitEdit } from './hooks/actions';
-import { createAccount, deleteAccount, setAccount, setActiveAccount, setAccountsOrder, importAccount, exportAccount, deleteSubplebbit } from './stores/accounts/accounts-actions';
+import { createAccount, deleteAccount, deleteComment, setAccount, setActiveAccount, setAccountsOrder, importAccount, exportAccount, deleteSubplebbit } from './stores/accounts/accounts-actions';
 import { useClientsStates, useSubplebbitsStates } from './hooks/states';
 import { usePlebbitRpcSettings } from './hooks/plebbit-rpc';
 import { getEthWalletFromPlebbitPrivateKey, getSolWalletFromPlebbitPrivateKey, getEthPrivateKeyFromPlebbitPrivateKey, getSolPrivateKeyFromPlebbitPrivateKey, validateEthWallet, validateSolWallet } from './lib/chain';
 import { setPlebbitJs, restorePlebbitJs } from './lib/plebbit-js';
 import { deleteDatabases, deleteCaches } from './lib/debug-utils';
 export * from './types';
-export { useAccount, useAccounts, useAccountComment, useAccountComments, useAccountVotes, useAccountVote, useAccountEdits, useAccountSubplebbits, useNotifications, usePubsubSubscribe, useComment, useComments, useEditedComment, useValidateComment, useReplies, useSubplebbit, useSubplebbits, useSubplebbitStats, useResolvedSubplebbitAddress, useAuthor, useAuthorComments, useAuthorAvatar, useResolvedAuthorAddress, useAuthorAddress, setAuthorAvatarsWhitelistedTokenAddresses, useFeed, useBufferedFeeds, useSubscribe, useBlock, usePublishComment, usePublishVote, usePublishCommentEdit, usePublishCommentModeration, usePublishSubplebbitEdit, useCreateSubplebbit, createAccount, deleteAccount, setAccount, setActiveAccount, setAccountsOrder, importAccount, exportAccount, deleteSubplebbit, useClientsStates, useSubplebbitsStates, usePlebbitRpcSettings, getEthWalletFromPlebbitPrivateKey, getSolWalletFromPlebbitPrivateKey, getEthPrivateKeyFromPlebbitPrivateKey, getSolPrivateKeyFromPlebbitPrivateKey, validateEthWallet, validateSolWallet, setPlebbitJs, restorePlebbitJs, deleteDatabases, deleteCaches, };
+export { useAccount, useAccounts, useAccountComment, useAccountComments, useAccountVotes, useAccountVote, useAccountEdits, useAccountSubplebbits, useNotifications, usePubsubSubscribe, useComment, useComments, useEditedComment, useValidateComment, useReplies, useSubplebbit, useSubplebbits, useSubplebbitStats, useResolvedSubplebbitAddress, useAuthor, useAuthorComments, useAuthorAvatar, useResolvedAuthorAddress, useAuthorAddress, setAuthorAvatarsWhitelistedTokenAddresses, useFeed, useBufferedFeeds, useSubscribe, useBlock, usePublishComment, usePublishVote, usePublishCommentEdit, usePublishCommentModeration, usePublishSubplebbitEdit, useCreateSubplebbit, createAccount, deleteAccount, deleteComment, setAccount, setActiveAccount, setAccountsOrder, importAccount, exportAccount, deleteSubplebbit, useClientsStates, useSubplebbitsStates, usePlebbitRpcSettings, getEthWalletFromPlebbitPrivateKey, getSolWalletFromPlebbitPrivateKey, getEthPrivateKeyFromPlebbitPrivateKey, getSolPrivateKeyFromPlebbitPrivateKey, validateEthWallet, validateSolWallet, setPlebbitJs, restorePlebbitJs, deleteDatabases, deleteCaches, };
 declare const hooks: {
     useAccount: typeof useAccount;
     useAccounts: typeof useAccounts;
@@ -51,6 +51,7 @@ declare const hooks: {
     useCreateSubplebbit: typeof useCreateSubplebbit;
     createAccount: (accountName?: string) => Promise<void>;
     deleteAccount: (accountName?: string) => Promise<void>;
+    deleteComment: (commentCidOrAccountCommentIndex: string | number, accountName?: string) => Promise<void>;
     setAccount: (account: import("./types").Account) => Promise<void>;
     setActiveAccount: (accountName: string) => Promise<void>;
     setAccountsOrder: (newOrderedAccountNames: string[]) => Promise<void>;

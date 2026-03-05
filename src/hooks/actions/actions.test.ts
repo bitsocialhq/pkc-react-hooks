@@ -12,6 +12,7 @@ import {
   useCreateSubplebbit,
   setPlebbitJs,
   useAccountVote,
+  useAccountComments,
 } from "../..";
 import PlebbitJsMock, {
   Plebbit,
@@ -465,6 +466,84 @@ describe("actions", () => {
       expect(typeof onChallenge.mock.calls[0][1].timestamp).toBe("number");
       expect(onChallengeVerification.mock.calls[0][0].type).toBe("CHALLENGEVERIFICATION");
       expect(typeof onChallengeVerification.mock.calls[0][1].timestamp).toBe("number");
+    });
+
+    test(`abandon during waiting-challenge-answers removes pending local comment and returns hook state to ready`, async () => {
+      const publishCommentOptions = {
+        subplebbitAddress: "12D3KooW... acions.test",
+        parentCid: "Qm... acions.test",
+        content: "abandon test content",
+      };
+      rendered.rerender(publishCommentOptions);
+
+      await waitFor(() => rendered.result.current.state === "ready");
+      expect(rendered.result.current.state).toBe("ready");
+
+      await act(async () => {
+        await rendered.result.current.publishComment();
+      });
+
+      await waitFor(() => rendered.result.current.state === "waiting-challenge-answers");
+      expect(rendered.result.current.state).toBe("waiting-challenge-answers");
+      expect(typeof rendered.result.current.index).toBe("number");
+      expect(rendered.result.current.challenge).toBeDefined();
+
+      const renderedWithComments = renderHook(() => useAccountComments());
+      const waitForComments = testUtils.createWaitFor(renderedWithComments);
+      await waitForComments(() => renderedWithComments.result.current.accountComments?.length >= 1);
+      expect(renderedWithComments.result.current.accountComments.length).toBe(1);
+      expect(renderedWithComments.result.current.accountComments[0].content).toBe(
+        "abandon test content",
+      );
+
+      await act(async () => {
+        await rendered.result.current.abandonPublish();
+      });
+
+      await waitFor(() => rendered.result.current.state === "ready");
+      expect(rendered.result.current.state).toBe("ready");
+      expect(rendered.result.current.index).toBe(undefined);
+      expect(rendered.result.current.challenge).toBe(undefined);
+      expect(rendered.result.current.challengeVerification).toBe(undefined);
+
+      // pending comment was removed from store
+      renderedWithComments.rerender();
+      await waitForComments(
+        () => renderedWithComments.result.current.accountComments?.length === 0,
+      );
+      expect(renderedWithComments.result.current.accountComments.length).toBe(0);
+    });
+
+    test(`abandon is idempotent-safe (second call no-ops or fails predictably, does not corrupt state)`, async () => {
+      const publishCommentOptions = {
+        subplebbitAddress: "12D3KooW... acions.test",
+        parentCid: "Qm... acions.test",
+        content: "idempotent abandon test",
+      };
+      rendered.rerender(publishCommentOptions);
+
+      await waitFor(() => rendered.result.current.state === "ready");
+      await act(async () => {
+        await rendered.result.current.publishComment();
+      });
+
+      await waitFor(() => rendered.result.current.state === "waiting-challenge-answers");
+      expect(rendered.result.current.state).toBe("waiting-challenge-answers");
+
+      await act(async () => {
+        await rendered.result.current.abandonPublish();
+      });
+      await waitFor(() => rendered.result.current.state === "ready");
+      expect(rendered.result.current.state).toBe("ready");
+      expect(rendered.result.current.index).toBe(undefined);
+
+      // second abandon: no-op, state remains ready
+      await act(async () => {
+        await rendered.result.current.abandonPublish();
+      });
+      expect(rendered.result.current.state).toBe("ready");
+      expect(rendered.result.current.index).toBe(undefined);
+      expect(rendered.result.current.challenge).toBe(undefined);
     });
 
     test(`can publish post`, async () => {

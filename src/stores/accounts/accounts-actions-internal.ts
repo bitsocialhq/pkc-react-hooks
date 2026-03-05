@@ -54,12 +54,33 @@ export const startUpdatingAccountCommentOnCommentUpdateEvents = async (
   }
 
   comment.on("update", async (updatedComment: Comment) => {
+    const mapping =
+      accountsStore.getState().commentCidsToAccountsComments[updatedComment.cid || ""];
+    if (!mapping || mapping.accountId !== account.id) {
+      accountsStore.setState(({ accountsCommentsUpdating }) => {
+        const next = { ...accountsCommentsUpdating };
+        delete next[updatedComment.cid || ""];
+        return { accountsCommentsUpdating: next };
+      });
+      try {
+        if (typeof comment.removeAllListeners === "function") comment.removeAllListeners();
+        if (typeof (comment as any).stop === "function") (comment as any).stop();
+      } catch (e) {
+        log.trace("startUpdatingAccountCommentOnCommentUpdateEvents stop/removeAllListeners", {
+          cid: updatedComment.cid,
+          error: e,
+        });
+      }
+      return;
+    }
+    const currentIndex = mapping.accountCommentIndex;
+
     // merge should not be needed if plebbit-js is implemented properly, but no harm in fixing potential errors
     updatedComment = utils.merge(commentArgument, comment, updatedComment);
-    await accountsDatabase.addAccountComment(account.id, updatedComment, accountCommentIndex);
+    await accountsDatabase.addAccountComment(account.id, updatedComment, currentIndex);
     log("startUpdatingAccountCommentOnCommentUpdateEvents comment update", {
       commentCid: comment.cid,
-      accountCommentIndex,
+      accountCommentIndex: currentIndex,
       updatedComment,
       account,
     });
@@ -75,13 +96,13 @@ export const startUpdatingAccountCommentOnCommentUpdateEvents = async (
       }
 
       const updatedAccountComments = [...accountsComments[account.id]];
-      const previousComment = updatedAccountComments[accountCommentIndex];
+      const previousComment = updatedAccountComments[currentIndex];
       const updatedAccountComment = utils.clone({
         ...updatedComment,
-        index: accountCommentIndex,
+        index: currentIndex,
         accountId: account.id,
       });
-      updatedAccountComments[accountCommentIndex] = updatedAccountComment;
+      updatedAccountComments[currentIndex] = updatedAccountComment;
       return { accountsComments: { ...accountsComments, [account.id]: updatedAccountComments } };
     });
 
@@ -175,13 +196,21 @@ export const addCidToAccountComment = async (comment: Comment) => {
         accountCommentIndex: accountComment.index,
         accountComment: commentWithCid,
       });
-      accountsStore.setState(({ accountsComments }) => {
+      accountsStore.setState(({ accountsComments, commentCidsToAccountsComments }) => {
         const updatedAccountComments = [...accountsComments[accountComment.accountId]];
         updatedAccountComments[accountComment.index] = commentWithCid;
+        const newAccountsComments = {
+          ...accountsComments,
+          [accountComment.accountId]: updatedAccountComments,
+        };
         return {
-          accountsComments: {
-            ...accountsComments,
-            [accountComment.accountId]: updatedAccountComments,
+          accountsComments: newAccountsComments,
+          commentCidsToAccountsComments: {
+            ...commentCidsToAccountsComments,
+            [comment.cid]: {
+              accountId: accountComment.accountId,
+              accountCommentIndex: accountComment.index,
+            },
           },
         };
       });
