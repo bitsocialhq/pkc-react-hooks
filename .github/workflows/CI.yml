@@ -105,7 +105,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.ref_name }}
       - name: Download dist artifact
         uses: actions/download-artifact@v4
         with:
@@ -118,3 +118,4 @@ jobs:
           commit_message: 'chore(dist): CI build'
           file_pattern: dist
           add_options: '--force'
+          branch: ${{ github.ref_name }}
