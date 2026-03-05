@@ -28,66 +28,93 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-
-    strategy:
-      matrix:
-        os:
-          - ubuntu-22.04
-
+  checks:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: 'yarn'
-
       - run: HUSKY=0 yarn install --frozen-lockfile --network-concurrency 1
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ hashFiles('yarn.lock') }}
       - run: yarn lint
       - run: yarn type-check
       - name: Run unit tests
         id: run_unit_tests
-        run: yarn test --pool=forks # --pool=forks fixes "Segmentation fault" error in CI
+        run: yarn test --pool=forks
       - name: Print failed unit tests
         if: ${{ failure() && steps.run_unit_tests.outcome == 'failure' }}
         run: node .github/workflows/print-vitest-failures.cjs
       - run: yarn build
+      - name: Upload dist artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
 
-      # disable hosts we shouldn't use
+  e2e:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - suite: mock
+            command: CHROME_BIN=$(which chromium-browser) yarn test:e2e:mock
+            browsers: chromium
+          - suite: chrome
+            command: DEBUG="plebbit-js:*,pkc-react-hooks:*" CHROME_BIN=$(which chromium-browser) yarn test:e2e:chrome
+            browsers: chromium
+          - suite: firefox
+            command: DEBUG="plebbit-js:*,pkc-react-hooks:*" FIREFOX_BIN=$(which firefox) yarn test:e2e:firefox
+            browsers: firefox
+          - suite: mock-content
+            command: CHROME_BIN=$(which chromium-browser) yarn test:e2e:mock-content
+            browsers: chromium
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'yarn'
+      - run: HUSKY=0 yarn install --frozen-lockfile --network-concurrency 1
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
       - run: sudo echo "255.255.255.255 cloudflare-ipfs.com" | sudo tee -a /etc/hosts
       - run: sudo echo "255.255.255.255 pubsubprovider.xyz" | sudo tee -a /etc/hosts
-
-      # installing the browsers shouldn't be needed, but doesn't work without it for some reason
-      - run: yarn playwright install
-
+      - run: yarn playwright install ${{ matrix.browsers }}
       - run: yarn test:server & yarn test:server:wait-on
-      - name: Run e2e mock tests
-        id: run_e2e_mock
-        run: CHROME_BIN=$(which chromium-browser) yarn test:e2e:mock
-      - name: Print failed e2e mock tests
-        if: ${{ failure() && steps.run_e2e_mock.outcome == 'failure' }}
+      - name: Run e2e ${{ matrix.suite }} tests
+        id: run_e2e
+        run: ${{ matrix.command }}
+      - name: Print failed e2e ${{ matrix.suite }} tests
+        if: ${{ failure() && steps.run_e2e.outcome == 'failure' }}
         run: node .github/workflows/print-vitest-failures.cjs
-      - name: Run e2e chrome tests
-        id: run_e2e_chrome
-        run: DEBUG="plebbit-js:*,pkc-react-hooks:*" CHROME_BIN=$(which chromium-browser) yarn test:e2e:chrome
-      - name: Print failed e2e chrome tests
-        if: ${{ failure() && steps.run_e2e_chrome.outcome == 'failure' }}
-        run: node .github/workflows/print-vitest-failures.cjs
-      - name: Run e2e firefox tests
-        id: run_e2e_firefox
-        run: DEBUG="plebbit-js:*,pkc-react-hooks:*" FIREFOX_BIN=$(which firefox) yarn test:e2e:firefox
-      - name: Print failed e2e firefox tests
-        if: ${{ failure() && steps.run_e2e_firefox.outcome == 'failure' }}
-        run: node .github/workflows/print-vitest-failures.cjs
-      - name: Run e2e mock-content tests
-        id: run_e2e_mock_content
-        run: CHROME_BIN=$(which chromium-browser) yarn test:e2e:mock-content
-      - name: Print failed e2e mock-content tests
-        if: ${{ failure() && steps.run_e2e_mock_content.outcome == 'failure' }}
-        run: node .github/workflows/print-vitest-failures.cjs
+
+  dist:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    needs: [checks, e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - run: git add dist --force
+      - run: git status
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: 'chore(dist): CI build'
+          file_pattern: dist
+          add_options: '--force'
