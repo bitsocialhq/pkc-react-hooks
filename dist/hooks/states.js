@@ -13,10 +13,10 @@ const peers = {};
  * the active account.
  */
 export function useClientsStates(options) {
-    assert(!options || typeof options === "object", `useClientsStates options argument '${options}' not an object`);
-    const { comment, subplebbit } = options || {};
-    assert(!comment || typeof comment === "object", `useClientsStates options.comment argument '${comment}' not an object`);
-    assert(!subplebbit || typeof subplebbit === "object", `useClientsStates options.subplebbit argument '${subplebbit}' not an object`);
+    assert(options == null || typeof options === "object", `useClientsStates options argument '${options}' not an object`);
+    const { comment, subplebbit } = options !== null && options !== void 0 ? options : {};
+    assert(comment == null || typeof comment === "object", `useClientsStates options.comment argument '${comment}' not an object`);
+    assert(subplebbit == null || typeof subplebbit === "object", `useClientsStates options.subplebbit argument '${subplebbit}' not an object`);
     assert(!(comment && subplebbit), `useClientsStates options.comment and options.subplebbit arguments cannot be defined at the same time`);
     const commentOrSubplebbit = comment || subplebbit;
     const states = useMemo(() => {
@@ -103,11 +103,11 @@ export function useClientsStates(options) {
  * the active account.
  */
 export function useSubplebbitsStates(options) {
-    assert(!options || typeof options === "object", `useClientsStatesCounts options argument '${options}' not an object`);
-    const { subplebbitAddresses } = options || {};
-    assert(!subplebbitAddresses || Array.isArray(subplebbitAddresses), `useClientsStatesCounts subplebbitAddresses '${subplebbitAddresses}' not an array`);
-    for (const subplebbitAddress of subplebbitAddresses || []) {
-        assert(typeof subplebbitAddress === "string", `useClientsStatesCounts subplebbitAddresses '${subplebbitAddresses}' subplebbitAddress '${subplebbitAddress}' not a string`);
+    assert(options == null || typeof options === "object", `useSubplebbitsStates options argument '${options}' not an object`);
+    const { subplebbitAddresses } = options !== null && options !== void 0 ? options : {};
+    assert(subplebbitAddresses == null || Array.isArray(subplebbitAddresses), `useSubplebbitsStates subplebbitAddresses '${subplebbitAddresses}' not an array`);
+    for (const subplebbitAddress of subplebbitAddresses !== null && subplebbitAddresses !== void 0 ? subplebbitAddresses : []) {
+        assert(typeof subplebbitAddress === "string", `useSubplebbitsStates subplebbitAddresses '${subplebbitAddresses}' subplebbitAddress '${subplebbitAddress}' not a string`);
     }
     const { subplebbits } = useSubplebbits({ subplebbitAddresses });
     const states = useMemo(() => {

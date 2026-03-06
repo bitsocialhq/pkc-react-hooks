@@ -1,4 +1,8 @@
-import { Subplebbit, SubplebbitPage, SubplebbitsPages, Comments } from "../../types";
+import Logger from "@plebbit/plebbit-logger";
+export declare const log: Logger;
+import { Subplebbit, SubplebbitPage, SubplebbitsPages, Comment, Comments } from "../../types";
+/** Freshness for comparison: max(updatedAt, timestamp, 0). Used to decide add vs replace per CID. Exported for coverage. */
+export declare const getCommentFreshness: (comment: Comment | undefined) => number;
 export declare const listeners: any;
 export type SubplebbitsPagesState = {
     subplebbitsPages: SubplebbitsPages;

@@ -18,27 +18,23 @@ import assert from "assert";
  */
 export function usePlebbitRpcSettings(options) {
     assert(!options || typeof options === "object", `usePlebbitRpcSettings options argument '${options}' not an object`);
-    const { accountName } = options || {};
+    const { accountName } = options !== null && options !== void 0 ? options : {};
     const account = useAccount({ accountName });
     const [plebbitRpcSettingsState, setPlebbitRpcSettingsState] = useState();
     const [state, setState] = useState("initializing");
     const [errors, setErrors] = useState([]);
     useEffect(() => {
         var _a, _b;
-        if (!account) {
+        if (!account)
             return;
-        }
         const rpcClient = Object.values(((_b = (_a = account.plebbit) === null || _a === void 0 ? void 0 : _a.clients) === null || _b === void 0 ? void 0 : _b.plebbitRpcClients) || {})[0];
-        if (!rpcClient) {
+        if (!rpcClient)
             return;
-        }
-        // set initial state
-        if (rpcClient.settings) {
+        if (rpcClient.settings != null)
             setPlebbitRpcSettingsState(rpcClient.settings);
-        }
-        if (rpcClient.state) {
-            setState(rpcClient.state);
-        }
+        const rpcState = rpcClient.state;
+        if (rpcState != null && rpcState !== "")
+            setState(rpcState);
         const onRpcSettingsChange = (plebbitRpcSettings) => {
             setPlebbitRpcSettingsState(plebbitRpcSettings);
         };
@@ -72,10 +68,10 @@ export function usePlebbitRpcSettings(options) {
             setErrors([...errors, e]);
             setState("failed");
         }
-        // go back to original state after some time
+        const rpcStateAfter = rpcClient.state;
         setTimeout(() => {
-            if (state !== rpcClient.state && rpcClient.state) {
-                setState(rpcClient.state);
+            if (state !== rpcStateAfter && rpcStateAfter != null && rpcStateAfter !== "") {
+                setState(rpcStateAfter);
             }
         }, 10000);
     });

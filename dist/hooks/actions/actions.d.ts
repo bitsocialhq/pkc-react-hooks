@@ -1,3 +1,12 @@
+import type { Dispatch, SetStateAction } from "react";
+/** Wraps a callback to no-op when guard returns false. Exported for coverage. */
+export declare function withGuardActive<T extends (...args: any[]) => void>(guardActive: () => boolean, fn: T): T;
+/** For usePublishComment: when abandoned, catch should no-op. Exported for coverage. */
+export declare function handlePublishErrorWhenAbandoned(activeRequestIdRef: {
+    current: number | undefined;
+}, requestId: number, error: Error, setErrors: Dispatch<SetStateAction<Error[]>>, onError?: (e: Error) => void): void;
+/** For usePublishVote catch. Exported for coverage. */
+export declare function handlePublishVoteError(error: Error, setErrors: Dispatch<SetStateAction<Error[]>>, onError?: (e: Error) => void): void;
 import type { UseSubscribeOptions, UseSubscribeResult, UsePublishCommentOptions, UsePublishCommentResult, UseBlockOptions, UseBlockResult, UseCreateSubplebbitOptions, UseCreateSubplebbitResult, UsePublishVoteOptions, UsePublishVoteResult, UsePublishCommentEditOptions, UsePublishCommentEditResult, UsePublishCommentModerationOptions, UsePublishCommentModerationResult, UsePublishSubplebbitEditOptions, UsePublishSubplebbitEditResult } from "../../types";
 export declare function useSubscribe(options?: UseSubscribeOptions): UseSubscribeResult;
 export declare function useBlock(options?: UseBlockOptions): UseBlockResult;

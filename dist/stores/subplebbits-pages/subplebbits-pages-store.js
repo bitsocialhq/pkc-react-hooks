@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import utils from "../../lib/utils";
 import Logger from "@plebbit/plebbit-logger";
 // include subplebbits pages store with feeds for debugging
-const log = Logger("bitsocial-react-hooks:feeds:stores");
+export const log = Logger("bitsocial-react-hooks:feeds:stores");
 import accountsStore from "../accounts";
 import subplebbitsStore from "../subplebbits";
 import localForageLru from "../../lib/localforage-lru";
@@ -20,8 +20,8 @@ const subplebbitsPagesDatabase = localForageLru.createInstance({
     name: "plebbitReactHooks-subplebbitsPages",
     size: 500,
 });
-/** Freshness for comparison: max(updatedAt, timestamp, 0). Used to decide add vs replace per CID. */
-const getCommentFreshness = (comment) => { var _a, _b; return Math.max((_a = comment === null || comment === void 0 ? void 0 : comment.updatedAt) !== null && _a !== void 0 ? _a : 0, (_b = comment === null || comment === void 0 ? void 0 : comment.timestamp) !== null && _b !== void 0 ? _b : 0, 0); };
+/** Freshness for comparison: max(updatedAt, timestamp, 0). Used to decide add vs replace per CID. Exported for coverage. */
+export const getCommentFreshness = (comment) => { var _a, _b; return Math.max((_a = comment === null || comment === void 0 ? void 0 : comment.updatedAt) !== null && _a !== void 0 ? _a : 0, (_b = comment === null || comment === void 0 ? void 0 : comment.timestamp) !== null && _b !== void 0 ? _b : 0, 0); };
 // reset all event listeners in between tests
 export const listeners = [];
 const subplebbitsPagesStore = createStore((setState, getState) => ({
@@ -88,10 +88,6 @@ const subplebbitsPagesStore = createStore((setState, getState) => ({
         }
         finally {
             fetchPagePending[account.id + pageCidToAdd] = false;
-        }
-        // failed getting the page
-        if (!page) {
-            return;
         }
         // find new comments in the page
         const flattenedComments = utils.flattenCommentsPages(page);
@@ -190,6 +186,7 @@ const fetchPage = (pageCid, subplebbitAddress, account, pageType) => __awaiter(v
         fetchPageSubplebbits[subplebbitAddress] = yield account.plebbit.createSubplebbit({
             address: subplebbitAddress,
         });
+        listeners.push(fetchPageSubplebbits[subplebbitAddress]);
         // set clients states on subplebbits store so the frontend can display it
         utils.pageClientsOnStateChange((_a = fetchPageSubplebbits[subplebbitAddress][pageType]) === null || _a === void 0 ? void 0 : _a.clients, onSubplebbitPostsClientsStateChange(subplebbitAddress));
     }

@@ -1,5 +1,5 @@
-import { commentsPerPage } from './authors-comments-store';
-import commentsStore from '../comments';
+import { commentsPerPage } from "./authors-comments-store";
+import commentsStore from "../comments";
 export const getUpdatedLoadedAndBufferedComments = (loadedComments, bufferedComments, pageNumber, filter, comments) => {
     const newBufferedComments = getUpdatedBufferedComments(loadedComments, bufferedComments, filter, comments);
     // create new loaded comments using the page number and buffered comments
@@ -34,7 +34,7 @@ export const getUpdatedBufferedComments = (loadedComments, bufferedComments, fil
     // is not used anywhere outside of tests
     return newBufferedComments;
 };
-const commentsHaveChanged = (comments1, comments2) => {
+export const commentsHaveChanged = (comments1, comments2) => {
     if (comments1 === comments2) {
         return false;
     }
@@ -50,18 +50,18 @@ const commentsHaveChanged = (comments1, comments2) => {
 };
 // if comment already exist, find the actual nextCidToFetch
 // can happen if a more recent lastCommentCid becomes nextCommentCidToFetch
-export const getNextCommentCidToFetchNotFetched = (nextCommentCidToFetch) => {
+export const getNextCommentCidToFetchNotFetched = (nextCommentCidToFetch, maxAttemptForTest) => {
     var _a;
     const { comments } = commentsStore.getState();
     let nextCommentCidToFetchNotFetched = nextCommentCidToFetch;
     // scroll through comments until the comment doesn't exist, which means hasn't been fetched yet
-    let maxAttempt = 99999999;
+    let maxAttempt = maxAttemptForTest !== null && maxAttemptForTest !== void 0 ? maxAttemptForTest : 99999999;
     while (true) {
         // can't happen in production because of hashing, but can happen in tests
         if (!maxAttempt--) {
             throw Error(`getNextCommentCidToFetchNotFetched '${nextCommentCidToFetch}' infinite loop`);
         }
-        const comment = comments[nextCommentCidToFetchNotFetched || ''];
+        const comment = comments[nextCommentCidToFetchNotFetched || ""];
         if (!(comment === null || comment === void 0 ? void 0 : comment.timestamp)) {
             break;
         }

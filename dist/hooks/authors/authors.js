@@ -227,27 +227,26 @@ export function useAuthorAddress(options) {
     // useful for triggering css animation when the address changes from unverified to verified
     const [authorAddressChanged, setAuthorAddressChanged] = useState(false);
     useEffect(() => {
-        var _a;
+        var _a, _b;
         if (!(account === null || account === void 0 ? void 0 : account.plebbit) || !((_a = comment === null || comment === void 0 ? void 0 : comment.author) === null || _a === void 0 ? void 0 : _a.address) || !isCryptoName) {
             return;
         }
+        const addr = (_b = comment === null || comment === void 0 ? void 0 : comment.author) === null || _b === void 0 ? void 0 : _b.address;
         const resolveAuthorAddressNoCache = () => {
-            var _a, _b, _c, _d, _e, _f;
-            if (Boolean(resolveAuthorAddressPromises[(_a = comment === null || comment === void 0 ? void 0 : comment.author) === null || _a === void 0 ? void 0 : _a.address])) {
-                return resolveAuthorAddressPromises[(_b = comment === null || comment === void 0 ? void 0 : comment.author) === null || _b === void 0 ? void 0 : _b.address];
-            }
-            log("useAuthorAddress plebbit.resolveAuthorAddress", { address: (_c = comment === null || comment === void 0 ? void 0 : comment.author) === null || _c === void 0 ? void 0 : _c.address });
-            resolveAuthorAddressPromises[(_d = comment === null || comment === void 0 ? void 0 : comment.author) === null || _d === void 0 ? void 0 : _d.address] = account.plebbit.resolveAuthorAddress({ address: (_e = comment === null || comment === void 0 ? void 0 : comment.author) === null || _e === void 0 ? void 0 : _e.address });
-            return resolveAuthorAddressPromises[(_f = comment === null || comment === void 0 ? void 0 : comment.author) === null || _f === void 0 ? void 0 : _f.address];
+            const existing = resolveAuthorAddressPromises[addr];
+            if (existing)
+                return existing;
+            log("useAuthorAddress plebbit.resolveAuthorAddress", { address: addr });
+            const promise = account.plebbit.resolveAuthorAddress({ address: addr });
+            resolveAuthorAddressPromises[addr] = promise;
+            return promise;
         };
         const resolveAuthorAddress = () => __awaiter(this, void 0, void 0, function* () {
-            var _a, _b;
-            const cached = resolvedAuthorAddressCache.get((_a = comment === null || comment === void 0 ? void 0 : comment.author) === null || _a === void 0 ? void 0 : _a.address);
-            if (cached) {
+            const cached = resolvedAuthorAddressCache.get(addr);
+            if (cached)
                 return cached;
-            }
             const res = yield resolveAuthorAddressNoCache();
-            resolvedAuthorAddressCache.set((_b = comment === null || comment === void 0 ? void 0 : comment.author) === null || _b === void 0 ? void 0 : _b.address, res);
+            resolvedAuthorAddressCache.set(addr, res);
             return res;
         });
         resolveAuthorAddress()
@@ -296,6 +295,13 @@ export function useAuthorAddress(options) {
 // TODO: figure out how to upgrade to quick-lru 6+ to use maxAge
 const resolvedAuthorAddressCache = new QuickLRU({ maxSize: 1000 });
 const resolveAuthorAddressPromises = {};
+/** For tests: reset caches to make resolution paths deterministic. */
+export function resetAuthorAddressCacheForTesting() {
+    resolvedAuthorAddressCache.clear();
+    for (const k of Object.keys(resolveAuthorAddressPromises)) {
+        delete resolveAuthorAddressPromises[k];
+    }
+}
 /**
  * @param author - The author with author.address to resolve to a public key, e.g. 'john.eth' resolves to '12D3KooW...'.
  * @param acountName - The nickname of the account, e.g. 'Account 1'. If no accountName is provided, use

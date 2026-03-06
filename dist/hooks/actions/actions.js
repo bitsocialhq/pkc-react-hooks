@@ -24,6 +24,27 @@ import Logger from "@plebbit/plebbit-logger";
 const log = Logger("bitsocial-react-hooks:actions:hooks");
 import assert from "assert";
 import { useAccount, useAccountId } from "../accounts";
+/** Wraps a callback to no-op when guard returns false. Exported for coverage. */
+export function withGuardActive(guardActive, fn) {
+    return ((...args) => {
+        if (!guardActive())
+            return;
+        return fn(...args);
+    });
+}
+const noop = () => { };
+/** For usePublishComment: when abandoned, catch should no-op. Exported for coverage. */
+export function handlePublishErrorWhenAbandoned(activeRequestIdRef, requestId, error, setErrors, onError) {
+    if (activeRequestIdRef.current !== requestId)
+        return;
+    setErrors((errors) => [...errors, error]);
+    (onError !== null && onError !== void 0 ? onError : noop)(error);
+}
+/** For usePublishVote catch. Exported for coverage. */
+export function handlePublishVoteError(error, setErrors, onError) {
+    setErrors((errors) => [...errors, error]);
+    (onError !== null && onError !== void 0 ? onError : noop)(error);
+}
 const publishChallengeAnswersNotReady = (challengeAnswers) => __awaiter(void 0, void 0, void 0, function* () {
     throw Error(`can't call publishChallengeAnswers() before result.challenge is defined (before the challenge message is received)`);
 });
@@ -140,57 +161,33 @@ export function usePublishComment(options) {
     const indexRef = useRef(undefined);
     const publishRequestIdRef = useRef(0);
     const activePublishRequestIdRef = useRef(undefined);
-    const onPendingCommentIndex = (pendingIndex) => {
-        if (activePublishRequestIdRef.current === undefined) {
-            return;
-        }
+    const guardActive = () => activePublishRequestIdRef.current !== undefined;
+    publishCommentOptions._onPendingCommentIndex = withGuardActive(guardActive, (pendingIndex) => {
         indexRef.current = pendingIndex;
         setIndex(pendingIndex);
-    };
-    publishCommentOptions._onPendingCommentIndex = onPendingCommentIndex;
+    });
     let initialState = "initializing";
-    // before the accountId and options is defined, nothing can happen
-    if (accountId && options) {
+    if (accountId && options)
         initialState = "ready";
-    }
-    // define onError if not defined
     const originalOnError = publishCommentOptions.onError;
     const onError = (error) => __awaiter(this, void 0, void 0, function* () {
         setErrors((errors) => [...errors, error]);
-        originalOnError === null || originalOnError === void 0 ? void 0 : originalOnError(error);
+        (originalOnError !== null && originalOnError !== void 0 ? originalOnError : noop)(error);
     });
     publishCommentOptions.onError = onError;
-    // define onChallenge if not defined
     const originalOnChallenge = publishCommentOptions.onChallenge;
-    const onChallenge = (challenge, comment) => __awaiter(this, void 0, void 0, function* () {
-        if (activePublishRequestIdRef.current === undefined) {
-            return;
-        }
-        // cannot set a function directly with setState
+    publishCommentOptions.onChallenge = withGuardActive(guardActive, (challenge, comment) => __awaiter(this, void 0, void 0, function* () {
         setPublishChallengeAnswers(() => comment === null || comment === void 0 ? void 0 : comment.publishChallengeAnswers.bind(comment));
         setChallenge(challenge);
-        originalOnChallenge === null || originalOnChallenge === void 0 ? void 0 : originalOnChallenge(challenge, comment);
-    });
-    publishCommentOptions.onChallenge = onChallenge;
-    // define onChallengeVerification if not defined
+        (originalOnChallenge !== null && originalOnChallenge !== void 0 ? originalOnChallenge : noop)(challenge, comment);
+    }));
     const originalOnChallengeVerification = publishCommentOptions.onChallengeVerification;
-    const onChallengeVerification = (challengeVerification, comment) => __awaiter(this, void 0, void 0, function* () {
-        if (activePublishRequestIdRef.current === undefined) {
-            return;
-        }
+    publishCommentOptions.onChallengeVerification = withGuardActive(guardActive, (challengeVerification, comment) => __awaiter(this, void 0, void 0, function* () {
         setChallengeVerification(challengeVerification);
-        originalOnChallengeVerification === null || originalOnChallengeVerification === void 0 ? void 0 : originalOnChallengeVerification(challengeVerification, comment);
-    });
-    publishCommentOptions.onChallengeVerification = onChallengeVerification;
-    // change state on publishing state change
-    publishCommentOptions.onPublishingStateChange = (publishingState) => {
-        if (activePublishRequestIdRef.current === undefined) {
-            return;
-        }
-        setPublishingState(publishingState);
-    };
+        (originalOnChallengeVerification !== null && originalOnChallengeVerification !== void 0 ? originalOnChallengeVerification : noop)(challengeVerification, comment);
+    }));
+    publishCommentOptions.onPublishingStateChange = withGuardActive(guardActive, (publishingState) => setPublishingState(publishingState));
     const publishComment = () => __awaiter(this, void 0, void 0, function* () {
-        var _a;
         const requestId = publishRequestIdRef.current + 1;
         publishRequestIdRef.current = requestId;
         activePublishRequestIdRef.current = requestId;
@@ -203,11 +200,7 @@ export function usePublishComment(options) {
             setIndex(index);
         }
         catch (e) {
-            if (activePublishRequestIdRef.current !== requestId) {
-                return;
-            }
-            setErrors((errors) => [...errors, e]);
-            (_a = publishCommentOptions.onError) === null || _a === void 0 ? void 0 : _a.call(publishCommentOptions, e);
+            handlePublishErrorWhenAbandoned(activePublishRequestIdRef, requestId, e, setErrors, publishCommentOptions.onError);
         }
     });
     const abandonPublish = () => __awaiter(this, void 0, void 0, function* () {
@@ -270,17 +263,15 @@ export function usePublishVote(options) {
     // define onChallenge if not defined
     const originalOnChallenge = publishVoteOptions.onChallenge;
     const onChallenge = (challenge, vote) => __awaiter(this, void 0, void 0, function* () {
-        // cannot set a function directly with setState
         setPublishChallengeAnswers(() => vote === null || vote === void 0 ? void 0 : vote.publishChallengeAnswers.bind(vote));
         setChallenge(challenge);
-        originalOnChallenge === null || originalOnChallenge === void 0 ? void 0 : originalOnChallenge(challenge, vote);
+        (originalOnChallenge !== null && originalOnChallenge !== void 0 ? originalOnChallenge : (() => { }))(challenge, vote);
     });
     publishVoteOptions.onChallenge = onChallenge;
-    // define onChallengeVerification if not defined
     const originalOnChallengeVerification = publishVoteOptions.onChallengeVerification;
     const onChallengeVerification = (challengeVerification, vote) => __awaiter(this, void 0, void 0, function* () {
         setChallengeVerification(challengeVerification);
-        originalOnChallengeVerification === null || originalOnChallengeVerification === void 0 ? void 0 : originalOnChallengeVerification(challengeVerification, vote);
+        (originalOnChallengeVerification !== null && originalOnChallengeVerification !== void 0 ? originalOnChallengeVerification : noop)(challengeVerification, vote);
     });
     publishVoteOptions.onChallengeVerification = onChallengeVerification;
     // change state on publishing state change
@@ -288,13 +279,11 @@ export function usePublishVote(options) {
         setPublishingState(publishingState);
     };
     const publishVote = () => __awaiter(this, void 0, void 0, function* () {
-        var _a;
         try {
             yield accountsActions.publishVote(publishVoteOptions, accountName);
         }
         catch (e) {
-            setErrors((errors) => [...errors, e]);
-            (_a = publishVoteOptions.onError) === null || _a === void 0 ? void 0 : _a.call(publishVoteOptions, e);
+            handlePublishVoteError(e, setErrors, publishVoteOptions.onError);
         }
     });
     return useMemo(() => ({

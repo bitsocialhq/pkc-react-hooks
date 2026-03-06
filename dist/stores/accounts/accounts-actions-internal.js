@@ -84,10 +84,11 @@ export const startUpdatingAccountCommentOnCommentUpdateEvents = (comment, accoun
         });
         // update AccountCommentsReplies with new replies if has any new replies
         const replyPageArray = Object.values(((_a = updatedComment.replies) === null || _a === void 0 ? void 0 : _a.pages) || {});
-        const hasReplies = replyPageArray.length &&
-            replyPageArray
-                .map((replyPage) => { var _a; return ((_a = replyPage === null || replyPage === void 0 ? void 0 : replyPage.comments) === null || _a === void 0 ? void 0 : _a.length) || 0; })
-                .reduce((prev, curr) => prev + curr) > 0;
+        const getReplyCount = (replyPage) => { var _a, _b; return (_b = (_a = replyPage === null || replyPage === void 0 ? void 0 : replyPage.comments) === null || _a === void 0 ? void 0 : _a.length) !== null && _b !== void 0 ? _b : 0; };
+        const replyCount = replyPageArray.length > 0
+            ? replyPageArray.map(getReplyCount).reduce((prev, curr) => prev + curr)
+            : 0;
+        const hasReplies = replyCount > 0;
         const repliesAreValid = yield utils.repliesAreValid(updatedComment, { validateReplies: false, blockSubplebbit: true }, account.plebbit);
         if (hasReplies && repliesAreValid) {
             accountsStore.setState(({ accountsCommentsReplies }) => {
@@ -237,13 +238,14 @@ export const addSubplebbitRoleToAccountsSubplebbits = (subplebbit) => __awaiter(
     const { accounts } = accountsStore.getState();
     assert(accounts, `can't use accountsStore.accountActions before initialized`);
     // find subplebbit roles to add and remove
+    const getRole = (subplebbit, authorAddress) => subplebbit.roles && subplebbit.roles[authorAddress];
     const getChange = (accounts, subplebbit) => {
-        var _a;
         const toAdd = [];
         const toRemove = [];
         for (const accountId in accounts) {
             const account = accounts[accountId];
-            if (!((_a = subplebbit.roles) === null || _a === void 0 ? void 0 : _a[account.author.address])) {
+            const role = getRole(subplebbit, account.author.address);
+            if (!role) {
                 if (account.subplebbits[subplebbit.address]) {
                     toRemove.push(accountId);
                 }
@@ -263,10 +265,11 @@ export const addSubplebbitRoleToAccountsSubplebbits = (subplebbit) => __awaiter(
     accountsStore.setState(({ accounts }) => {
         const { toAdd, toRemove, hasChange } = getChange(accounts, subplebbit);
         const nextAccounts = Object.assign({}, accounts);
-        // edit databases and build next accounts
+        // edit databases and build next accounts (toAdd implies role exists from getChange)
         for (const accountId of toAdd) {
             const account = Object.assign({}, nextAccounts[accountId]);
-            account.subplebbits = Object.assign(Object.assign({}, account.subplebbits), { [subplebbit.address]: { role: subplebbit.roles[account.author.address] } });
+            const role = subplebbit.roles[account.author.address];
+            account.subplebbits = Object.assign(Object.assign({}, account.subplebbits), { [subplebbit.address]: { role } });
             nextAccounts[accountId] = account;
             accountsDatabase.addAccount(account);
         }

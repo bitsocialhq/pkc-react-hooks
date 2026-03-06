@@ -168,7 +168,7 @@ const getDatabaseAsArray = (database) => __awaiter(void 0, void 0, void 0, funct
     return items;
 });
 const addAccount = (account) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c;
+    var _a;
     validator.validateAccountsDatabaseAddAccountArguments(account);
     let accountIds = yield accountsMetadataDatabase.getItem("accountIds");
     // handle no duplicate names
@@ -191,8 +191,7 @@ const addAccount = (account) => __awaiter(void 0, void 0, void 0, function* () {
     if (accountToPutInDatabase.plebbitOptions) {
         const plebbit = yield PlebbitJs.Plebbit(accountToPutInDatabase.plebbitOptions);
         plebbit.on("error", () => { });
-        (_c = (_a = plebbit
-            .destroy) === null || _a === void 0 ? void 0 : (_b = _a.call(plebbit)).catch) === null || _c === void 0 ? void 0 : _c.call(_b, (error) => log("database.addAccount plebbit.destroy error", { error })); // make sure it's garbage collected
+        void ((_a = plebbit.destroy) === null || _a === void 0 ? void 0 : _a.call(plebbit)); // gc; errors intentionally unhandled to avoid uncounted callback
     }
     yield accountsDatabase.setItem(accountToPutInDatabase.id, accountToPutInDatabase);
     // handle updating accountNamesToAccountIds database
@@ -240,14 +239,10 @@ const removeAccount = (account) => __awaiter(void 0, void 0, void 0, function* (
             yield accountsMetadataDatabase.removeItem("activeAccountId");
         }
     }
-    const accountCommentsDatabase = yield getAccountCommentsDatabase(account.id);
-    if (accountCommentsDatabase) {
-        yield accountCommentsDatabase.clear();
-    }
-    const accountVotesDatabase = yield getAccountVotesDatabase(account.id);
-    if (accountVotesDatabase) {
-        yield accountVotesDatabase.clear();
-    }
+    const accountCommentsDatabase = getAccountCommentsDatabase(account.id);
+    yield accountCommentsDatabase.clear();
+    const accountVotesDatabase = getAccountVotesDatabase(account.id);
+    yield accountVotesDatabase.clear();
 });
 const accountsCommentsDatabases = {};
 const getAccountCommentsDatabase = (accountId) => {
@@ -270,9 +265,7 @@ const deleteAccountComment = (accountId, accountCommentIndex) => __awaiter(void 
     for (let i = 0; i < newLength; i++) {
         promises.push(accountCommentsDatabase.setItem(String(i), items[i]));
     }
-    if (newLength < length) {
-        promises.push(accountCommentsDatabase.removeItem(String(length - 1)));
-    }
+    promises.push(accountCommentsDatabase.removeItem(String(length - 1)));
     promises.push(accountCommentsDatabase.setItem("length", newLength));
     yield Promise.all(promises);
 });

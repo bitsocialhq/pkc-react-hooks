@@ -143,8 +143,9 @@ export const useAccountsWithCalculatedProperties = (accounts, accountsComments, 
             // must cache getAccountCalculatedProperties() or it recalculates every account, instead of only the one changed
             const accountCalculatedProperties = getAccountCalculatedProperties(accountsComments[accountId], accountsNotifications[accountId]);
             const account = Object.assign(Object.assign({}, accounts[accountId]), accountCalculatedProperties);
-            if (accountsShortAuthorAddresses[accountId] && account.author) {
-                account.author.shortAddress = accountsShortAuthorAddresses[accountId];
+            if (account.author) {
+                const shortAddr = accountsShortAuthorAddresses[accountId];
+                account.author = Object.assign(Object.assign({}, account.author), { shortAddress: shortAddr });
             }
             accountsWithCalculatedProperties[accountId] = account;
         }
@@ -165,7 +166,8 @@ const getAccountCalculatedPropertiesNoCache = (accountComments, notifications) =
         downvoteCount: 0,
         score: 0,
     };
-    for (const comment of accountComments || []) {
+    const comments = accountComments !== null && accountComments !== void 0 ? accountComments : [];
+    for (const comment of comments) {
         if (comment.parentCid && comment.upvoteCount) {
             karma.replyUpvoteCount += comment.upvoteCount;
         }
@@ -187,7 +189,8 @@ const getAccountCalculatedPropertiesNoCache = (accountComments, notifications) =
     accountCalculatedProperties.karma = karma;
     // add unreadNotificationCount
     let unreadNotificationCount = 0;
-    for (const notification of notifications || []) {
+    const notifs = notifications !== null && notifications !== void 0 ? notifications : [];
+    for (const notification of notifs) {
         if (!notification.markedAsRead) {
             unreadNotificationCount++;
         }
@@ -205,6 +208,8 @@ const useAccountsAuthorShortAddresses = (accounts) => {
             let shouldUpdate = false;
             for (const accountId in accounts || {}) {
                 const address = (_b = (_a = accounts === null || accounts === void 0 ? void 0 : accounts[accountId]) === null || _a === void 0 ? void 0 : _a.author) === null || _b === void 0 ? void 0 : _b.address;
+                if (!address)
+                    continue;
                 newShortAddresses[accountId] = PlebbitJs.Plebbit.getShortAddress({ address });
                 if (shortAddresses[accountId] !== newShortAddresses[accountId]) {
                     shouldUpdate = true;

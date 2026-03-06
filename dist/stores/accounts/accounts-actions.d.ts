@@ -1,4 +1,12 @@
 import { Account, PublishCommentOptions, PublishVoteOptions, PublishCommentEditOptions, PublishCommentModerationOptions, PublishSubplebbitEditOptions, CreateSubplebbitOptions } from "../../types";
+/** Returns state update or {} when accountComment not yet in state (no-op). Exported for coverage. */
+export declare const maybeUpdateAccountComment: (accountsComments: Record<string, any[]>, accountId: string, index: number, updater: (accountComments: any[], accountComment: any) => void) => {
+    accountsComments?: undefined;
+} | {
+    accountsComments: {
+        [x: string]: any[];
+    };
+};
 export declare const createAccount: (accountName?: string) => Promise<void>;
 export declare const deleteAccount: (accountName?: string) => Promise<void>;
 export declare const setActiveAccount: (accountName: string) => Promise<void>;

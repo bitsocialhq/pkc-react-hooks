@@ -72,13 +72,9 @@ const feedsStore = createStore((setState, getState) => ({
                 modQueue,
             };
             log("feedsActions.addFeedToStore", feedOptions);
-            setState(({ feedsOptions }) => {
-                // make sure to never overwrite a feed already added
-                if (feedsOptions[feedName] && feedsOptions[feedName].pageNumber !== 0) {
-                    throw Error(`feedsActions.addFeedToStore feed '${feedName}' already added`);
-                }
-                return { feedsOptions: Object.assign(Object.assign({}, feedsOptions), { [feedName]: feedOptions }) };
-            });
+            setState(({ feedsOptions }) => ({
+                feedsOptions: Object.assign(Object.assign({}, feedsOptions), { [feedName]: feedOptions }),
+            }));
             addSubplebbitsToSubplebbitsStore(subplebbitAddresses, account);
             // update feeds right away to use the already loaded subplebbits and pages
             // if no new subplebbits are added by the feed, like for a sort type change,
@@ -93,11 +89,6 @@ const feedsStore = createStore((setState, getState) => ({
         assert(feedsOptions[feedName].pageNumber * feedsOptions[feedName].postsPerPage <=
             loadedFeeds[feedName].length, `feedsActions.incrementFeedPageNumber cannot increment feed page number before current page has loaded`);
         setState(({ feedsOptions, loadedFeeds }) => {
-            // don't increment page number before the current page has loaded
-            if (feedsOptions[feedName].pageNumber * feedsOptions[feedName].postsPerPage >
-                loadedFeeds[feedName].length) {
-                return {};
-            }
             const feedOptions = Object.assign(Object.assign({}, feedsOptions[feedName]), { pageNumber: feedsOptions[feedName].pageNumber + 1 });
             return { feedsOptions: Object.assign(Object.assign({}, feedsOptions), { [feedName]: feedOptions }) };
         });
@@ -188,6 +179,7 @@ const initializeFeedsStore = () => __awaiter(void 0, void 0, void 0, function* (
     accountsStore.subscribe(updateFeedsOnAccountsBlockedCidsChange);
     // subscribe to accounts store changes (for account comments)
     accountsStore.subscribe(updateFeedsOnAccountsCommentsChange);
+    feedsStoreInitialized = true;
 });
 let previousBlockedAddresses = [];
 let previousAccountsBlockedAddresses = [];

@@ -7,28 +7,27 @@ useInterval(
 )
 
 */
-import { useEffect, useRef } from 'react';
-/** keep typescript happy */
-const noop = () => { };
+import { useEffect, useRef } from "react";
 export function useInterval(callback, delay, immediate, dependencies = []) {
-    const savedCallback = useRef(noop);
+    const savedCallback = useRef(undefined);
     // Remember the latest callback.
     useEffect(() => {
         savedCallback.current = callback;
     });
     // Execute callback if immediate is set.
     useEffect(() => {
+        var _a;
         if (!immediate)
             return;
         if (delay === null || delay === false)
             return;
-        savedCallback.current();
+        (_a = savedCallback.current) === null || _a === void 0 ? void 0 : _a.call(savedCallback);
     }, [immediate, ...dependencies]);
     // Set up the interval.
     useEffect(() => {
         if (delay === null || delay === false)
             return undefined;
-        const tick = () => savedCallback.current();
+        const tick = () => { var _a; return (_a = savedCallback.current) === null || _a === void 0 ? void 0 : _a.call(savedCallback); };
         const id = setInterval(tick, delay);
         return () => clearInterval(id);
     }, [delay]);

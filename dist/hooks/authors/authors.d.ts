@@ -26,6 +26,8 @@ export declare function useAuthorAvatar(options?: UseAuthorAvatarOptions): UseAu
  * the active account.
  */
 export declare function useAuthorAddress(options?: UseAuthorAddressOptions): UseAuthorAddressResult;
+/** For tests: reset caches to make resolution paths deterministic. */
+export declare function resetAuthorAddressCacheForTesting(): void;
 /**
  * @param author - The author with author.address to resolve to a public key, e.g. 'john.eth' resolves to '12D3KooW...'.
  * @param acountName - The nickname of the account, e.g. 'Account 1'. If no accountName is provided, use

@@ -137,7 +137,7 @@ const subplebbitsStore = createStore((setState, getState) => ({
                     var _a;
                     // make sure not undefined, sometimes happens in e2e tests
                     if (!state.subplebbits[subplebbitAddress]) {
-                        return;
+                        return {};
                     }
                     const clients = Object.assign({}, (_a = state.subplebbits[subplebbitAddress]) === null || _a === void 0 ? void 0 : _a.clients);
                     const client = { state: clientState };

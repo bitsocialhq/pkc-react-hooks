@@ -68,18 +68,11 @@ const repliesStore = createStore((setState, getState) => ({
             feedOptions.pageNumber = 1;
             newFeedsOptions[feedName] = feedOptions;
         }
-        // set new feedsOptions state
+        // set new feedsOptions state (first loop already skips existing feeds)
         let feedsChanged = false;
         setState(({ feedsOptions }) => {
-            for (const feedName in newFeedsOptions) {
-                // make sure to never overwrite a feed already added
-                if (feedsOptions[feedName] && feedsOptions[feedName].pageNumber !== 0) {
-                    delete newFeedsOptions[feedName];
-                }
-            }
-            if (!Object.keys(newFeedsOptions).length) {
+            if (!Object.keys(newFeedsOptions).length)
                 return {};
-            }
             feedsChanged = true;
             return { feedsOptions: Object.assign(Object.assign({}, feedsOptions), newFeedsOptions) };
         });

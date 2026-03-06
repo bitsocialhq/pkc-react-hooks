@@ -51,6 +51,18 @@ export const getCommentCidsToAccountsComments = (accountsComments) => {
     }
     return commentCidsToAccountsComments;
 };
+// polyfill Promise.any, exported for test coverage of empty-array branch
+export const promiseAny = (promises) => new Promise((res, rej) => {
+    let count = promises.length;
+    if (count === 0)
+        return rej(Error("all promises rejected"));
+    promises.forEach((p) => Promise.resolve(p)
+        .then(res)
+        .catch((e) => {
+        if (--count === 0)
+            rej(Error("all promises rejected"));
+    }));
+});
 export const fetchCommentLinkDimensions = (link) => __awaiter(void 0, void 0, void 0, function* () {
     if (!link) {
         return {};
@@ -136,23 +148,11 @@ export const fetchCommentLinkDimensions = (link) => __awaiter(void 0, void 0, vo
         setTimeout(() => reject(Error(`failed fetching audio html tag name for url '${url}' timeout '${timeout}'`)), timeout);
         audio.src = url;
     });
-    // polyfill Promise.any
-    const PromiseAny = (promises) => new Promise((res, rej) => {
-        let count = promises.length;
-        if (count === 0)
-            return rej(Error("all promises rejected"));
-        promises.forEach((p) => Promise.resolve(p)
-            .then(res)
-            .catch((e) => {
-            if (--count === 0)
-                rej(Error("all promises rejected"));
-        }));
-    });
     try {
         if (new URL(link).protocol !== "https:") {
             throw Error(`failed fetching comment.link dimensions for link '${link}' not https protocol`);
         }
-        const dimensions = yield PromiseAny([
+        const dimensions = yield promiseAny([
             fetchImageDimensions(link),
             fetchVideoDimensions(link),
             fetchAudio(link),
@@ -225,5 +225,6 @@ const utils = {
     getInitAccountCommentsToUpdate,
     getAccountCommentDepth,
     addShortAddressesToAccountComment,
+    promiseAny,
 };
 export default utils;

@@ -1,4 +1,6 @@
-import { UseCommentsOptions, UseCommentsResult, UseCommentOptions, UseCommentResult, UseValidateCommentOptions, UseValidateCommentResult } from "../types";
+import { Comment, UseCommentsOptions, UseCommentsResult, UseCommentOptions, UseCommentResult, UseValidateCommentOptions, UseValidateCommentResult } from "../types";
+export declare function getCommentFreshness(comment: Comment | undefined): number;
+export declare function preferFresher(current: Comment | undefined, candidate: Comment | undefined): Comment | undefined;
 /**
  * @param commentCid - The IPFS CID of the comment to get
  * @param acountName - The nickname of the account, e.g. 'Account 1'. If no accountName is provided, use

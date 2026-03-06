@@ -6,6 +6,7 @@ interface CommentLinkDimensions {
     linkHeight?: number;
     linkHtmlTagName?: "img" | "video" | "audio";
 }
+export declare const promiseAny: <T>(promises: Promise<T>[]) => Promise<T>;
 export declare const fetchCommentLinkDimensions: (link: string) => Promise<CommentLinkDimensions>;
 export declare const getInitAccountCommentsToUpdate: (accountsComments: AccountsComments) => {
     accountComment: AccountComment;
@@ -23,5 +24,6 @@ declare const utils: {
     }[];
     getAccountCommentDepth: (comment: Comment) => number | undefined;
     addShortAddressesToAccountComment: (comment: Comment) => Comment;
+    promiseAny: <T>(promises: Promise<T>[]) => Promise<T>;
 };
 export default utils;

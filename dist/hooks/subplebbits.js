@@ -25,7 +25,7 @@ import shallow from "zustand/shallow";
  */
 export function useSubplebbit(options) {
     assert(!options || typeof options === "object", `useSubplebbit options argument '${options}' not an object`);
-    const { subplebbitAddress, accountName, onlyIfCached } = options || {};
+    const { subplebbitAddress, accountName, onlyIfCached } = options !== null && options !== void 0 ? options : {};
     const account = useAccount({ accountName });
     const subplebbit = useSubplebbitsStore((state) => state.subplebbits[subplebbitAddress || ""]);
     const addSubplebbitToStore = useSubplebbitsStore((state) => state.addSubplebbitToStore);
@@ -57,7 +57,7 @@ export function useSubplebbit(options) {
  */
 export function useSubplebbitStats(options) {
     assert(!options || typeof options === "object", `useSubplebbitStats options argument '${options}' not an object`);
-    const { subplebbitAddress, accountName, onlyIfCached } = options || {};
+    const { subplebbitAddress, accountName, onlyIfCached } = options !== null && options !== void 0 ? options : {};
     const account = useAccount({ accountName });
     const subplebbit = useSubplebbit({ subplebbitAddress, onlyIfCached });
     const subplebbitStatsCid = subplebbit === null || subplebbit === void 0 ? void 0 : subplebbit.statsCid;
@@ -110,25 +110,26 @@ const useSubplebbitsStatsStore = createStore((setState) => ({
  */
 export function useSubplebbits(options) {
     assert(!options || typeof options === "object", `useSubplebbits options argument '${options}' not an object`);
-    const { subplebbitAddresses, accountName, onlyIfCached } = options || {};
+    const { subplebbitAddresses = [], accountName, onlyIfCached } = options !== null && options !== void 0 ? options : {};
+    const addrs = subplebbitAddresses !== null && subplebbitAddresses !== void 0 ? subplebbitAddresses : [];
     const account = useAccount({ accountName });
-    const subplebbits = useSubplebbitsStore((state) => (subplebbitAddresses || []).map((subplebbitAddress) => state.subplebbits[subplebbitAddress || ""]), shallow);
+    const subplebbits = useSubplebbitsStore((state) => addrs.map((subplebbitAddress) => state.subplebbits[subplebbitAddress || ""]), shallow);
     const addSubplebbitToStore = useSubplebbitsStore((state) => state.addSubplebbitToStore);
     useEffect(() => {
-        if (!subplebbitAddresses || !account) {
+        if (!addrs.length || !account) {
             return;
         }
-        validator.validateUseSubplebbitsArguments(subplebbitAddresses, account);
+        validator.validateUseSubplebbitsArguments(addrs, account);
         if (onlyIfCached) {
             return;
         }
-        const uniqueSubplebbitAddresses = new Set(subplebbitAddresses);
+        const uniqueSubplebbitAddresses = new Set(addrs);
         for (const subplebbitAddress of uniqueSubplebbitAddresses) {
             addSubplebbitToStore(subplebbitAddress, account).catch((error) => log.error("useSubplebbits addSubplebbitToStore error", { subplebbitAddress, error }));
         }
-    }, [subplebbitAddresses === null || subplebbitAddresses === void 0 ? void 0 : subplebbitAddresses.toString(), account === null || account === void 0 ? void 0 : account.id]);
-    if (account && (subplebbitAddresses === null || subplebbitAddresses === void 0 ? void 0 : subplebbitAddresses.length)) {
-        log("useSubplebbits", { subplebbitAddresses, subplebbits, account });
+    }, [addrs.toString(), account === null || account === void 0 ? void 0 : account.id]);
+    if (account && addrs.length) {
+        log("useSubplebbits", { subplebbitAddresses: addrs, subplebbits, account });
     }
     // succeed if no subplebbits are undefined
     const state = subplebbits.indexOf(undefined) === -1 ? "succeeded" : "fetching-ipns";
@@ -137,7 +138,7 @@ export function useSubplebbits(options) {
         state,
         error: undefined,
         errors: [],
-    }), [subplebbits, subplebbitAddresses === null || subplebbitAddresses === void 0 ? void 0 : subplebbitAddresses.toString()]);
+    }), [subplebbits, addrs.toString()]);
 }
 // TODO: plebbit.listSubplebbits() has been removed, rename this and use event subplebbitschanged instead of polling
 /**
@@ -149,14 +150,14 @@ export function useListSubplebbits() {
     const delay = 1000;
     const immediate = true;
     useInterval(() => {
-        if (!(account === null || account === void 0 ? void 0 : account.plebbit)) {
+        const plebbit = account === null || account === void 0 ? void 0 : account.plebbit;
+        if (!plebbit)
             return;
+        const newAddrs = plebbit.subplebbits;
+        if (newAddrs.toString() !== subplebbitAddresses.toString()) {
+            log("useListSubplebbits", { subplebbitAddresses });
+            setSubplebbitAddresses(newAddrs);
         }
-        if (account.plebbit.subplebbits.toString() === subplebbitAddresses.toString()) {
-            return;
-        }
-        log("useListSubplebbits", { subplebbitAddresses });
-        setSubplebbitAddresses(account.plebbit.subplebbits);
     }, delay, immediate);
     return subplebbitAddresses;
 }
@@ -169,7 +170,7 @@ export function useListSubplebbits() {
 export function useResolvedSubplebbitAddress(options) {
     var _a;
     assert(!options || typeof options === "object", `useResolvedSubplebbitAddress options argument '${options}' not an object`);
-    let { subplebbitAddress, accountName, cache } = options || {};
+    let { subplebbitAddress, accountName, cache } = options !== null && options !== void 0 ? options : {};
     // cache by default
     if (typeof cache !== "boolean") {
         cache = true;
@@ -192,17 +193,10 @@ export function useResolvedSubplebbitAddress(options) {
         initialState = "ready";
     }
     useInterval(() => {
-        // no options, do nothing or reset
         if (!account || !subplebbitAddress) {
-            if (resolvedAddress !== undefined) {
-                setResolvedAddress(undefined);
-            }
-            if (state !== undefined) {
-                setState(undefined);
-            }
-            if (errors.length) {
-                setErrors([]);
-            }
+            setResolvedAddress(undefined);
+            setState(undefined);
+            setErrors([]);
             return;
         }
         // address isn't a crypto domain, can't be resolved

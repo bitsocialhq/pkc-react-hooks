@@ -10,13 +10,13 @@ import { commentIsValid } from "../lib/utils";
 import useSubplebbitsPagesStore from "../stores/subplebbits-pages";
 import useRepliesPagesStore from "../stores/replies-pages";
 import shallow from "zustand/shallow";
-function getCommentFreshness(comment) {
+export function getCommentFreshness(comment) {
     var _a, _b;
     if (!comment)
         return 0;
     return Math.max((_a = comment.updatedAt) !== null && _a !== void 0 ? _a : 0, (_b = comment.timestamp) !== null && _b !== void 0 ? _b : 0, 0);
 }
-function preferFresher(current, candidate) {
+export function preferFresher(current, candidate) {
     if (!candidate)
         return current;
     if (!current)
@@ -29,9 +29,8 @@ function preferFresher(current, candidate) {
  * the active account.
  */
 export function useComment(options) {
-    var _a, _b;
     assert(!options || typeof options === "object", `useComment options argument '${options}' not an object`);
-    const { commentCid, accountName, onlyIfCached } = options || {};
+    const { commentCid, accountName, onlyIfCached } = options !== null && options !== void 0 ? options : {};
     const account = useAccount({ accountName });
     const commentFromStore = useCommentsStore((state) => state.comments[commentCid || ""]);
     const addCommentToStore = useCommentsStore((state) => state.addCommentToStore);
@@ -55,15 +54,11 @@ export function useComment(options) {
         }
     }, [commentCid, account === null || account === void 0 ? void 0 : account.id, onlyIfCached]);
     let comment = commentFromStore;
-    // if comment from subplebbit pages exists and is fresher (or current missing), use it instead
     if (commentCid && subplebbitsPagesComment) {
-        comment = (_a = preferFresher(comment, subplebbitsPagesComment)) !== null && _a !== void 0 ? _a : comment;
-        // TODO: subplebbit pages comments aren't auto validated, need to validate
+        comment = preferFresher(comment, subplebbitsPagesComment);
     }
-    // if comment from replies pages exists and is fresher (or current missing), use it instead
     if (commentCid && repliesPagesComment) {
-        comment = (_b = preferFresher(comment, repliesPagesComment)) !== null && _b !== void 0 ? _b : comment;
-        // TODO: replies pages comments aren't auto validated, need to validate
+        comment = preferFresher(comment, repliesPagesComment);
     }
     // if comment is still not defined, but account comment is, use account comment
     // check `comment.timestamp` instead of `comment` in case comment exists but in a loading state
@@ -115,10 +110,10 @@ export function useComment(options) {
  */
 export function useComments(options) {
     assert(!options || typeof options === "object", `useComments options argument '${options}' not an object`);
-    const { commentCids, accountName, onlyIfCached } = options || {};
+    const { commentCids = [], accountName, onlyIfCached } = options !== null && options !== void 0 ? options : {};
     const account = useAccount({ accountName });
-    const commentsStoreComments = useCommentsStore((state) => (commentCids || []).map((commentCid) => state.comments[commentCid || ""]), shallow);
-    const subplebbitsPagesComments = useSubplebbitsPagesStore((state) => (commentCids || []).map((commentCid) => state.comments[commentCid || ""]), shallow);
+    const commentsStoreComments = useCommentsStore((state) => commentCids.map((commentCid) => state.comments[commentCid || ""]), shallow);
+    const subplebbitsPagesComments = useSubplebbitsPagesStore((state) => commentCids.map((commentCid) => state.comments[commentCid || ""]), shallow);
     const addCommentToStore = useCommentsStore((state) => state.addCommentToStore);
     useEffect(() => {
         if (!commentCids || !account) {
@@ -143,15 +138,13 @@ export function useComments(options) {
     }
     // if comment from subplebbit pages exists and is fresher (or current missing), use it instead
     const comments = useMemo(() => {
-        var _a;
-        const comments = [...commentsStoreComments];
-        for (const i in comments) {
+        const result = [...commentsStoreComments];
+        for (const i in result) {
             const candidate = subplebbitsPagesComments[i];
-            if (candidate) {
-                comments[i] = (_a = preferFresher(comments[i], candidate)) !== null && _a !== void 0 ? _a : comments[i];
-            }
+            if (candidate)
+                result[i] = preferFresher(result[i], candidate);
         }
-        return comments;
+        return result;
     }, [commentsStoreComments, subplebbitsPagesComments]);
     // succeed if no comments are undefined
     const state = comments.indexOf(undefined) === -1 ? "succeeded" : "fetching-ipfs";
@@ -164,10 +157,8 @@ export function useComments(options) {
 }
 export function useValidateComment(options) {
     assert(!options || typeof options === "object", `useValidateComment options argument '${options}' not an object`);
-    let { comment, validateReplies, accountName } = options || {};
-    if (validateReplies === undefined || validateReplies === null) {
-        validateReplies = true;
-    }
+    let { comment, validateReplies, accountName } = options !== null && options !== void 0 ? options : {};
+    validateReplies = validateReplies !== null && validateReplies !== void 0 ? validateReplies : true;
     const [validated, setValidated] = useState();
     const [errors, setErrors] = useState([]);
     const account = useAccount({ accountName });

@@ -14,19 +14,18 @@ import Logger from "@plebbit/plebbit-logger";
 const log = Logger("bitsocial-react-hooks:replies:hooks");
 import assert from "assert";
 import useRepliesStore, { feedOptionsToFeedName, getRepliesFirstPageSkipValidation, } from "../stores/replies";
+/** Pure helper to append an error to the errors array; used for deterministic coverage of reset/loadMore catch paths. */
+export function appendErrorToErrors(prevErrors, e) {
+    return [...prevErrors, e];
+}
 export function useReplies(options) {
     var _a;
     assert(!options || typeof options === "object", `useReplies options argument '${options}' not an object`);
-    let { comment, sortType, accountName, flat, flatDepth, accountComments, repliesPerPage, filter, validateOptimistically, streamPage, } = options || {};
-    if (!sortType) {
-        sortType = "best";
-    }
-    if (typeof flatDepth !== "number") {
-        flatDepth = 0;
-    }
-    if (validateOptimistically === undefined) {
-        validateOptimistically = true;
-    }
+    const opts = options !== null && options !== void 0 ? options : {};
+    let { comment, sortType, accountName, flat, flatDepth, accountComments, repliesPerPage, filter, validateOptimistically, streamPage, } = opts;
+    sortType = sortType || "best";
+    flatDepth = typeof flatDepth === "number" ? flatDepth : 0;
+    validateOptimistically = validateOptimistically !== false;
     const invalidFlatDepth = flat && typeof (comment === null || comment === void 0 ? void 0 : comment.depth) === "number" && flatDepth !== comment.depth;
     validator.validateUseRepliesArguments(comment, sortType, accountName, flat, accountComments, repliesPerPage, filter);
     const [errors, setErrors] = useState([]);
@@ -61,14 +60,7 @@ export function useReplies(options) {
     let bufferedReplies = useRepliesStore((state) => state.bufferedFeeds[repliesFeedName || ""]);
     let updatedReplies = useRepliesStore((state) => state.updatedFeeds[repliesFeedName || ""]);
     let hasMore = useRepliesStore((state) => state.feedsHaveMore[repliesFeedName || ""]);
-    // if the replies is not yet defined, then it has more
-    if (!repliesFeedName || typeof hasMore !== "boolean") {
-        hasMore = true;
-    }
-    // if the replies is not yet defined, but no comment, doesn't have more
-    if (!comment) {
-        hasMore = false;
-    }
+    hasMore = comment ? (repliesFeedName && typeof hasMore === "boolean" ? hasMore : true) : false;
     const incrementFeedPageNumber = useRepliesStore((state) => state.incrementFeedPageNumber);
     let loadMore = () => __awaiter(this, void 0, void 0, function* () {
         try {
@@ -78,9 +70,8 @@ export function useReplies(options) {
             incrementFeedPageNumber(repliesFeedName);
         }
         catch (e) {
-            // wait 100 ms so infinite scroll doesn't spam this function
             yield new Promise((r) => setTimeout(r, 50));
-            setErrors([...errors, e]);
+            setErrors(appendErrorToErrors(errors, e));
         }
     });
     const resetFeed = useRepliesStore((state) => state.resetFeed);
@@ -92,9 +83,8 @@ export function useReplies(options) {
             resetFeed(repliesFeedName);
         }
         catch (e) {
-            // wait 100 ms so infinite scroll doesn't spam this function
             yield new Promise((r) => setTimeout(r, 50));
-            setErrors([...errors, e]);
+            setErrors(appendErrorToErrors(errors, e));
         }
     });
     // optimistically avoid the initial validation delay by using skipped validation until validated feed is loaded

@@ -39,9 +39,9 @@ const abandonAndStopPublishSession = (accountId, index) => {
     if (!session)
         return;
     try {
-        if (typeof ((_a = session.comment) === null || _a === void 0 ? void 0 : _a.stop) === "function") {
-            session.comment.stop();
-        }
+        const stop = (_a = session.comment) === null || _a === void 0 ? void 0 : _a.stop;
+        if (typeof stop === "function")
+            stop();
     }
     catch (e) {
         log.error("comment.stop() error during abandon", { accountId, index, error: e });
@@ -50,6 +50,15 @@ const abandonAndStopPublishSession = (accountId, index) => {
 };
 const isPublishSessionAbandoned = (accountId, index) => {
     return abandonedPublishKeys.has(getPublishSessionKey(accountId, index));
+};
+/** Returns state update or {} when accountComment not yet in state (no-op). Exported for coverage. */
+export const maybeUpdateAccountComment = (accountsComments, accountId, index, updater) => {
+    const accountComments = [...(accountsComments[accountId] || [])];
+    const accountComment = accountComments[index];
+    if (!accountComment)
+        return {};
+    updater(accountComments, accountComment);
+    return { accountsComments: Object.assign(Object.assign({}, accountsComments), { [accountId]: accountComments }) };
 };
 const getPublishSessionForComment = (accountId, comment) => {
     for (const [key, session] of activePublishSessions) {
@@ -561,47 +570,26 @@ export const publishComment = (publishCommentOptions, accountName) => __awaiter(
                 var _a;
                 if (isPublishSessionAbandoned(account.id, accountCommentIndex))
                     return;
-                accountsStore.setState(({ accountsComments }) => {
-                    const accountComments = [...(accountsComments[account.id] || [])];
-                    const accountComment = accountComments[accountCommentIndex];
-                    // account comment hasn't been stored in state yet
-                    if (!accountComment) {
-                        return {};
-                    }
-                    const errors = [...(accountComment.errors || []), error];
-                    accountComments[accountCommentIndex] = Object.assign(Object.assign({}, accountComment), { errors, error });
-                    return { accountsComments: Object.assign(Object.assign({}, accountsComments), { [account.id]: accountComments }) };
-                });
+                accountsStore.setState(({ accountsComments }) => maybeUpdateAccountComment(accountsComments, account.id, accountCommentIndex, (ac, acc) => {
+                    const errors = [...(acc.errors || []), error];
+                    ac[accountCommentIndex] = Object.assign(Object.assign({}, acc), { errors, error });
+                }));
                 (_a = publishCommentOptions.onError) === null || _a === void 0 ? void 0 : _a.call(publishCommentOptions, error, comment);
             });
             comment.on("publishingstatechange", (publishingState) => __awaiter(this, void 0, void 0, function* () {
                 var _a;
                 if (isPublishSessionAbandoned(account.id, accountCommentIndex))
                     return;
-                // set publishing state on account comment so the frontend can display it, dont persist in db because a reload cancels publishing
-                accountsStore.setState(({ accountsComments }) => {
-                    const accountComments = [...(accountsComments[account.id] || [])];
-                    const accountComment = accountComments[accountCommentIndex];
-                    // account comment hasn't been stored in state yet
-                    if (!accountComment) {
-                        return {};
-                    }
-                    accountComments[accountCommentIndex] = Object.assign(Object.assign({}, accountComment), { publishingState });
-                    return { accountsComments: Object.assign(Object.assign({}, accountsComments), { [account.id]: accountComments }) };
-                });
+                accountsStore.setState(({ accountsComments }) => maybeUpdateAccountComment(accountsComments, account.id, accountCommentIndex, (ac, acc) => {
+                    ac[accountCommentIndex] = Object.assign(Object.assign({}, acc), { publishingState });
+                }));
                 (_a = publishCommentOptions.onPublishingStateChange) === null || _a === void 0 ? void 0 : _a.call(publishCommentOptions, publishingState);
             }));
             // set clients on account comment so the frontend can display it, dont persist in db because a reload cancels publishing
             utils.clientsOnStateChange(comment.clients, (clientState, clientType, clientUrl, chainTicker) => {
                 if (isPublishSessionAbandoned(account.id, accountCommentIndex))
                     return;
-                accountsStore.setState(({ accountsComments }) => {
-                    const accountComments = [...(accountsComments[account.id] || [])];
-                    const accountComment = accountComments[accountCommentIndex];
-                    // account comment hasn't been stored in state yet
-                    if (!accountComment) {
-                        return {};
-                    }
+                accountsStore.setState(({ accountsComments }) => maybeUpdateAccountComment(accountsComments, account.id, accountCommentIndex, (ac, acc) => {
                     const clients = Object.assign({}, comment.clients);
                     const client = { state: clientState };
                     if (chainTicker) {
@@ -611,9 +599,8 @@ export const publishComment = (publishCommentOptions, accountName) => __awaiter(
                     else {
                         clients[clientType] = Object.assign(Object.assign({}, clients[clientType]), { [clientUrl]: client });
                     }
-                    accountComments[accountCommentIndex] = Object.assign(Object.assign({}, accountComment), { clients });
-                    return { accountsComments: Object.assign(Object.assign({}, accountsComments), { [account.id]: accountComments }) };
-                });
+                    ac[accountCommentIndex] = Object.assign(Object.assign({}, acc), { clients });
+                }));
             });
             listeners.push(comment);
             try {
@@ -742,6 +729,7 @@ export const publishCommentEdit = (publishCommentEditOptions, accountName) => __
     const publishAndRetryFailedChallengeVerification = () => __awaiter(void 0, void 0, void 0, function* () {
         var _a;
         commentEdit.once("challenge", (challenge) => __awaiter(void 0, void 0, void 0, function* () {
+            lastChallenge = challenge;
             publishCommentEditOptions.onChallenge(challenge, commentEdit);
         }));
         commentEdit.once("challengeverification", (challengeVerification) => __awaiter(void 0, void 0, void 0, function* () {
@@ -803,6 +791,7 @@ export const publishCommentModeration = (publishCommentModerationOptions, accoun
     const publishAndRetryFailedChallengeVerification = () => __awaiter(void 0, void 0, void 0, function* () {
         var _a;
         commentModeration.once("challenge", (challenge) => __awaiter(void 0, void 0, void 0, function* () {
+            lastChallenge = challenge;
             publishCommentModerationOptions.onChallenge(challenge, commentModeration);
         }));
         commentModeration.once("challengeverification", (challengeVerification) => __awaiter(void 0, void 0, void 0, function* () {
@@ -887,6 +876,7 @@ export const publishSubplebbitEdit = (subplebbitAddress, publishSubplebbitEditOp
     const publishAndRetryFailedChallengeVerification = () => __awaiter(void 0, void 0, void 0, function* () {
         var _a;
         subplebbitEdit.once("challenge", (challenge) => __awaiter(void 0, void 0, void 0, function* () {
+            lastChallenge = challenge;
             publishSubplebbitEditOptions.onChallenge(challenge, subplebbitEdit);
         }));
         subplebbitEdit.once("challengeverification", (challengeVerification) => __awaiter(void 0, void 0, void 0, function* () {

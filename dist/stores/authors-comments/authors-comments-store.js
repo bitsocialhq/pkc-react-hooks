@@ -245,9 +245,7 @@ const updateCommentsOnCommentsChange = (options, commentCid) => (state) => {
         }
         // start fetching lastCommentCid
         const account = accountsStore.getState().accounts[options.accountId];
-        state
-            .addCommentToStore(subplebbitLastCommentCid, account)
-            .catch((error) => log.error("authorsCommentsStore updateCommentsOnCommentsChange addCommentToStore error", {
+        state.addCommentToStore(subplebbitLastCommentCid, account).catch((error) => log.error("authorsCommentsStore updateCommentsOnCommentsChange addCommentToStore error", {
             error,
             subplebbitLastCommentCid,
             account,
@@ -292,7 +290,10 @@ const setLastCommentCidOnCommentsChange = (options, commentCid) => (state) => {
     // make sure lastComment is newer than all comments already in bufferedComments
     const bufferedComments = [...bufferedCommentCids[options.authorAddress]].map((commentCid) => comments[commentCid]);
     for (const bufferedComment of bufferedComments) {
-        if (((bufferedComment === null || bufferedComment === void 0 ? void 0 : bufferedComment.timestamp) || 0) > comment.timestamp) {
+        const bufferedTs = bufferedComment == null || bufferedComment.timestamp == null
+            ? 0
+            : bufferedComment.timestamp;
+        if (bufferedTs > comment.timestamp) {
             log.trace(`authorsCommentsStore setLastCommentCidOnCommentsChange don't set lastCommentCid older than buffered comments`, {
                 comment,
                 currentLastComment,
