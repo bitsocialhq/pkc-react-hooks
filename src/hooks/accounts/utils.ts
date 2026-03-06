@@ -209,8 +209,9 @@ export const useAccountsWithCalculatedProperties = (
         accountsNotifications[accountId],
       );
       const account = { ...accounts[accountId], ...accountCalculatedProperties };
-      if (accountsShortAuthorAddresses[accountId] && account.author) {
-        account.author.shortAddress = accountsShortAuthorAddresses[accountId];
+      if (account.author) {
+        const shortAddr = accountsShortAuthorAddresses[accountId];
+        account.author = { ...account.author, shortAddress: shortAddr };
       }
       accountsWithCalculatedProperties[accountId] = account;
     }
@@ -236,7 +237,8 @@ const getAccountCalculatedPropertiesNoCache = (
     downvoteCount: 0,
     score: 0,
   };
-  for (const comment of accountComments || []) {
+  const comments = accountComments ?? [];
+  for (const comment of comments) {
     if (comment.parentCid && comment.upvoteCount) {
       karma.replyUpvoteCount += comment.upvoteCount;
     }
@@ -259,7 +261,8 @@ const getAccountCalculatedPropertiesNoCache = (
 
   // add unreadNotificationCount
   let unreadNotificationCount = 0;
-  for (const notification of notifications || []) {
+  const notifs = notifications ?? [];
+  for (const notification of notifs) {
     if (!notification.markedAsRead) {
       unreadNotificationCount++;
     }
@@ -278,6 +281,7 @@ const useAccountsAuthorShortAddresses = (accounts?: Accounts) => {
       let shouldUpdate = false;
       for (const accountId in accounts || {}) {
         const address: string | undefined = accounts?.[accountId]?.author?.address;
+        if (!address) continue;
         newShortAddresses[accountId] = PlebbitJs.Plebbit.getShortAddress({ address });
         if (shortAddresses[accountId] !== newShortAddresses[accountId]) {
           shouldUpdate = true;

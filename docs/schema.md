@@ -20,7 +20,7 @@ Account {
   notifyingAuthors: {[address: string]: boolean}
   notifyingComments: {[commentCid: string]: boolean}
   blockedAddresses: {[address: string]: boolean}, // hide address from feed and notifications
-  blockedCids: {[cid: string]: boolean}, // hide a specific comment cid from feed and notifications  
+  blockedCids: {[cid: string]: boolean}, // hide a specific comment cid from feed and notifications
   limitedAddresses: {[address: string]: number}, // limit how many times per feed page an address can appear, e.g. 1 = 100%, 0.1 = 10%, 0.001 = 0.1%
   savedComments: string[], // save a list of comments for later
   karma: Karma

@@ -602,6 +602,69 @@ describe("states", () => {
       await testUtils.resetDatabasesAndStores();
     });
 
+    test("useClientsStates asserts invalid options type", () => {
+      expect(() => renderHook(() => useClientsStates(123 as any))).toThrow(
+        /options argument.*not an object/,
+      );
+    });
+
+    test("useClientsStates with no options (branch 28)", () => {
+      const rendered = renderHook(() => useClientsStates());
+      expect(rendered.result.current.states).toEqual({});
+    });
+
+    test("useClientsStates asserts invalid comment type (branch 28)", () => {
+      expect(() => renderHook(() => useClientsStates({ comment: "string" as any }))).toThrow(
+        /comment argument.*not an object/,
+      );
+    });
+
+    test("useClientsStates asserts invalid subplebbit type (branch 28)", () => {
+      expect(() => renderHook(() => useClientsStates({ subplebbit: 123 as any }))).toThrow(
+        /subplebbit argument.*not an object/,
+      );
+    });
+
+    test("useClientsStates asserts comment and subplebbit both defined (branch 28)", () => {
+      expect(() =>
+        renderHook(() =>
+          useClientsStates({ comment: { cid: "c" } as any, subplebbit: { address: "a" } as any }),
+        ),
+      ).toThrow(/cannot be defined at the same time/);
+    });
+
+    test("fresh comment short-circuit returns empty states", () => {
+      const freshComment = {
+        cid: "fresh-cid",
+        timestamp: Math.floor(Date.now() / 1000) + 60,
+        clients: {
+          ipfsGateways: { "https://x.com": { state: "fetching-ipfs" } },
+        },
+      };
+      const rendered = renderHook(() => useClientsStates({ comment: freshComment as any }));
+      expect(rendered.result.current.states).toEqual({});
+    });
+
+    test("libp2pJsClients state included", () => {
+      const commentWithLibp2p = {
+        cid: "cid",
+        timestamp: 1,
+        clients: {
+          libp2pJsClients: {
+            "https://libp2p1.com": new Client(),
+            "https://libp2p2.com": new Client(),
+          },
+        },
+      };
+      (commentWithLibp2p.clients.libp2pJsClients["https://libp2p1.com"] as any).state =
+        "fetching-ipfs";
+      (commentWithLibp2p.clients.libp2pJsClients["https://libp2p2.com"] as any).state =
+        "fetching-ipfs";
+      const rendered = renderHook(() => useClientsStates({ comment: commentWithLibp2p as any }));
+      expect(rendered.result.current.states["fetching-ipfs"]).toContain("https://libp2p1.com");
+      expect(rendered.result.current.states["fetching-ipfs"]).toContain("https://libp2p2.com");
+    });
+
     test("fetch comment", async () => {
       const rendered = renderHook<any, any>((commentCid) => {
         const comment = useComment({ commentCid });
@@ -901,6 +964,32 @@ describe("states", () => {
   describe("useSubplebbitsStates", () => {
     afterEach(async () => {
       await testUtils.resetDatabasesAndStores();
+    });
+
+    test("useSubplebbitsStates asserts invalid options type", () => {
+      expect(() => renderHook(() => useSubplebbitsStates(123 as any))).toThrow(/not an object/);
+    });
+
+    test("useSubplebbitsStates with no options (branch 28)", () => {
+      const rendered = renderHook(() => useSubplebbitsStates());
+      expect(rendered.result.current.states).toEqual({});
+    });
+
+    test("useSubplebbitsStates with subplebbitAddresses undefined (branch 149)", () => {
+      const rendered = renderHook(() => useSubplebbitsStates({ subplebbitAddresses: undefined }));
+      expect(rendered.result.current.states).toEqual({});
+    });
+
+    test("useSubplebbitsStates asserts subplebbitAddresses not array (branch 144)", () => {
+      expect(() =>
+        renderHook(() => useSubplebbitsStates({ subplebbitAddresses: "not-array" as any })),
+      ).toThrow(/subplebbitAddresses.*not an array/);
+    });
+
+    test("useSubplebbitsStates asserts subplebbitAddress not string (branch 149)", () => {
+      expect(() =>
+        renderHook(() => useSubplebbitsStates({ subplebbitAddresses: ["valid", 123 as any] })),
+      ).toThrow(/subplebbitAddress.*not a string/);
     });
 
     test("fetch feed", { retry: 5 }, async () => {

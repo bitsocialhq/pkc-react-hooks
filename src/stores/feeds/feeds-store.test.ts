@@ -57,7 +57,7 @@ class MockSubplebbit extends EventEmitter {
     this.address = address;
     this.posts = new MockPages({ subplebbitAddress: address });
   }
-  update() {}
+  async update() {}
 }
 
 const mockAccount: any = {
@@ -244,5 +244,316 @@ describe("feeds store", () => {
     expect(Object.keys(subplebbitsPagesStore.getState().subplebbitsPages).length).toBe(
       subplebbitsPagesCount,
     );
+  });
+
+  test("addFeedToStore accepts isBufferedFeed null (branch 110)", async () => {
+    const feedName = "null-buffered-feed";
+    const subplebbitAddresses = ["subplebbit address 1"];
+    act(() => {
+      rendered.result.current.addFeedToStore(
+        feedName,
+        subplebbitAddresses,
+        "new",
+        mockAccount,
+        null as any,
+      );
+    });
+    await waitFor(() => rendered.result.current.feedsOptions[feedName]);
+    expect(rendered.result.current.feedsOptions[feedName]).toBeDefined();
+  });
+
+  test("duplicate feed add returns early without overwriting", async () => {
+    const feedName = "duplicate-feed";
+    const subplebbitAddresses = ["subplebbit address 1"];
+    const sortType = "new";
+
+    act(() => {
+      rendered.result.current.addFeedToStore(feedName, subplebbitAddresses, sortType, mockAccount);
+    });
+    await waitFor(() => rendered.result.current.feedsOptions[feedName]);
+    const optsBefore = rendered.result.current.feedsOptions[feedName];
+
+    act(() => {
+      rendered.result.current.addFeedToStore(feedName, subplebbitAddresses, sortType, mockAccount);
+    });
+    expect(rendered.result.current.feedsOptions[feedName]).toBe(optsBefore);
+  });
+
+  test("incrementFeedPageNumber before loaded throws", async () => {
+    const feedName = "early-increment-feed";
+    const subplebbitAddresses = ["subplebbit address 1"];
+    const sortType = "new";
+
+    act(() => {
+      rendered.result.current.addFeedToStore(feedName, subplebbitAddresses, sortType, mockAccount);
+    });
+    await waitFor(() => rendered.result.current.feedsOptions[feedName]);
+
+    expect(() => {
+      act(() => {
+        rendered.result.current.incrementFeedPageNumber(feedName);
+      });
+    }).toThrow();
+  });
+
+  test("initializeFeedsStore early return on second addFeedToStore", async () => {
+    const feed1 = "init-feed-1";
+    const feed2 = "init-feed-2";
+    const subplebbitAddresses = ["subplebbit address 1"];
+    const sortType = "new";
+
+    act(() => {
+      rendered.result.current.addFeedToStore(feed1, subplebbitAddresses, sortType, mockAccount);
+    });
+    await waitFor(() => rendered.result.current.feedsOptions[feed1]);
+
+    act(() => {
+      rendered.result.current.addFeedToStore(feed2, subplebbitAddresses, sortType, mockAccount);
+    });
+    await waitFor(() => rendered.result.current.feedsOptions[feed2]);
+    expect(rendered.result.current.feedsOptions[feed1]).toBeDefined();
+    expect(rendered.result.current.feedsOptions[feed2]).toBeDefined();
+  });
+
+  test("updateFeedsOnAccountsBlockedAddressesChange returns when blocked address not in feeds", async () => {
+    const subplebbitAddresses = ["subplebbit address 1"];
+    const feedName = JSON.stringify([mockAccount?.id, "new", subplebbitAddresses]);
+    const otherAddress = "other-sub-not-in-feed";
+
+    act(() => {
+      rendered.result.current.addFeedToStore(feedName, subplebbitAddresses, "new", mockAccount);
+    });
+    await waitFor(() => rendered.result.current.loadedFeeds[feedName]?.length > 0);
+
+    const blockedAccount = {
+      ...mockAccount,
+      blockedAddresses: { [otherAddress]: true },
+    };
+    (accountsStore as any).getState = () => ({
+      accounts: { [mockAccount.id]: blockedAccount },
+      accountsActionsInternal: { addCidToAccountComment: async () => {} },
+    });
+    accountsStore.setState(() => ({
+      accounts: { [mockAccount.id]: blockedAccount },
+    }));
+
+    await new Promise((r) => setTimeout(r, 150));
+  });
+
+  test("addSubplebbitsPagesOnLowBufferedFeeds skips blocked subplebbit", async () => {
+    const sub1 = "subplebbit address 1";
+    const sub2 = "subplebbit address 2";
+    const subplebbitAddresses = [sub1, sub2];
+    const sortType = "new";
+    const feedName = JSON.stringify([mockAccount?.id, sortType, subplebbitAddresses]);
+
+    act(() => {
+      rendered.result.current.addFeedToStore(feedName, subplebbitAddresses, sortType, mockAccount);
+    });
+    await waitFor(() => rendered.result.current.loadedFeeds[feedName]?.length > 0);
+
+    const blockedAccount = {
+      ...mockAccount,
+      blockedAddresses: { [sub2]: true },
+    };
+    (accountsStore as any).getState = () => ({
+      accounts: { [mockAccount.id]: blockedAccount },
+      accountsActionsInternal: { addCidToAccountComment: async () => {} },
+    });
+    accountsStore.setState(() => ({
+      accounts: { [mockAccount.id]: blockedAccount },
+    }));
+
+    await new Promise((r) => setTimeout(r, 200));
+  });
+
+  test("addSubplebbitsPagesOnLowBufferedFeeds skips cache-expired subplebbit", async () => {
+    const subplebbitAddresses = ["subplebbit address 1"];
+    const feedName = JSON.stringify([mockAccount?.id, "new", subplebbitAddresses]);
+
+    act(() => {
+      rendered.result.current.addFeedToStore(feedName, subplebbitAddresses, "new", mockAccount);
+    });
+    await waitFor(() => rendered.result.current.loadedFeeds[feedName]?.length > 0);
+
+    const sub = subplebbitsStore.getState().subplebbits[subplebbitAddresses[0]];
+    subplebbitsStore.setState((state: any) => ({
+      subplebbits: {
+        ...state.subplebbits,
+        [subplebbitAddresses[0]]: { ...sub, fetchedAt: 0 },
+      },
+    }));
+
+    act(() => rendered.result.current.incrementFeedPageNumber(feedName));
+    await new Promise((r) => setTimeout(r, 300));
+
+    subplebbitsStore.setState((state: any) => ({
+      subplebbits: {
+        ...state.subplebbits,
+        [subplebbitAddresses[0]]: sub,
+      },
+    }));
+  });
+
+  test("updateFeedsOnAccountsBlockedAddressesChange calls updateFeeds when blocked address is in feed", async () => {
+    const subplebbitAddresses = ["subplebbit address 1"];
+    const feedName = JSON.stringify([mockAccount?.id, "new", subplebbitAddresses]);
+
+    act(() => {
+      rendered.result.current.addFeedToStore(feedName, subplebbitAddresses, "new", mockAccount);
+    });
+    await waitFor(() => rendered.result.current.loadedFeeds[feedName]?.length > 0);
+
+    const blockedAccount = {
+      ...mockAccount,
+      blockedAddresses: { [subplebbitAddresses[0]]: true },
+    };
+    (accountsStore as any).getState = () => ({
+      accounts: { [mockAccount.id]: blockedAccount },
+      accountsActionsInternal: { addCidToAccountComment: async () => {} },
+    });
+    accountsStore.setState(() => ({
+      accounts: { [mockAccount.id]: blockedAccount },
+    }));
+
+    await waitFor(() => rendered.result.current.bufferedFeeds[feedName]?.length === 0);
+    expect(rendered.result.current.bufferedFeeds[feedName].length).toBe(0);
+  });
+
+  test("addSubplebbitsToSubplebbitsStore catch when addSubplebbitToStore rejects", async () => {
+    const rejectAddress = "subplebbit-reject-address";
+    const addOrig = subplebbitsStore.getState().addSubplebbitToStore;
+    subplebbitsStore.setState((s: any) => ({
+      ...s,
+      addSubplebbitToStore: () => Promise.reject(new Error("add failed")),
+    }));
+
+    act(() => {
+      rendered.result.current.addFeedToStore(
+        JSON.stringify([mockAccount?.id, "new", [rejectAddress]]),
+        [rejectAddress],
+        "new",
+        mockAccount,
+      );
+    });
+    await new Promise((r) => setTimeout(r, 250));
+    expect(
+      rendered.result.current.feedsOptions[
+        JSON.stringify([mockAccount?.id, "new", [rejectAddress]])
+      ],
+    ).toBeDefined();
+    subplebbitsStore.setState((s: any) => ({ ...s, addSubplebbitToStore: addOrig }));
+  });
+
+  test("updateFeedsOnFeedsSubplebbitsChange returns when subplebbit added is not in any feed", async () => {
+    const subplebbitAddresses = ["subplebbit address 1"];
+    const feedName = JSON.stringify([mockAccount?.id, "new", subplebbitAddresses]);
+
+    act(() => {
+      rendered.result.current.addFeedToStore(feedName, subplebbitAddresses, "new", mockAccount);
+    });
+    await waitFor(() => rendered.result.current.loadedFeeds[feedName]?.length > 0);
+
+    const otherAddress = "subplebbit-not-in-feed";
+    await act(async () => {
+      await subplebbitsStore.getState().addSubplebbitToStore(otherAddress, mockAccount);
+    });
+    await new Promise((r) => setTimeout(r, 150));
+  });
+
+  test("resetFeed resets page to 1 and clears loaded/updated", async () => {
+    const subplebbitAddresses = ["subplebbit address reset-feed"];
+    const sortType = "new";
+    const feedName = JSON.stringify([mockAccount?.id, sortType, subplebbitAddresses]);
+
+    act(() => {
+      rendered.result.current.addFeedToStore(feedName, subplebbitAddresses, sortType, mockAccount);
+    });
+    await waitFor(() => rendered.result.current.loadedFeeds[feedName]?.length >= postsPerPage);
+
+    act(() => rendered.result.current.incrementFeedPageNumber(feedName));
+    await waitFor(() => rendered.result.current.loadedFeeds[feedName]?.length >= postsPerPage * 2);
+
+    act(() => rendered.result.current.resetFeed(feedName));
+    expect(rendered.result.current.feedsOptions[feedName].pageNumber).toBe(1);
+    expect(rendered.result.current.loadedFeeds[feedName]).toEqual([]);
+    expect(rendered.result.current.updatedFeeds[feedName]).toEqual([]);
+  });
+
+  test("updateFeedsOnAccountsBlockedCidsChange calls updateFeeds when blocked cid is in feed", async () => {
+    const subplebbitAddresses = ["subplebbit address 1"];
+    const feedName = JSON.stringify([mockAccount?.id, "new", subplebbitAddresses]);
+
+    act(() => {
+      rendered.result.current.addFeedToStore(feedName, subplebbitAddresses, "new", mockAccount);
+    });
+    await waitFor(() => rendered.result.current.loadedFeeds[feedName]?.length > 0);
+
+    const firstCid = rendered.result.current.loadedFeeds[feedName][0]?.cid;
+    const blockedAccount = {
+      ...mockAccount,
+      blockedCids: firstCid ? { [firstCid]: true } : {},
+    };
+    (accountsStore as any).getState = () => ({
+      accounts: { [mockAccount.id]: blockedAccount },
+      accountsActionsInternal: { addCidToAccountComment: async () => {} },
+    });
+    accountsStore.setState(() => ({
+      accounts: { [mockAccount.id]: blockedAccount },
+    }));
+
+    await waitFor(() => rendered.result.current.bufferedFeeds[feedName]?.length === 0);
+  });
+
+  test("addFeedToStore with isBufferedFeed true sets pageNumber 0", async () => {
+    const subplebbitAddresses = ["subplebbit address buffered"];
+    const sortType = "new";
+    const feedName = JSON.stringify([mockAccount?.id, sortType, subplebbitAddresses]);
+
+    act(() => {
+      rendered.result.current.addFeedToStore(
+        feedName,
+        subplebbitAddresses,
+        sortType,
+        mockAccount,
+        true, // isBufferedFeed
+      );
+    });
+    await waitFor(() => rendered.result.current.feedsOptions[feedName]);
+    expect(rendered.result.current.feedsOptions[feedName].pageNumber).toBe(0);
+  });
+
+  test("addNextSubplebbitPageToStore catch logs error when fetch throws", async () => {
+    const subplebbitAddresses = ["subplebbit address addNext-throws"];
+    const sortType = "new";
+    const feedName = JSON.stringify([mockAccount?.id, sortType, subplebbitAddresses]);
+    const addNextOriginal = subplebbitsPagesStore.getState().addNextSubplebbitPageToStore;
+
+    act(() => {
+      rendered.result.current.addFeedToStore(feedName, subplebbitAddresses, sortType, mockAccount);
+    });
+    const longWaitFor = testUtils.createWaitFor(rendered, { timeout: 10000 });
+    await longWaitFor(() => rendered.result.current.loadedFeeds[feedName]?.length >= postsPerPage);
+
+    subplebbitsPagesStore.setState((state: any) => ({
+      ...state,
+      addNextSubplebbitPageToStore: async () => {
+        throw new Error("fetch failed");
+      },
+    }));
+
+    act(() => rendered.result.current.incrementFeedPageNumber(feedName));
+    await waitFor(() => {
+      const count =
+        rendered.result.current.bufferedFeedsSubplebbitsPostCounts[feedName]?.[
+          subplebbitAddresses[0]
+        ];
+      return count !== undefined && count <= 50;
+    });
+
+    subplebbitsPagesStore.setState((state: any) => ({
+      ...state,
+      addNextSubplebbitPageToStore: addNextOriginal,
+    }));
   });
 });

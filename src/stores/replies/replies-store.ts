@@ -108,18 +108,10 @@ const repliesStore = createStore<RepliesState>((setState: Function, getState: Fu
       newFeedsOptions[feedName] = feedOptions;
     }
 
-    // set new feedsOptions state
+    // set new feedsOptions state (first loop already skips existing feeds)
     let feedsChanged = false;
     setState(({ feedsOptions }: RepliesState) => {
-      for (const feedName in newFeedsOptions) {
-        // make sure to never overwrite a feed already added
-        if (feedsOptions[feedName] && feedsOptions[feedName].pageNumber !== 0) {
-          delete newFeedsOptions[feedName];
-        }
-      }
-      if (!Object.keys(newFeedsOptions).length) {
-        return {};
-      }
+      if (!Object.keys(newFeedsOptions).length) return {};
       feedsChanged = true;
       return { feedsOptions: { ...feedsOptions, ...newFeedsOptions } };
     });

@@ -63,6 +63,57 @@ describe("feeds", () => {
       expect(typeof rendered.result.current.loadMore).toBe("function");
     });
 
+    test("useFeed addFeedToStore error is caught and logged", async () => {
+      const originalAddFeedToStore = feedsStore.getState().addFeedToStore;
+      feedsStore.setState((state: any) => ({
+        ...state,
+        addFeedToStore: async () => {
+          throw Error("addFeedToStore test error");
+        },
+      }));
+
+      rendered.rerender({ subplebbitAddresses: ["subplebbit address 1"] });
+      await new Promise((r) => setTimeout(r, 150));
+
+      expect(rendered.result.current.feed).toEqual([]);
+
+      feedsStore.setState((state: any) => ({
+        ...state,
+        addFeedToStore: originalAddFeedToStore,
+      }));
+    });
+
+    test("useFeed hasMore false when subplebbitAddresses empty", async () => {
+      rendered.rerender({});
+      expect(rendered.result.current.hasMore).toBe(false);
+      rendered.rerender({ subplebbitAddresses: [] });
+      expect(rendered.result.current.hasMore).toBe(false);
+    });
+
+    test("loadMore init guard throws when not initialized", async () => {
+      rendered.rerender({
+        subplebbitAddresses: ["subplebbit address 1"],
+        accountName: "nonexistent-account-xyz",
+      });
+      await act(async () => {
+        await rendered.result.current.loadMore();
+      });
+      expect(rendered.result.current.errors.length).toBeGreaterThan(0);
+      expect(rendered.result.current.error?.message).toMatch(/not initalized/i);
+    });
+
+    test("reset init guard throws when not initialized", async () => {
+      rendered.rerender({
+        subplebbitAddresses: ["subplebbit address 1"],
+        accountName: "nonexistent-account-xyz",
+      });
+      await act(async () => {
+        await rendered.result.current.reset();
+      });
+      expect(rendered.result.current.errors.length).toBeGreaterThan(0);
+      expect(rendered.result.current.error?.message).toMatch(/not initalized/i);
+    });
+
     test("not yet loaded feed hasMore true", async () => {
       expect(rendered.result.current.hasMore).toBe(false);
       rendered.rerender({ subplebbitAddresses: ["subplebbit address 1"] });
@@ -334,6 +385,13 @@ describe("feeds", () => {
       expect(Object.keys(feedsStore.getState().feedsOptions).join(" ")).toMatch(
         "controversialYear",
       );
+
+      rendered.rerender({
+        subplebbitAddresses: ["subplebbit address 1"],
+        sortType: "topAll",
+        newerThan: 60 * 60 * 24 * 400,
+      });
+      expect(Object.keys(feedsStore.getState().feedsOptions).join(" ")).toMatch("topAll");
     });
 
     test("change subplebbit addresses and sort type", async () => {
@@ -847,6 +905,36 @@ describe("feeds", () => {
       );
       expect(rendered.result.current.feed[postsPerPage].upvoteCount).toBeGreaterThan(91);
       expect(rendered.result.current.feed[postsPerPage + 1].upvoteCount).toBeGreaterThan(91);
+    });
+
+    test("useBufferedFeeds with no options returns empty (branches 173, 180)", async () => {
+      const rendered = renderHook<any, any>(() => useBufferedFeeds());
+      await act(async () => {});
+      expect(rendered.result.current.bufferedFeeds).toEqual([]);
+    });
+
+    test("useBufferedFeeds addFeedToStore error is caught", async () => {
+      const originalAddFeedToStore = feedsStore.getState().addFeedToStore;
+      feedsStore.setState((state: any) => ({
+        ...state,
+        addFeedToStore: async () => {
+          throw Error("useBufferedFeeds addFeedToStore test error");
+        },
+      }));
+
+      const rendered = renderHook<any, any>(() =>
+        useBufferedFeeds({
+          feedsOptions: [{ subplebbitAddresses: ["subplebbit address 1"], sortType: "new" }],
+        }),
+      );
+      await new Promise((r) => setTimeout(r, 150));
+
+      expect(rendered.result.current.bufferedFeeds).toEqual([[]]);
+
+      feedsStore.setState((state: any) => ({
+        ...state,
+        addFeedToStore: originalAddFeedToStore,
+      }));
     });
 
     test(`useBufferedFeeds can fetch multiple subs in the background before delivering the first page`, async () => {

@@ -3,6 +3,7 @@ import testUtils, { renderHook } from "../../lib/test-utils";
 import useRepliesStore, {
   defaultRepliesPerPage as repliesPerPage,
   feedOptionsToFeedName,
+  getRepliesFirstPageSkipValidation,
 } from "./replies-store";
 import { RepliesPage } from "../../types";
 import repliesCommentsStore from "./replies-comments-store";
@@ -229,5 +230,175 @@ describe("replies store", () => {
 
     // save replies pages count to make sure they don't change
     const repliesPagesCount = Object.keys(repliesPagesStore.getState().repliesPages).length;
+  });
+
+  test("addFeedsToStore returns early when feedOptionsArray is empty", () => {
+    const result = rendered.result.current.addFeedsToStore([]);
+    expect(result).toBeUndefined();
+  });
+
+  test("addFeedsToStore deletes newFeedsOptions when feed already exists", async () => {
+    const commentCid = "existing-feed-cid";
+    const feedOptions = {
+      sortType: "new",
+      commentCid,
+      accountId: mockAccount.id,
+    };
+    const feedName = feedOptionsToFeedName(feedOptions);
+    const comment = new MockComment({ cid: commentCid });
+
+    act(() => {
+      rendered.result.current.addFeedToStoreOrUpdateComment(comment, feedOptions);
+    });
+    await waitFor(() => rendered.result.current.feedsOptions[feedName]);
+
+    act(() => {
+      rendered.result.current.addFeedToStoreOrUpdateComment(comment, feedOptions);
+    });
+    expect(rendered.result.current.feedsOptions[feedName].pageNumber).toBe(1);
+  });
+
+  test("addFeedsToStore setState deletes newFeedsOptions when feed already in store", async () => {
+    const commentCid = "race-feed-cid";
+    const feedOptions = {
+      sortType: "new",
+      commentCid,
+      accountId: mockAccount.id,
+    };
+    const feedName = feedOptionsToFeedName(feedOptions);
+    const comment = new MockComment({ cid: commentCid });
+
+    act(() => {
+      rendered.result.current.addFeedsToStore([feedOptions]);
+      rendered.result.current.addFeedsToStore([feedOptions]);
+    });
+    await waitFor(() => rendered.result.current.feedsOptions[feedName]);
+    expect(rendered.result.current.feedsOptions[feedName].pageNumber).toBe(1);
+  });
+
+  test("addFeedToStoreOrUpdateComment with flat does not add nested feeds", async () => {
+    const commentCid = "flat-feed-unique-cid";
+    const nestedCid = "nested-reply-flat-cid";
+    const comment = new MockComment({ cid: commentCid });
+    (comment as any).replies = {
+      pages: {
+        new: {
+          comments: [{ cid: nestedCid, replies: { pages: {} }, depth: 1 }],
+        },
+      },
+    };
+
+    act(() => {
+      rendered.result.current.addFeedToStoreOrUpdateComment(comment, {
+        sortType: "new",
+        commentCid,
+        accountId: mockAccount.id,
+        flat: true,
+      });
+    });
+    const feedName = feedOptionsToFeedName({
+      sortType: "new",
+      commentCid,
+      accountId: mockAccount.id,
+    });
+    await waitFor(() => rendered.result.current.feedsOptions[feedName]);
+
+    const feedsForComment = Object.keys(rendered.result.current.feedsOptions).filter((fn) =>
+      fn.includes(commentCid),
+    );
+    expect(feedsForComment).toHaveLength(1);
+    expect(feedsForComment[0]).toContain(commentCid);
+  });
+
+  test("resetFeed resets page to 1 and clears loaded/updated", async () => {
+    const commentCid = "reset-feed-cid";
+    const feedOptions = { sortType: "new", commentCid, accountId: mockAccount.id };
+    const feedName = feedOptionsToFeedName(feedOptions);
+    const comment = new MockComment({ cid: commentCid });
+
+    act(() => {
+      rendered.result.current.addFeedToStoreOrUpdateComment(comment, feedOptions);
+    });
+    await waitFor(() => rendered.result.current.loadedFeeds[feedName]?.length > 0);
+
+    act(() => rendered.result.current.incrementFeedPageNumber(feedName));
+    await waitFor(() => rendered.result.current.feedsOptions[feedName].pageNumber === 2);
+
+    act(() => rendered.result.current.resetFeed(feedName));
+    expect(rendered.result.current.feedsOptions[feedName].pageNumber).toBe(1);
+    expect(rendered.result.current.loadedFeeds[feedName]).toEqual([]);
+    expect(rendered.result.current.updatedFeeds[feedName]).toEqual([]);
+  });
+
+  test("getRepliesFirstPageSkipValidation returns first page without validation", () => {
+    const subAddr = "skip-validation-sub";
+    const commentCid = "skip-validation-cid";
+    const comment = {
+      cid: commentCid,
+      subplebbitAddress: subAddr,
+      replies: {
+        pages: {
+          new: {
+            comments: [
+              { cid: "r1", subplebbitAddress: subAddr, timestamp: 1 },
+              { cid: "r2", subplebbitAddress: subAddr, timestamp: 2 },
+            ],
+            nextCid: "next-page-cid",
+          },
+        },
+      },
+    };
+    const result = getRepliesFirstPageSkipValidation(comment as any, {
+      accountId: mockAccount.id,
+      commentCid,
+      sortType: "new",
+      repliesPerPage: 1,
+    });
+    expect(result.replies).toHaveLength(1);
+    expect(result.replies[0].cid).toBe("r2");
+    expect(result.hasMore).toBe(true);
+  });
+
+  test("addNextRepliesPageToStore catch when addNextRepliesPageToStore rejects", async () => {
+    const commentCid = "addNext-reject-cid";
+    const feedOptions = { sortType: "new", commentCid, accountId: mockAccount.id };
+    const feedName = feedOptionsToFeedName(feedOptions);
+    const comment = new MockComment({ cid: commentCid });
+
+    act(() => {
+      rendered.result.current.addFeedToStoreOrUpdateComment(comment, feedOptions);
+    });
+    await waitFor(() => rendered.result.current.loadedFeeds[feedName]?.length > 0);
+
+    const addNextOrig = repliesPagesStore.getState().addNextRepliesPageToStore;
+    repliesPagesStore.setState((s: any) => ({
+      ...s,
+      addNextRepliesPageToStore: () => Promise.reject(new Error("addNext failed")),
+    }));
+
+    act(() => rendered.result.current.incrementFeedPageNumber(feedName));
+    await waitFor(() => rendered.result.current.bufferedFeedsReplyCounts[feedName] <= 50);
+
+    await new Promise((r) => setTimeout(r, 300));
+    repliesPagesStore.setState((s: any) => ({ ...s, addNextRepliesPageToStore: addNextOrig }));
+  });
+
+  test("updateFeedsAgain when updateFeeds called twice quickly", async () => {
+    const commentCid = "double-update-cid";
+    const feedOptions = { sortType: "new", commentCid, accountId: mockAccount.id };
+    const comment = new MockComment({ cid: commentCid });
+
+    act(() => {
+      rendered.result.current.addFeedToStoreOrUpdateComment(comment, feedOptions);
+    });
+    await waitFor(
+      () => rendered.result.current.loadedFeeds[feedOptionsToFeedName(feedOptions)]?.length > 0,
+    );
+
+    act(() => {
+      rendered.result.current.updateFeeds();
+      rendered.result.current.updateFeeds();
+    });
+    await new Promise((r) => setTimeout(r, 300));
   });
 });

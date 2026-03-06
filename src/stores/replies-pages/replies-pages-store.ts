@@ -1,7 +1,7 @@
 import utils from "../../lib/utils";
 import Logger from "@plebbit/plebbit-logger";
 // include replies pages store with feeds for debugging
-const log = Logger("bitsocial-react-hooks:replies:stores");
+export const log = Logger("bitsocial-react-hooks:replies:stores");
 import { RepliesPage, RepliesPages, Account, Comment, Comments } from "../../types";
 import accountsStore from "../accounts";
 import commentsStore, { CommentsState } from "../comments";
@@ -101,11 +101,6 @@ const repliesPagesStore = createStore<RepliesPagesState>(
         throw e;
       } finally {
         fetchPagePending[account.id + pageCidToAdd] = false;
-      }
-
-      // failed getting the page
-      if (!page) {
-        return;
       }
 
       // find new comments in the page (missing-or-fresher: insert when absent or incoming is fresher)
@@ -235,6 +230,7 @@ const fetchPage = async (pageCid: string, comment: Comment, account: Account) =>
       subplebbitAddress: comment.subplebbitAddress,
       depth: comment.depth,
     });
+    listeners.push(fetchPageComments[comment.cid]);
 
     // set clients states on subplebbits store so the frontend can display it
     utils.pageClientsOnStateChange(

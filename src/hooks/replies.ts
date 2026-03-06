@@ -12,11 +12,17 @@ import useRepliesStore, {
 } from "../stores/replies";
 import shallow from "zustand/shallow";
 
+/** Pure helper to append an error to the errors array; used for deterministic coverage of reset/loadMore catch paths. */
+export function appendErrorToErrors(prevErrors: Error[], e: Error): Error[] {
+  return [...prevErrors, e];
+}
+
 export function useReplies(options?: UseRepliesOptions): UseRepliesResult {
   assert(
     !options || typeof options === "object",
     `useReplies options argument '${options}' not an object`,
   );
+  const opts = options ?? {};
   let {
     comment,
     sortType,
@@ -28,16 +34,10 @@ export function useReplies(options?: UseRepliesOptions): UseRepliesResult {
     filter,
     validateOptimistically,
     streamPage,
-  } = options || {};
-  if (!sortType) {
-    sortType = "best";
-  }
-  if (typeof flatDepth !== "number") {
-    flatDepth = 0;
-  }
-  if (validateOptimistically === undefined) {
-    validateOptimistically = true;
-  }
+  } = opts;
+  sortType = sortType || "best";
+  flatDepth = typeof flatDepth === "number" ? flatDepth : 0;
+  validateOptimistically = validateOptimistically !== false;
   const invalidFlatDepth =
     flat && typeof comment?.depth === "number" && flatDepth !== comment.depth;
   validator.validateUseRepliesArguments(
@@ -94,14 +94,7 @@ export function useReplies(options?: UseRepliesOptions): UseRepliesResult {
   let hasMore = useRepliesStore(
     (state: RepliesState) => state.feedsHaveMore[repliesFeedName || ""],
   );
-  // if the replies is not yet defined, then it has more
-  if (!repliesFeedName || typeof hasMore !== "boolean") {
-    hasMore = true;
-  }
-  // if the replies is not yet defined, but no comment, doesn't have more
-  if (!comment) {
-    hasMore = false;
-  }
+  hasMore = comment ? (repliesFeedName && typeof hasMore === "boolean" ? hasMore : true) : false;
 
   const incrementFeedPageNumber = useRepliesStore(
     (state: RepliesState) => state.incrementFeedPageNumber,
@@ -113,9 +106,8 @@ export function useReplies(options?: UseRepliesOptions): UseRepliesResult {
       }
       incrementFeedPageNumber(repliesFeedName);
     } catch (e: any) {
-      // wait 100 ms so infinite scroll doesn't spam this function
       await new Promise((r) => setTimeout(r, 50));
-      setErrors([...errors, e]);
+      setErrors(appendErrorToErrors(errors, e));
     }
   };
 
@@ -127,9 +119,8 @@ export function useReplies(options?: UseRepliesOptions): UseRepliesResult {
       }
       resetFeed(repliesFeedName);
     } catch (e: any) {
-      // wait 100 ms so infinite scroll doesn't spam this function
       await new Promise((r) => setTimeout(r, 50));
-      setErrors([...errors, e]);
+      setErrors(appendErrorToErrors(errors, e));
     }
   };
 

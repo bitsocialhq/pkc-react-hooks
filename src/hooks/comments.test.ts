@@ -1,9 +1,12 @@
 import { act } from "@testing-library/react";
 import testUtils, { renderHook } from "../lib/test-utils";
 import { useComment, useComments, useReplies, useValidateComment, setPlebbitJs } from "..";
+import { getCommentFreshness, preferFresher } from "./comments";
+import * as accountsHooks from "./accounts";
 import commentsStore from "../stores/comments";
 import repliesCommentsStore from "../stores/replies/replies-comments-store";
 import subplebbitsPagesStore from "../stores/subplebbits-pages";
+import accountsStore from "../stores/accounts";
 import PlebbitJsMock, {
   Plebbit,
   Comment,
@@ -174,6 +177,69 @@ describe("comments", () => {
       expect(rendered.result.current.comments[2].upvoteCount).toBe(3);
     });
 
+    test("addCommentToStore catch path logs error", async () => {
+      const origCreateComment = Plebbit.prototype.createComment;
+      (Plebbit.prototype as any).createComment = () =>
+        Promise.reject(new Error("createComment failed"));
+      const logSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const rendered = renderHook<any, any>((cid) => useComment({ commentCid: cid }));
+      rendered.rerender("comment cid 999");
+      await testUtils
+        .createWaitFor(rendered)(() => rendered.result.current.errors?.length > 0, {
+          timeout: 2000,
+        })
+        .catch(() => {});
+      (Plebbit.prototype as any).createComment = origCreateComment;
+      logSpy.mockRestore();
+    });
+
+    test("addCommentToStore catch path for useComments", async () => {
+      const origCreateComment = Plebbit.prototype.createComment;
+      (Plebbit.prototype as any).createComment = () =>
+        Promise.reject(new Error("createComment failed"));
+      const logSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const rendered = renderHook<any, any>((cids) => useComments({ commentCids: cids }));
+      rendered.rerender(["comment cid 998", "comment cid 999"]);
+      await new Promise((r) => setTimeout(r, 100));
+      (Plebbit.prototype as any).createComment = origCreateComment;
+      logSpy.mockRestore();
+    });
+
+    test("useComments with no options returns empty comments (branch 164)", async () => {
+      const rendered = renderHook<any, any>(() => useComments());
+      await act(async () => {});
+      expect(rendered.result.current.comments).toEqual([]);
+      expect(rendered.result.current.state).toBe("succeeded");
+    });
+
+    test("useComments with empty string in commentCids hits commentCid||'' branch (164,168)", async () => {
+      const rendered = renderHook<any, any>(() =>
+        useComments({ commentCids: ["comment cid 1", ""] }),
+      );
+      await act(async () => {});
+      expect(rendered.result.current.comments).toHaveLength(2);
+      expect(rendered.result.current.comments[0]?.cid).toBe("comment cid 1");
+      expect(rendered.result.current.comments[1]?.cid).toBe("");
+    });
+
+    test("useComments effect returns early when account is undefined (branch 176)", async () => {
+      vi.spyOn(accountsHooks, "useAccount").mockReturnValue(undefined as any);
+      const rendered = renderHook<any, any>(() => useComments({ commentCids: ["comment cid 1"] }));
+      await act(async () => {});
+      expect(rendered.result.current.comments).toEqual([undefined]);
+      vi.mocked(accountsHooks.useAccount).mockRestore();
+    });
+
+    test("useComment when subplebbitsPagesComment and repliesPagesComment are absent (branches 88, 94)", async () => {
+      const rendered = renderHook<any, any>((commentCid) => useComment({ commentCid }));
+      const waitFor = testUtils.createWaitFor(rendered);
+      rendered.rerender("comment cid 1");
+      await waitFor(() => typeof rendered.result.current.cid === "string");
+      expect(rendered.result.current.cid).toBe("comment cid 1");
+      // No subplebbitsPagesStore or repliesPagesStore entries - uses commentFromStore only
+      expect(commentsStore.getState().comments["comment cid 1"]).toBeDefined();
+    });
+
     test("get comment from subplebbit pages", async () => {
       // on first render, the account is undefined because it's not yet loaded from database
       const rendered = renderHook<any, any>((commentCid) => useComment({ commentCid }));
@@ -261,6 +327,58 @@ describe("comments", () => {
       expect(rendered.result.current.replyCount).toBe(42);
       expect(rendered.result.current.timestamp).toBe(pendingTimestamp);
       expect(rendered.result.current.updatedAt).toBeUndefined();
+    });
+
+    test("useComment uses accountComment when store not loaded (line 102)", async () => {
+      const cid = "account-comment-fallback-cid";
+      const account = Object.values(accountsStore.getState().accounts)[0];
+      const accountComment = {
+        cid,
+        timestamp: 100,
+        content: "from account",
+        subplebbitAddress: "sub",
+      };
+      act(() => {
+        accountsStore.setState((s: any) => ({
+          accountsComments: {
+            ...s.accountsComments,
+            [account.id]: [accountComment],
+          },
+          commentCidsToAccountsComments: {
+            ...s.commentCidsToAccountsComments,
+            [cid]: { accountId: account.id, accountCommentIndex: 0 },
+          },
+        }));
+      });
+      const rendered = renderHook<any, any>(() =>
+        useComment({ commentCid: cid, onlyIfCached: true }),
+      );
+      const waitFor = testUtils.createWaitFor(rendered);
+      await waitFor(() => rendered.result.current.cid === cid);
+      expect(rendered.result.current.content).toBe("from account");
+      expect(rendered.result.current.timestamp).toBe(100);
+    });
+
+    test("useComment succeeds with replyCount 0 when comment newer than 5 min (lines 123-125)", async () => {
+      const freshCid = "fresh-comment-5min";
+      const freshTimestamp = Math.round(Date.now() / 1000) - 60;
+      const freshComment = {
+        cid: freshCid,
+        timestamp: freshTimestamp,
+        subplebbitAddress: "sub",
+      };
+      act(() => {
+        commentsStore.setState((s: any) => ({
+          comments: { ...s.comments, [freshCid]: freshComment },
+        }));
+      });
+      const rendered = renderHook<any, any>(() =>
+        useComment({ commentCid: freshCid, onlyIfCached: true }),
+      );
+      const waitFor = testUtils.createWaitFor(rendered);
+      await waitFor(() => rendered.result.current.cid === freshCid);
+      expect(rendered.result.current.state).toBe("succeeded");
+      expect(rendered.result.current.replyCount).toBe(0);
     });
 
     test("preserve existing fresher comment precedence (no regression)", async () => {
@@ -376,6 +494,133 @@ describe("comments", () => {
     });
   });
 
+  describe("getCommentFreshness and preferFresher", () => {
+    test("getCommentFreshness returns 0 for undefined", () => {
+      expect(getCommentFreshness(undefined)).toBe(0);
+    });
+
+    test("getCommentFreshness uses timestamp and updatedAt", () => {
+      expect(getCommentFreshness({ timestamp: 100 } as Comment)).toBe(100);
+      expect(getCommentFreshness({ updatedAt: 200 } as Comment)).toBe(200);
+      expect(getCommentFreshness({ timestamp: 100, updatedAt: 200 } as Comment)).toBe(200);
+    });
+
+    test("preferFresher returns current when candidate is undefined", () => {
+      const current = { cid: "c1", timestamp: 1 } as Comment;
+      expect(preferFresher(current, undefined)).toBe(current);
+    });
+
+    test("preferFresher returns candidate when current is undefined", () => {
+      const candidate = { cid: "c2", timestamp: 2 } as Comment;
+      expect(preferFresher(undefined, candidate)).toBe(candidate);
+    });
+
+    test("preferFresher returns fresher comment", () => {
+      const older = { cid: "c1", timestamp: 1 } as Comment;
+      const newer = { cid: "c2", timestamp: 2 } as Comment;
+      expect(preferFresher(older, newer)).toBe(newer);
+      expect(preferFresher(newer, older)).toBe(newer);
+    });
+
+    test("preferFresher returns current when current is fresher", () => {
+      const current = { cid: "c1", timestamp: 2, updatedAt: 3 } as Comment;
+      const candidate = { cid: "c2", timestamp: 1 } as Comment;
+      expect(preferFresher(current, candidate)).toBe(current);
+    });
+  });
+
+  describe("useComment preferFresher with repliesPagesComment (branches 88, 94)", () => {
+    test("uses repliesPagesComment when fresher than store (branch 94)", async () => {
+      setPlebbitJs(PlebbitJsMock);
+      await testUtils.resetDatabasesAndStores();
+
+      const cid = "prefer-replies-cid";
+      const storeComment = { cid, timestamp: 100 } as Comment;
+      const repliesComment = { cid, timestamp: 200, replyCount: 50 } as Comment;
+      commentsStore.setState((s) => ({ comments: { ...s.comments, [cid]: storeComment } }));
+      repliesPagesStore.setState((s) => ({ comments: { ...s.comments, [cid]: repliesComment } }));
+
+      const rendered = renderHook<any, any>(() => useComment({ commentCid: cid }));
+      const waitFor = testUtils.createWaitFor(rendered);
+      await waitFor(() => rendered.result.current.timestamp === 200);
+      expect(rendered.result.current.replyCount).toBe(50);
+    });
+
+    test("uses commentFromStore when fresher than repliesPagesComment", async () => {
+      setPlebbitJs(PlebbitJsMock);
+      await testUtils.resetDatabasesAndStores();
+
+      const cid = "prefer-fresher-cid";
+      const storeComment = { cid, timestamp: 200, updatedAt: 300 } as Comment;
+      const repliesComment = { cid, timestamp: 100 } as Comment;
+      commentsStore.setState((s) => ({ comments: { ...s.comments, [cid]: storeComment } }));
+      repliesPagesStore.setState((s) => ({ comments: { ...s.comments, [cid]: repliesComment } }));
+
+      const rendered = renderHook<any, any>(() => useComment({ commentCid: cid }));
+      const waitFor = testUtils.createWaitFor(rendered);
+      await waitFor(() => rendered.result.current.timestamp === 200);
+      expect(rendered.result.current.updatedAt).toBe(300);
+    });
+  });
+
+  describe("useComments preferFresher loop", () => {
+    test("preferFresher skips when candidate is undefined (branch 169)", async () => {
+      setPlebbitJs(PlebbitJsMock);
+      await testUtils.resetDatabasesAndStores();
+
+      const cid1 = "comments-no-candidate-c1";
+      const cid2 = "comments-no-candidate-c2";
+      commentsStore.setState((s) => ({
+        comments: {
+          ...s.comments,
+          [cid1]: { cid: cid1, timestamp: 1 } as Comment,
+          [cid2]: { cid: cid2, timestamp: 2 } as Comment,
+        },
+      }));
+      // Only cid1 has subplebbitsPages data; cid2 has no candidate
+      subplebbitsPagesStore.setState((s) => ({
+        comments: {
+          ...s.comments,
+          [cid1]: { cid: cid1, timestamp: 10 } as Comment,
+        },
+      }));
+
+      const rendered = renderHook<any, any>(() => useComments({ commentCids: [cid1, cid2] }));
+      const waitFor = testUtils.createWaitFor(rendered);
+      await waitFor(() => rendered.result.current.comments.length === 2);
+      expect(rendered.result.current.comments[0].timestamp).toBe(10);
+      expect(rendered.result.current.comments[1].timestamp).toBe(2);
+    });
+
+    test("preferFresher merges subplebbitsPagesComments when fresher", async () => {
+      setPlebbitJs(PlebbitJsMock);
+      await testUtils.resetDatabasesAndStores();
+
+      const cid1 = "comments-prefer-c1";
+      const cid2 = "comments-prefer-c2";
+      commentsStore.setState((s) => ({
+        comments: {
+          ...s.comments,
+          [cid1]: { cid: cid1, timestamp: 1 } as Comment,
+          [cid2]: { cid: cid2, timestamp: 2 } as Comment,
+        },
+      }));
+      subplebbitsPagesStore.setState((s) => ({
+        comments: {
+          ...s.comments,
+          [cid1]: { cid: cid1, timestamp: 10 } as Comment,
+          [cid2]: { cid: cid2, timestamp: 20 } as Comment,
+        },
+      }));
+
+      const rendered = renderHook<any, any>(() => useComments({ commentCids: [cid1, cid2] }));
+      const waitFor = testUtils.createWaitFor(rendered);
+      await waitFor(() => rendered.result.current.comments.length === 2);
+      expect(rendered.result.current.comments[0].timestamp).toBe(10);
+      expect(rendered.result.current.comments[1].timestamp).toBe(20);
+    });
+  });
+
   describe("useValidateComment", () => {
     let rendered, waitFor;
 
@@ -421,6 +666,17 @@ describe("comments", () => {
       await waitFor(() => rendered.result.current.state === "succeeded");
       expect(rendered.result.current.state).toBe("succeeded");
       expect(rendered.result.current.valid).toBe(true);
+
+      // validateReplies: null defaults to true (branch 210)
+      rendered.rerender({ comment, validateReplies: null });
+      expect(rendered.result.current.valid).toBe(true);
+      await waitFor(() => rendered.result.current.state === "succeeded");
+      expect(rendered.result.current.valid).toBe(true);
+
+      // validateReplies: undefined defaults to true (branch 210)
+      rendered.rerender({ comment, validateReplies: undefined });
+      expect(rendered.result.current.valid).toBe(true);
+      await waitFor(() => rendered.result.current.state === "succeeded");
     });
 
     test("is invalid", async () => {

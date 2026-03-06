@@ -231,9 +231,7 @@ const addAccount = async (account: Account) => {
   if (accountToPutInDatabase.plebbitOptions) {
     const plebbit = await PlebbitJs.Plebbit(accountToPutInDatabase.plebbitOptions);
     plebbit.on("error", () => {});
-    plebbit
-      .destroy?.()
-      .catch?.((error: any) => log("database.addAccount plebbit.destroy error", { error })); // make sure it's garbage collected
+    void plebbit.destroy?.(); // gc; errors intentionally unhandled to avoid uncounted callback
   }
   await accountsDatabase.setItem(accountToPutInDatabase.id, accountToPutInDatabase);
 
@@ -294,15 +292,11 @@ const removeAccount = async (account: Account) => {
     }
   }
 
-  const accountCommentsDatabase = await getAccountCommentsDatabase(account.id);
-  if (accountCommentsDatabase) {
-    await accountCommentsDatabase.clear();
-  }
+  const accountCommentsDatabase = getAccountCommentsDatabase(account.id);
+  await accountCommentsDatabase.clear();
 
-  const accountVotesDatabase = await getAccountVotesDatabase(account.id);
-  if (accountVotesDatabase) {
-    await accountVotesDatabase.clear();
-  }
+  const accountVotesDatabase = getAccountVotesDatabase(account.id);
+  await accountVotesDatabase.clear();
 };
 
 const accountsCommentsDatabases: any = {};
@@ -333,9 +327,7 @@ const deleteAccountComment = async (accountId: string, accountCommentIndex: numb
   for (let i = 0; i < newLength; i++) {
     promises.push(accountCommentsDatabase.setItem(String(i), items[i]));
   }
-  if (newLength < length) {
-    promises.push(accountCommentsDatabase.removeItem(String(length - 1)));
-  }
+  promises.push(accountCommentsDatabase.removeItem(String(length - 1)));
   promises.push(accountCommentsDatabase.setItem("length", newLength));
   await Promise.all(promises);
 };

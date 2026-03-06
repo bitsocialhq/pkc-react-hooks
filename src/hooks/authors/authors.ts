@@ -288,23 +288,20 @@ export function useAuthorAddress(options?: UseAuthorAddressOptions): UseAuthorAd
     if (!account?.plebbit || !comment?.author?.address || !isCryptoName) {
       return;
     }
+    const addr = comment?.author?.address;
     const resolveAuthorAddressNoCache = () => {
-      if (Boolean(resolveAuthorAddressPromises[comment?.author?.address])) {
-        return resolveAuthorAddressPromises[comment?.author?.address];
-      }
-      log("useAuthorAddress plebbit.resolveAuthorAddress", { address: comment?.author?.address });
-      resolveAuthorAddressPromises[comment?.author?.address] = account.plebbit.resolveAuthorAddress(
-        { address: comment?.author?.address },
-      );
-      return resolveAuthorAddressPromises[comment?.author?.address];
+      const existing = resolveAuthorAddressPromises[addr];
+      if (existing) return existing;
+      log("useAuthorAddress plebbit.resolveAuthorAddress", { address: addr });
+      const promise = account.plebbit.resolveAuthorAddress({ address: addr });
+      resolveAuthorAddressPromises[addr] = promise;
+      return promise;
     };
     const resolveAuthorAddress = async () => {
-      const cached = resolvedAuthorAddressCache.get(comment?.author?.address);
-      if (cached) {
-        return cached;
-      }
+      const cached = resolvedAuthorAddressCache.get(addr);
+      if (cached) return cached;
       const res = await resolveAuthorAddressNoCache();
-      resolvedAuthorAddressCache.set(comment?.author?.address, res);
+      resolvedAuthorAddressCache.set(addr, res);
       return res;
     };
     resolveAuthorAddress()
@@ -366,6 +363,14 @@ export function useAuthorAddress(options?: UseAuthorAddressOptions): UseAuthorAd
 // TODO: figure out how to upgrade to quick-lru 6+ to use maxAge
 const resolvedAuthorAddressCache = new QuickLRU<string, string>({ maxSize: 1000 });
 const resolveAuthorAddressPromises: { [address: string]: Promise<string> } = {};
+
+/** For tests: reset caches to make resolution paths deterministic. */
+export function resetAuthorAddressCacheForTesting() {
+  resolvedAuthorAddressCache.clear();
+  for (const k of Object.keys(resolveAuthorAddressPromises)) {
+    delete resolveAuthorAddressPromises[k];
+  }
+}
 
 /**
  * @param author - The author with author.address to resolve to a public key, e.g. 'john.eth' resolves to '12D3KooW...'.

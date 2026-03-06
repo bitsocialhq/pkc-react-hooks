@@ -47,3 +47,13 @@ If uncertain, ask the developer before adding an entry.
 - **Impact:** pending comments may be omitted from page results or overwritten.
 - **Mitigation:** use missing-or-fresher logic with timestamp fallback when merging/indexing page comments.
 - **Status:** confirmed
+
+### Vitest `root: "src/"` causes coverage output under `src/coverage/`
+
+- **Date:** 2026-03-06
+- **Observed by:** agent
+- **Context:** `config/vitest.config.js` sets `root: "src/"`; coverage reports use `--coverage.reportsDirectory=./coverage`
+- **What was surprising:** With `root: "src/"`, Vitest resolves `./coverage` relative to the root, so coverage files land in `src/coverage/` instead of repo-root `coverage/`.
+- **Impact:** Verifier and triage scripts that expect `coverage/` at repo root fail with "missing summary" until path resolution supports both locations.
+- **Mitigation:** `scripts/verify-hooks-stores-coverage.mjs` checks both `coverage/coverage-summary.json` and `src/coverage/coverage-summary.json`, preferring repo-root when both exist. Triage helper supports both paths for `coverage-final.json`.
+- **Status:** confirmed

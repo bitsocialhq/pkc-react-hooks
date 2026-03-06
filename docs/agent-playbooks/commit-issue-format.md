@@ -22,5 +22,6 @@ Example:
 Example:
 
 > **GitHub issue:**
+>
 > - **Title:** `useFeed crashes with empty subplebbit addresses`
 > - **Description:** Passing an empty `subplebbitAddresses` array to `useFeed` causes the feeds store to create an invalid subscription key. This triggers an unhandled error in downstream consumers.

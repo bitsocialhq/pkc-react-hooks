@@ -33,7 +33,7 @@ export function useSubplebbit(options?: UseSubplebbitOptions): UseSubplebbitResu
     !options || typeof options === "object",
     `useSubplebbit options argument '${options}' not an object`,
   );
-  const { subplebbitAddress, accountName, onlyIfCached } = options || {};
+  const { subplebbitAddress, accountName, onlyIfCached } = options ?? {};
   const account = useAccount({ accountName });
   const subplebbit = useSubplebbitsStore(
     (state: any) => state.subplebbits[subplebbitAddress || ""],
@@ -85,7 +85,7 @@ export function useSubplebbitStats(options?: UseSubplebbitStatsOptions): UseSubp
     !options || typeof options === "object",
     `useSubplebbitStats options argument '${options}' not an object`,
   );
-  const { subplebbitAddress, accountName, onlyIfCached } = options || {};
+  const { subplebbitAddress, accountName, onlyIfCached } = options ?? {};
   const account = useAccount({ accountName });
   const subplebbit = useSubplebbit({ subplebbitAddress, onlyIfCached });
   const subplebbitStatsCid = subplebbit?.statsCid;
@@ -164,35 +164,33 @@ export function useSubplebbits(options?: UseSubplebbitsOptions): UseSubplebbitsR
     !options || typeof options === "object",
     `useSubplebbits options argument '${options}' not an object`,
   );
-  const { subplebbitAddresses, accountName, onlyIfCached } = options || {};
+  const { subplebbitAddresses = [], accountName, onlyIfCached } = options ?? {};
+  const addrs = subplebbitAddresses ?? [];
   const account = useAccount({ accountName });
   const subplebbits: (Subplebbit | undefined)[] = useSubplebbitsStore(
-    (state: any) =>
-      (subplebbitAddresses || []).map(
-        (subplebbitAddress) => state.subplebbits[subplebbitAddress || ""],
-      ),
+    (state: any) => addrs.map((subplebbitAddress) => state.subplebbits[subplebbitAddress || ""]),
     shallow,
   );
   const addSubplebbitToStore = useSubplebbitsStore((state: any) => state.addSubplebbitToStore);
 
   useEffect(() => {
-    if (!subplebbitAddresses || !account) {
+    if (!addrs.length || !account) {
       return;
     }
-    validator.validateUseSubplebbitsArguments(subplebbitAddresses, account);
+    validator.validateUseSubplebbitsArguments(addrs, account);
     if (onlyIfCached) {
       return;
     }
-    const uniqueSubplebbitAddresses = new Set(subplebbitAddresses);
+    const uniqueSubplebbitAddresses = new Set(addrs);
     for (const subplebbitAddress of uniqueSubplebbitAddresses) {
       addSubplebbitToStore(subplebbitAddress, account).catch((error: unknown) =>
         log.error("useSubplebbits addSubplebbitToStore error", { subplebbitAddress, error }),
       );
     }
-  }, [subplebbitAddresses?.toString(), account?.id]);
+  }, [addrs.toString(), account?.id]);
 
-  if (account && subplebbitAddresses?.length) {
-    log("useSubplebbits", { subplebbitAddresses, subplebbits, account });
+  if (account && addrs.length) {
+    log("useSubplebbits", { subplebbitAddresses: addrs, subplebbits, account });
   }
 
   // succeed if no subplebbits are undefined
@@ -205,7 +203,7 @@ export function useSubplebbits(options?: UseSubplebbitsOptions): UseSubplebbitsR
       error: undefined,
       errors: [],
     }),
-    [subplebbits, subplebbitAddresses?.toString()],
+    [subplebbits, addrs.toString()],
   );
 }
 
@@ -221,14 +219,13 @@ export function useListSubplebbits() {
   const immediate = true;
   useInterval(
     () => {
-      if (!account?.plebbit) {
-        return;
+      const plebbit = account?.plebbit;
+      if (!plebbit) return;
+      const newAddrs = plebbit.subplebbits;
+      if (newAddrs.toString() !== subplebbitAddresses.toString()) {
+        log("useListSubplebbits", { subplebbitAddresses });
+        setSubplebbitAddresses(newAddrs);
       }
-      if (account.plebbit.subplebbits.toString() === subplebbitAddresses.toString()) {
-        return;
-      }
-      log("useListSubplebbits", { subplebbitAddresses });
-      setSubplebbitAddresses(account.plebbit.subplebbits);
     },
     delay,
     immediate,
@@ -250,7 +247,7 @@ export function useResolvedSubplebbitAddress(
     !options || typeof options === "object",
     `useResolvedSubplebbitAddress options argument '${options}' not an object`,
   );
-  let { subplebbitAddress, accountName, cache } = options || {};
+  let { subplebbitAddress, accountName, cache } = options ?? {};
 
   // cache by default
   if (typeof cache !== "boolean") {
@@ -279,17 +276,10 @@ export function useResolvedSubplebbitAddress(
 
   useInterval(
     () => {
-      // no options, do nothing or reset
       if (!account || !subplebbitAddress) {
-        if (resolvedAddress !== undefined) {
-          setResolvedAddress(undefined);
-        }
-        if (state !== undefined) {
-          setState(undefined);
-        }
-        if (errors.length) {
-          setErrors([]);
-        }
+        setResolvedAddress(undefined);
+        setState(undefined);
+        setErrors([]);
         return;
       }
 

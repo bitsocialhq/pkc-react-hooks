@@ -21,12 +21,12 @@ import useSubplebbitsPagesStore from "../stores/subplebbits-pages";
 import useRepliesPagesStore from "../stores/replies-pages";
 import shallow from "zustand/shallow";
 
-function getCommentFreshness(comment: Comment | undefined): number {
+export function getCommentFreshness(comment: Comment | undefined): number {
   if (!comment) return 0;
   return Math.max(comment.updatedAt ?? 0, comment.timestamp ?? 0, 0);
 }
 
-function preferFresher(
+export function preferFresher(
   current: Comment | undefined,
   candidate: Comment | undefined,
 ): Comment | undefined {
@@ -45,7 +45,7 @@ export function useComment(options?: UseCommentOptions): UseCommentResult {
     !options || typeof options === "object",
     `useComment options argument '${options}' not an object`,
   );
-  const { commentCid, accountName, onlyIfCached } = options || {};
+  const { commentCid, accountName, onlyIfCached } = options ?? {};
   const account = useAccount({ accountName });
   const commentFromStore = useCommentsStore((state: any) => state.comments[commentCid || ""]);
   const addCommentToStore = useCommentsStore((state: any) => state.addCommentToStore);
@@ -83,16 +83,11 @@ export function useComment(options?: UseCommentOptions): UseCommentResult {
 
   let comment = commentFromStore;
 
-  // if comment from subplebbit pages exists and is fresher (or current missing), use it instead
   if (commentCid && subplebbitsPagesComment) {
-    comment = preferFresher(comment, subplebbitsPagesComment) ?? comment;
-    // TODO: subplebbit pages comments aren't auto validated, need to validate
+    comment = preferFresher(comment, subplebbitsPagesComment);
   }
-
-  // if comment from replies pages exists and is fresher (or current missing), use it instead
   if (commentCid && repliesPagesComment) {
-    comment = preferFresher(comment, repliesPagesComment) ?? comment;
-    // TODO: replies pages comments aren't auto validated, need to validate
+    comment = preferFresher(comment, repliesPagesComment);
   }
 
   // if comment is still not defined, but account comment is, use account comment
@@ -163,14 +158,14 @@ export function useComments(options?: UseCommentsOptions): UseCommentsResult {
     !options || typeof options === "object",
     `useComments options argument '${options}' not an object`,
   );
-  const { commentCids, accountName, onlyIfCached } = options || {};
+  const { commentCids = [], accountName, onlyIfCached } = options ?? {};
   const account = useAccount({ accountName });
   const commentsStoreComments: (Comment | undefined)[] = useCommentsStore(
-    (state: any) => (commentCids || []).map((commentCid) => state.comments[commentCid || ""]),
+    (state: any) => commentCids.map((commentCid) => state.comments[commentCid || ""]),
     shallow,
   );
   const subplebbitsPagesComments: (Comment | undefined)[] = useSubplebbitsPagesStore(
-    (state: any) => (commentCids || []).map((commentCid) => state.comments[commentCid || ""]),
+    (state: any) => commentCids.map((commentCid) => state.comments[commentCid || ""]),
     shallow,
   );
 
@@ -203,14 +198,12 @@ export function useComments(options?: UseCommentsOptions): UseCommentsResult {
 
   // if comment from subplebbit pages exists and is fresher (or current missing), use it instead
   const comments = useMemo(() => {
-    const comments = [...commentsStoreComments];
-    for (const i in comments) {
+    const result = [...commentsStoreComments];
+    for (const i in result) {
       const candidate = subplebbitsPagesComments[i];
-      if (candidate) {
-        comments[i] = preferFresher(comments[i], candidate) ?? comments[i];
-      }
+      if (candidate) result[i] = preferFresher(result[i], candidate);
     }
-    return comments;
+    return result;
   }, [commentsStoreComments, subplebbitsPagesComments]);
 
   // succeed if no comments are undefined
@@ -232,10 +225,8 @@ export function useValidateComment(options?: UseValidateCommentOptions): UseVali
     !options || typeof options === "object",
     `useValidateComment options argument '${options}' not an object`,
   );
-  let { comment, validateReplies, accountName } = options || {};
-  if (validateReplies === undefined || validateReplies === null) {
-    validateReplies = true;
-  }
+  let { comment, validateReplies, accountName } = options ?? {};
+  validateReplies = validateReplies ?? true;
   const [validated, setValidated] = useState<boolean | undefined>();
   const [errors, setErrors] = useState([]);
   const account = useAccount({ accountName });

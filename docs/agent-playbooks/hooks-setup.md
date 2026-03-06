@@ -4,11 +4,11 @@ If your AI coding assistant supports lifecycle hooks, configure these for this r
 
 ## Recommended Hooks
 
-| Hook | Command | Purpose |
-|---|---|---|
-| `afterFileEdit` | `.cursor/hooks/format.sh` | Auto-format files after AI edits (prettier) |
+| Hook            | Command                         | Purpose                                        |
+| --------------- | ------------------------------- | ---------------------------------------------- |
+| `afterFileEdit` | `.cursor/hooks/format.sh`       | Auto-format files after AI edits (prettier)    |
 | `afterFileEdit` | `.cursor/hooks/yarn-install.sh` | Run `yarn install` when `package.json` changes |
-| `stop` | `.cursor/hooks/verify.sh` | Build and test at end |
+| `stop`          | `.cursor/hooks/verify.sh`       | Build and test at end                          |
 
 ## Why
 

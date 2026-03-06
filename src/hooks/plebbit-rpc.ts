@@ -20,28 +20,20 @@ export function usePlebbitRpcSettings(
     !options || typeof options === "object",
     `usePlebbitRpcSettings options argument '${options}' not an object`,
   );
-  const { accountName } = options || {};
+  const { accountName } = options ?? {};
   const account = useAccount({ accountName });
   const [plebbitRpcSettingsState, setPlebbitRpcSettingsState] = useState<PlebbitRpcSettings>();
   const [state, setState] = useState<string>("initializing");
   const [errors, setErrors] = useState<Error[]>([]);
 
   useEffect(() => {
-    if (!account) {
-      return;
-    }
+    if (!account) return;
     const rpcClient: any = Object.values(account.plebbit?.clients?.plebbitRpcClients || {})[0];
-    if (!rpcClient) {
-      return;
-    }
+    if (!rpcClient) return;
 
-    // set initial state
-    if (rpcClient.settings) {
-      setPlebbitRpcSettingsState(rpcClient.settings);
-    }
-    if (rpcClient.state) {
-      setState(rpcClient.state);
-    }
+    if (rpcClient.settings != null) setPlebbitRpcSettingsState(rpcClient.settings);
+    const rpcState = rpcClient.state;
+    if (rpcState != null && rpcState !== "") setState(rpcState);
 
     const onRpcSettingsChange = (plebbitRpcSettings: PlebbitRpcSettings) => {
       setPlebbitRpcSettingsState(plebbitRpcSettings);
@@ -85,10 +77,10 @@ export function usePlebbitRpcSettings(
       setState("failed");
     }
 
-    // go back to original state after some time
+    const rpcStateAfter = rpcClient.state;
     setTimeout(() => {
-      if (state !== rpcClient.state && rpcClient.state) {
-        setState(rpcClient.state);
+      if (state !== rpcStateAfter && rpcStateAfter != null && rpcStateAfter !== "") {
+        setState(rpcStateAfter);
       }
     }, 10000);
   };

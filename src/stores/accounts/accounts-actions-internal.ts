@@ -108,11 +108,12 @@ export const startUpdatingAccountCommentOnCommentUpdateEvents = async (
 
     // update AccountCommentsReplies with new replies if has any new replies
     const replyPageArray: any[] = Object.values(updatedComment.replies?.pages || {});
-    const hasReplies =
-      replyPageArray.length &&
-      replyPageArray
-        .map((replyPage) => replyPage?.comments?.length || 0)
-        .reduce((prev, curr) => prev + curr) > 0;
+    const getReplyCount = (replyPage: any) => replyPage?.comments?.length ?? 0;
+    const replyCount =
+      replyPageArray.length > 0
+        ? replyPageArray.map(getReplyCount).reduce((prev, curr) => prev + curr)
+        : 0;
+    const hasReplies = replyCount > 0;
     const repliesAreValid = await utils.repliesAreValid(
       updatedComment,
       { validateReplies: false, blockSubplebbit: true },
@@ -327,12 +328,15 @@ export const addSubplebbitRoleToAccountsSubplebbits = async (subplebbit: Subpleb
   assert(accounts, `can't use accountsStore.accountActions before initialized`);
 
   // find subplebbit roles to add and remove
+  const getRole = (subplebbit: any, authorAddress: string) =>
+    subplebbit.roles && subplebbit.roles[authorAddress];
   const getChange = (accounts: any, subplebbit: any) => {
     const toAdd: string[] = [];
     const toRemove: string[] = [];
     for (const accountId in accounts) {
       const account = accounts[accountId];
-      if (!subplebbit.roles?.[account.author.address]) {
+      const role = getRole(subplebbit, account.author.address);
+      if (!role) {
         if (account.subplebbits[subplebbit.address]) {
           toRemove.push(accountId);
         }
@@ -354,12 +358,13 @@ export const addSubplebbitRoleToAccountsSubplebbits = async (subplebbit: Subpleb
     const { toAdd, toRemove, hasChange } = getChange(accounts, subplebbit);
     const nextAccounts = { ...accounts };
 
-    // edit databases and build next accounts
+    // edit databases and build next accounts (toAdd implies role exists from getChange)
     for (const accountId of toAdd) {
       const account = { ...nextAccounts[accountId] };
+      const role = subplebbit.roles![account.author.address];
       account.subplebbits = {
         ...account.subplebbits,
-        [subplebbit.address]: { role: subplebbit.roles[account.author.address] },
+        [subplebbit.address]: { role },
       };
       nextAccounts[accountId] = account;
       accountsDatabase.addAccount(account);

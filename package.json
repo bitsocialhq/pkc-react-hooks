@@ -21,7 +21,7 @@
     "build": "tsc --project config/tsconfig.json",
     "build:watch": "tsc --project config/tsconfig.json --watch",
     "test": "vitest run --config config/vitest.config.js",
-    "test:coverage": "vitest run --config config/vitest.config.js --coverage.enabled --coverage.provider=istanbul --coverage.reporter=text --coverage.reporter=json-summary --coverage.reportsDirectory=./coverage",
+    "test:coverage": "vitest run --config config/vitest.config.js --coverage.enabled --coverage.provider=istanbul --coverage.reporter=text --coverage.reporter=json --coverage.reporter=json-summary --coverage.reportsDirectory=./coverage",
     "test:coverage:hooks-stores": "yarn test:coverage && node scripts/verify-hooks-stores-coverage.mjs",
     "test:e2e": "yarn test:e2e:mock && yarn test:e2e:chrome",
     "test:e2e:mock": "cross-env MOCK=1 yarn test:e2e:chrome",

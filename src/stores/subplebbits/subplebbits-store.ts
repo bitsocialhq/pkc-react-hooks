@@ -170,7 +170,7 @@ const subplebbitsStore = createStore<SubplebbitsState>(
           setState((state: SubplebbitsState) => {
             // make sure not undefined, sometimes happens in e2e tests
             if (!state.subplebbits[subplebbitAddress]) {
-              return;
+              return {};
             }
             const clients = { ...state.subplebbits[subplebbitAddress]?.clients };
             const client = { state: clientState };

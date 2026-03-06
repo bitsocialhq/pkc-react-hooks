@@ -409,15 +409,13 @@ const updateCommentsOnCommentsChange =
 
       // start fetching lastCommentCid
       const account = accountsStore.getState().accounts[options.accountId];
-      state
-        .addCommentToStore(subplebbitLastCommentCid, account)
-        .catch((error: unknown) =>
-          log.error("authorsCommentsStore updateCommentsOnCommentsChange addCommentToStore error", {
-            error,
-            subplebbitLastCommentCid,
-            account,
-          }),
-        );
+      state.addCommentToStore(subplebbitLastCommentCid, account).catch((error: unknown) =>
+        log.error("authorsCommentsStore updateCommentsOnCommentsChange addCommentToStore error", {
+          error,
+          subplebbitLastCommentCid,
+          account,
+        }),
+      );
     }
   };
 
@@ -477,7 +475,11 @@ const setLastCommentCidOnCommentsChange =
       (commentCid: string) => comments[commentCid],
     );
     for (const bufferedComment of bufferedComments) {
-      if ((bufferedComment?.timestamp || 0) > comment.timestamp) {
+      const bufferedTs =
+        bufferedComment == null || bufferedComment.timestamp == null
+          ? 0
+          : bufferedComment.timestamp;
+      if (bufferedTs > comment.timestamp) {
         log.trace(
           `authorsCommentsStore setLastCommentCidOnCommentsChange don't set lastCommentCid older than buffered comments`,
           {

@@ -1,7 +1,7 @@
 import utils from "../../lib/utils";
 import Logger from "@plebbit/plebbit-logger";
 // include subplebbits pages store with feeds for debugging
-const log = Logger("bitsocial-react-hooks:feeds:stores");
+export const log = Logger("bitsocial-react-hooks:feeds:stores");
 import {
   Subplebbit,
   SubplebbitPage,
@@ -21,8 +21,8 @@ const subplebbitsPagesDatabase = localForageLru.createInstance({
   size: 500,
 });
 
-/** Freshness for comparison: max(updatedAt, timestamp, 0). Used to decide add vs replace per CID. */
-const getCommentFreshness = (comment: Comment | undefined): number =>
+/** Freshness for comparison: max(updatedAt, timestamp, 0). Used to decide add vs replace per CID. Exported for coverage. */
+export const getCommentFreshness = (comment: Comment | undefined): number =>
   Math.max(comment?.updatedAt ?? 0, comment?.timestamp ?? 0, 0);
 
 // reset all event listeners in between tests
@@ -123,11 +123,6 @@ const subplebbitsPagesStore = createStore<SubplebbitsPagesState>(
         throw e;
       } finally {
         fetchPagePending[account.id + pageCidToAdd] = false;
-      }
-
-      // failed getting the page
-      if (!page) {
-        return;
       }
 
       // find new comments in the page
@@ -252,6 +247,7 @@ const fetchPage = async (
     fetchPageSubplebbits[subplebbitAddress] = await account.plebbit.createSubplebbit({
       address: subplebbitAddress,
     });
+    listeners.push(fetchPageSubplebbits[subplebbitAddress]);
 
     // set clients states on subplebbits store so the frontend can display it
     utils.pageClientsOnStateChange(

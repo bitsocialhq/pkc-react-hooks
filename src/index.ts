@@ -51,6 +51,7 @@ import {
   useResolvedAuthorAddress,
   useAuthorAddress,
   setAuthorAvatarsWhitelistedTokenAddresses,
+  resetAuthorAddressCacheForTesting,
 } from "./hooks/authors";
 
 // actions
@@ -133,6 +134,7 @@ export {
   useResolvedAuthorAddress,
   useAuthorAddress,
   setAuthorAvatarsWhitelistedTokenAddresses,
+  resetAuthorAddressCacheForTesting,
   // feeds
   useFeed,
   useBufferedFeeds,
@@ -206,6 +208,7 @@ const hooks = {
   useResolvedAuthorAddress,
   useAuthorAddress,
   setAuthorAvatarsWhitelistedTokenAddresses,
+  resetAuthorAddressCacheForTesting,
   // feeds
   useFeed,
   useBufferedFeeds,

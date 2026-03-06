@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { act } from "@testing-library/react";
 import testUtils, { renderHook } from "../../lib/test-utils";
 import useAuthorsCommentsStore, {
@@ -10,7 +11,10 @@ import commentsStore from "../comments";
 import { getUpdatedBufferedComments } from "./utils";
 import { CommentsFilter, Comment, Account } from "../../types";
 import { setPlebbitJs } from "../..";
-import PlebbitJsMock, { Plebbit } from "../../lib/plebbit-js/plebbit-js-mock";
+import PlebbitJsMock, {
+  Plebbit,
+  Comment as MockComment,
+} from "../../lib/plebbit-js/plebbit-js-mock";
 
 const authorAddress = "author.eth";
 
@@ -850,15 +854,25 @@ describe("authors comments store", () => {
       );
       commentsStore.setState((state: any) => {
         // use startCid as fallback in case the random comment hasn't been fetched yet
-        let comment = state.comments[commentCidWithLastCommentCid] || state.comments[startCid];
-        comment = { ...comment };
-        comment.author.subplebbit = {
-          lastCommentCid: getAccountCommentCid(
-            startCid,
-            totalAuthorCommentCount + totalAuthorCommentCountFromLastCommentCid,
-          ),
+        const baseComment = state.comments[commentCidWithLastCommentCid] ||
+          state.comments[startCid] || {
+            cid: startCid,
+            author: { address: authorAddress },
+          };
+        const comment = {
+          ...baseComment,
+          author: {
+            ...(baseComment.author || { address: authorAddress }),
+            subplebbit: {
+              ...(baseComment.author?.subplebbit || {}),
+              lastCommentCid: getAccountCommentCid(
+                startCid,
+                totalAuthorCommentCount + totalAuthorCommentCountFromLastCommentCid,
+              ),
+            },
+          },
         };
-        return { comments: { ...state.comments, [comment.cid]: comment } };
+        return { comments: { ...state.comments, [comment.cid || startCid]: comment } };
       });
 
       // scroll all pages
@@ -939,6 +953,442 @@ describe("authors comments store", () => {
     // restore mock
     Plebbit.prototype.commentToGet = commentToGet;
   });
+
+  test("store error paths", { timeout }, async () => {
+    const commentToGet = Plebbit.prototype.commentToGet;
+    const totalCount = 110;
+    Plebbit.prototype.commentToGet = (cid: string) => {
+      const idx = cid === "comment cid" ? totalCount : Number(cid.match(/\d+$/)?.[0]) || 0;
+      return {
+        cid,
+        timestamp: 1000 + idx,
+        author: {
+          address: authorAddress,
+          previousCommentCid: idx > 0 ? `previous comment cid ${idx - 1}` : undefined,
+        },
+      };
+    };
+
+    const authorCommentsName = authorAddress + "-error-paths";
+    const commentCid = "comment cid";
+    const store = useAuthorsCommentsStore.getState();
+
+    act(() => {
+      store.addAuthorCommentsToStore(
+        authorCommentsName,
+        authorAddress,
+        commentCid,
+        undefined,
+        account,
+      );
+    });
+
+    expect(() => store.incrementPageNumber(authorCommentsName)).toThrow(
+      "cannot increment page number before current page has loaded",
+    );
+
+    await waitFor(
+      () =>
+        useAuthorsCommentsStore.getState().loadedComments[authorCommentsName]?.length ===
+        commentsPerPage,
+    );
+
+    expect(() =>
+      store.setNextCommentCidsToFetch("unknown-author", {
+        timestamp: 1,
+        author: { address: authorAddress, previousCommentCid: "prev" },
+      } as Comment),
+    ).toThrow("not in store");
+
+    const unfetchedCid = "same-value-unfetched-cid";
+    const commentPointingToUnfetched = {
+      cid: "same-value-pointer-cid",
+      timestamp: 1,
+      author: { address: authorAddress, previousCommentCid: unfetchedCid },
+    } as Comment;
+    commentsStore.setState((s) => ({
+      comments: { ...s.comments, [commentPointingToUnfetched.cid]: commentPointingToUnfetched },
+    }));
+    useAuthorsCommentsStore.setState((s) => ({
+      nextCommentCidsToFetch: { ...s.nextCommentCidsToFetch, [authorAddress]: unfetchedCid },
+      shouldFetchNextComment: { ...s.shouldFetchNextComment, [authorAddress]: true },
+    }));
+    expect(() =>
+      store.setNextCommentCidsToFetch(authorAddress, commentPointingToUnfetched),
+    ).toThrow("same value");
+
+    expect(() => store.incrementPageNumber("nonexistent-name")).toThrow("not in store");
+
+    expect(() => store.addBufferedCommentCid("unknown-author", "some-cid")).toThrow("not in store");
+
+    await waitFor(
+      () => useAuthorsCommentsStore.getState().bufferedCommentCids[authorAddress]?.size > 0,
+    );
+    const existingCid = Array.from(
+      useAuthorsCommentsStore.getState().bufferedCommentCids[authorAddress],
+    )[0] as string;
+    expect(() => store.addBufferedCommentCid(authorAddress, existingCid)).toThrow("already added");
+
+    expect(() => store.setLastCommentCid("unknown-author", "some-cid")).toThrow("not in store");
+
+    useAuthorsCommentsStore.setState((s) => ({
+      lastCommentCids: { ...s.lastCommentCids, [authorAddress]: "existing-last-cid" },
+    }));
+    expect(() => store.setLastCommentCid(authorAddress, "existing-last-cid")).toThrow("same value");
+
+    Plebbit.prototype.commentToGet = commentToGet;
+  });
+
+  test("addCommentToStore rejection is caught and logged", { timeout }, async () => {
+    const commentToGet = Plebbit.prototype.commentToGet;
+    const createComment = Plebbit.prototype.createComment;
+    Plebbit.prototype.commentToGet = () => ({ author: { address: authorAddress } });
+    Plebbit.prototype.createComment = function (opts: any) {
+      if (opts?.cid === "comment cid") {
+        return Promise.reject(new Error("fetch failed"));
+      }
+      return createComment.call(this, opts);
+    };
+
+    const authorCommentsName = authorAddress + "-error-fetch";
+    const store = useAuthorsCommentsStore.getState();
+    act(() => {
+      store.addAuthorCommentsToStore(
+        authorCommentsName,
+        authorAddress,
+        "comment cid",
+        undefined,
+        account,
+      );
+    });
+
+    await waitFor(
+      () =>
+        useAuthorsCommentsStore.getState().nextCommentCidsToFetch[authorAddress] === "comment cid",
+    );
+    await new Promise((r) => setTimeout(r, 100));
+
+    Plebbit.prototype.commentToGet = commentToGet;
+    Plebbit.prototype.createComment = createComment;
+  });
+
+  test(
+    "updateCommentsOnCommentsChange addCommentToStore rejection is caught",
+    {
+      timeout,
+    },
+    async () => {
+      const createComment = Plebbit.prototype.createComment;
+      const failingLastCid = "subplebbit-last-fail";
+      Plebbit.prototype.createComment = async function (opts: any) {
+        if (opts?.cid === failingLastCid) {
+          throw new Error("sub last comment fetch failed");
+        }
+        const comment = new MockComment(opts);
+        if (opts?.cid === "comment cid") {
+          (comment as any).author = {
+            address: authorAddress,
+            previousCommentCid: "prev 1",
+            subplebbit: { lastCommentCid: failingLastCid },
+          };
+          (comment as any).timestamp = 1000;
+        }
+        return comment;
+      };
+
+      const authorCommentsName = authorAddress + "-sub-fail";
+      act(() => {
+        useAuthorsCommentsStore
+          .getState()
+          .addAuthorCommentsToStore(
+            authorCommentsName,
+            authorAddress,
+            "comment cid",
+            undefined,
+            account,
+          );
+      });
+
+      await waitFor(
+        () => useAuthorsCommentsStore.getState().loadedComments[authorCommentsName]?.length >= 1,
+      );
+      await new Promise((r) => setTimeout(r, 500));
+
+      Plebbit.prototype.createComment = createComment;
+    },
+  );
+
+  test("resetAuthorsCommentsDatabaseAndStore is callable", { timeout }, async () => {
+    await resetAuthorsCommentsDatabaseAndStore();
+    const state = useAuthorsCommentsStore.getState();
+    expect(state.options).toEqual({});
+  });
+
+  test("addAuthorCommentsToStore when already in store returns early (line 88)", () => {
+    const authorCommentsName = authorAddress + "-already-in-store-88";
+    const store = useAuthorsCommentsStore.getState();
+    act(() => {
+      store.addAuthorCommentsToStore(
+        authorCommentsName,
+        authorAddress,
+        "no-fetch-cid",
+        undefined,
+        account,
+      );
+    });
+    act(() => {
+      store.addAuthorCommentsToStore(
+        authorCommentsName,
+        authorAddress,
+        "no-fetch-cid",
+        undefined,
+        account,
+      );
+    });
+    expect(useAuthorsCommentsStore.getState().options[authorCommentsName]).toBeDefined();
+  });
+
+  test(
+    "setLastCommentCidOnCommentsChange returns early when not a last cid candidate",
+    {
+      timeout,
+    },
+    async () => {
+      const createComment = Plebbit.prototype.createComment;
+      const orphanCid = "orphan-last-cid";
+      Plebbit.prototype.createComment = async function (opts: any) {
+        const comment = new MockComment(opts);
+        if (opts?.cid === "comment cid") {
+          (comment as any).author = {
+            address: authorAddress,
+            previousCommentCid: "prev 1",
+            subplebbit: { lastCommentCid: orphanCid },
+          };
+          (comment as any).timestamp = 1000;
+        }
+        return comment;
+      };
+
+      const authorCommentsName = authorAddress + "-orphan-test";
+      act(() => {
+        useAuthorsCommentsStore
+          .getState()
+          .addAuthorCommentsToStore(
+            authorCommentsName,
+            authorAddress,
+            "comment cid",
+            undefined,
+            account,
+          );
+      });
+
+      await waitFor(
+        () => useAuthorsCommentsStore.getState().loadedComments[authorCommentsName]?.length >= 1,
+      );
+      await resetAuthorsCommentsDatabaseAndStore();
+      commentsStore.setState((s: any) => ({
+        comments: {
+          ...s.comments,
+          [orphanCid]: {
+            cid: orphanCid,
+            timestamp: 1000,
+            author: { address: authorAddress },
+          },
+        },
+      }));
+      await new Promise((r) => setTimeout(r, 50));
+
+      Plebbit.prototype.createComment = createComment;
+    },
+  );
+
+  test(
+    "setLastCommentCidOnCommentsChange returns when comment older than buffered",
+    {
+      timeout,
+    },
+    async () => {
+      const createComment = Plebbit.prototype.createComment;
+      const newerBufferedCid = "newer-buffered-cid";
+      const midTsLastCid = "mid-ts-last-cid";
+      const lowTsCid = "low-ts-cid";
+      Plebbit.prototype.createComment = async function (opts: any) {
+        const comment = new MockComment(opts);
+        if (opts?.cid === "comment cid") {
+          (comment as any).author = {
+            address: authorAddress,
+            previousCommentCid: "prev 1",
+            subplebbit: { lastCommentCid: lowTsCid },
+          };
+          (comment as any).timestamp = 1000;
+        }
+        if (opts?.cid === lowTsCid) {
+          (comment as any).author = {
+            address: authorAddress,
+            previousCommentCid: undefined,
+            subplebbit: { lastCommentCid: midTsLastCid },
+          };
+          (comment as any).timestamp = 100;
+        }
+        if (opts?.cid === midTsLastCid) {
+          (comment as any).author = { address: authorAddress };
+          (comment as any).timestamp = 500;
+        }
+        return comment;
+      };
+
+      const authorCommentsName = authorAddress + "-older-buffered";
+      act(() => {
+        useAuthorsCommentsStore
+          .getState()
+          .addAuthorCommentsToStore(
+            authorCommentsName,
+            authorAddress,
+            "comment cid",
+            undefined,
+            account,
+          );
+      });
+
+      const longWaitFor = testUtils.createWaitFor(rendered, { timeout: 15000 });
+      await longWaitFor(
+        () => useAuthorsCommentsStore.getState().lastCommentCids[authorAddress] === lowTsCid,
+      );
+      const { bufferedCommentCids: bc } = useAuthorsCommentsStore.getState();
+      const orphanCid = "orphan-buffered-cid"; // not in comments store -> bufferedComment undefined
+      const nullTsCid = "null-ts-buffered-cid"; // bufferedComment exists, timestamp null (branch 479)
+      useAuthorsCommentsStore.setState((s: any) => ({
+        bufferedCommentCids: {
+          ...s.bufferedCommentCids,
+          [authorAddress]: new Set([
+            ...(bc[authorAddress] || []),
+            orphanCid,
+            nullTsCid,
+            newerBufferedCid,
+          ]),
+        },
+      }));
+      commentsStore.setState((s: any) => ({
+        comments: {
+          ...s.comments,
+          [newerBufferedCid]: {
+            cid: newerBufferedCid,
+            timestamp: 2000,
+            author: { address: authorAddress },
+          },
+          [midTsLastCid]: {
+            cid: midTsLastCid,
+            timestamp: 500,
+            author: { address: authorAddress },
+          },
+          [nullTsCid]: {
+            cid: nullTsCid,
+            timestamp: null as any,
+            author: { address: authorAddress },
+          },
+        },
+      }));
+      await new Promise((r) => setTimeout(r, 150));
+
+      Plebbit.prototype.createComment = createComment;
+    },
+  );
+
+  test(
+    "setLastCommentCidOnCommentsChange returns when comment has wrong author",
+    {
+      timeout,
+    },
+    async () => {
+      const createComment = Plebbit.prototype.createComment;
+      const wrongAuthorCid = "wrong-author-last-cid";
+      Plebbit.prototype.createComment = async function (opts: any) {
+        const comment = new MockComment(opts);
+        if (opts?.cid === "comment cid") {
+          (comment as any).author = {
+            address: authorAddress,
+            previousCommentCid: "prev 1",
+            subplebbit: { lastCommentCid: wrongAuthorCid },
+          };
+          (comment as any).timestamp = 1000;
+        }
+        if (opts?.cid === wrongAuthorCid) {
+          (comment as any).author = { address: "wrong-author.eth" };
+          (comment as any).timestamp = 500;
+        }
+        return comment;
+      };
+
+      const authorCommentsName = authorAddress + "-wrong-author";
+      act(() => {
+        useAuthorsCommentsStore
+          .getState()
+          .addAuthorCommentsToStore(
+            authorCommentsName,
+            authorAddress,
+            "comment cid",
+            undefined,
+            account,
+          );
+      });
+
+      await waitFor(
+        () => useAuthorsCommentsStore.getState().loadedComments[authorCommentsName]?.length >= 1,
+      );
+      await new Promise((r) => setTimeout(r, 200));
+
+      Plebbit.prototype.createComment = createComment;
+    },
+  );
+
+  test(
+    "setLastCommentCidOnCommentsChange sets lastCommentCid when no previousCommentCid",
+    {
+      timeout,
+    },
+    async () => {
+      const createComment = Plebbit.prototype.createComment;
+      const leafLastCid = "leaf-last-cid";
+      Plebbit.prototype.createComment = async function (opts: any) {
+        const comment = new MockComment(opts);
+        if (opts?.cid === "comment cid") {
+          (comment as any).author = {
+            address: authorAddress,
+            previousCommentCid: "prev 1",
+            subplebbit: { lastCommentCid: leafLastCid },
+          };
+          (comment as any).timestamp = 1000;
+        }
+        if (opts?.cid === leafLastCid) {
+          (comment as any).author = { address: authorAddress };
+          (comment as any).timestamp = 2000;
+        }
+        return comment;
+      };
+
+      const authorCommentsName = authorAddress + "-leaf-last";
+      act(() => {
+        useAuthorsCommentsStore
+          .getState()
+          .addAuthorCommentsToStore(
+            authorCommentsName,
+            authorAddress,
+            "comment cid",
+            undefined,
+            account,
+          );
+      });
+
+      await waitFor(
+        () => useAuthorsCommentsStore.getState().lastCommentCids[authorAddress] === leafLastCid,
+      );
+      expect(
+        useAuthorsCommentsStore.getState().nextCommentCidsToFetch[authorAddress],
+      ).toBeDefined();
+
+      Plebbit.prototype.createComment = createComment;
+    },
+  );
 });
 
 const hasDuplicateComments = (comments: any) => {

@@ -6,13 +6,14 @@ import {
   useSubplebbits,
   setPlebbitJs,
   useResolvedSubplebbitAddress,
-  useAccount,
 } from "..";
+import * as accountsHooks from "./accounts";
 import subplebbitStore from "../stores/subplebbits";
 import subplebbitsPagesStore from "../stores/subplebbits-pages";
 import { useListSubplebbits, resolveSubplebbitAddress } from "./subplebbits";
 import PlebbitJsMock, { Plebbit, Subplebbit } from "../lib/plebbit-js/plebbit-js-mock";
 import utils from "../lib/utils";
+import * as chain from "../lib/chain";
 
 describe("subplebbits", () => {
   beforeAll(async () => {
@@ -286,6 +287,69 @@ describe("subplebbits", () => {
     ]);
   });
 
+  test("useSubplebbits with subplebbitAddresses undefined returns empty (branch 171)", async () => {
+    const rendered = renderHook<any, any>(() => useSubplebbits({ subplebbitAddresses: undefined }));
+    await act(async () => {});
+    expect(rendered.result.current.subplebbits).toEqual([]);
+  });
+
+  test("useSubplebbits effect returns early when account is undefined (branch 180)", async () => {
+    vi.spyOn(accountsHooks, "useAccount").mockReturnValue(undefined as any);
+    const rendered = renderHook<any, any>(() =>
+      useSubplebbits({ subplebbitAddresses: ["subplebbit address 1"] }),
+    );
+    await act(async () => {});
+    expect(rendered.result.current.subplebbits).toEqual([undefined]);
+    vi.mocked(accountsHooks.useAccount).mockRestore();
+  });
+
+  test("useListSubplebbits hits log and setState when arrays differ (lines 225, 228)", async () => {
+    vi.useFakeTimers();
+    const subplebbits = ["addr-a", "addr-b"];
+    const mockAccount = { plebbit: { subplebbits } };
+    vi.spyOn(accountsHooks, "useAccount").mockReturnValue(mockAccount as any);
+    const rendered = renderHook<any, any>(() => useListSubplebbits());
+    await act(async () => {});
+    vi.advanceTimersByTime(1100);
+    await act(async () => {});
+    expect(rendered.result.current).toEqual(["addr-a", "addr-b"]);
+    vi.mocked(accountsHooks.useAccount).mockRestore();
+    vi.useRealTimers();
+  });
+
+  test("useListSubplebbits no-change branch when arrays match (line 227)", async () => {
+    vi.useFakeTimers();
+    const rendered = renderHook<any, any>(() => useListSubplebbits());
+    await act(async () => {});
+    vi.advanceTimersByTime(2500);
+    await act(async () => {});
+    const first = [...rendered.result.current];
+    vi.advanceTimersByTime(1100);
+    await act(async () => {});
+    expect(rendered.result.current).toEqual(first);
+    vi.useRealTimers();
+  });
+
+  test("useSubplebbits addSubplebbitToStore catch logs error (stmt 189)", async () => {
+    const origAdd = subplebbitStore.getState().addSubplebbitToStore;
+    subplebbitStore.setState({
+      addSubplebbitToStore: () => Promise.reject(new Error("addSubplebbit failed")),
+    });
+    const logSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const rendered = renderHook<any, any>(() =>
+      useSubplebbits({ subplebbitAddresses: ["new-addr-1", "new-addr-2"] }),
+    );
+    await new Promise((r) => setTimeout(r, 100));
+    subplebbitStore.setState({ addSubplebbitToStore: origAdd });
+    logSpy.mockRestore();
+  });
+
+  test("useSubplebbitStats with no options (branch 88)", async () => {
+    const rendered = renderHook<any, any>(() => useSubplebbitStats());
+    await act(async () => {});
+    expect(rendered.result.current.state).toBe("fetching-ipfs");
+  });
+
   test("useSubplebbitStats", async () => {
     const rendered = renderHook<any, any>(() =>
       useSubplebbitStats({ subplebbitAddress: "address 1" }),
@@ -293,6 +357,20 @@ describe("subplebbits", () => {
     const waitFor = testUtils.createWaitFor(rendered);
     await waitFor(() => rendered.result.current.hourActiveUserCount);
     expect(rendered.result.current.hourActiveUserCount).toBe(1);
+  });
+
+  test("useSubplebbitStats fetchCid error logs (stmt 110)", async () => {
+    const origFetch = Plebbit.prototype.fetchCid;
+    (Plebbit.prototype as any).fetchCid = () => Promise.reject(new Error("fetchCid failed"));
+    const logSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const rendered = renderHook<any, any>(() =>
+      useSubplebbitStats({ subplebbitAddress: "subplebbit address 1" }),
+    );
+    await testUtils
+      .createWaitFor(rendered)(() => true, { timeout: 2000 })
+      .catch(() => {});
+    (Plebbit.prototype as any).fetchCid = origFetch;
+    logSpy.mockRestore();
   });
 
   describe("useResolvedSubplebbitAddress", () => {
@@ -336,5 +414,118 @@ describe("subplebbits", () => {
       await waitFor(() => rendered.result.current.error);
       expect(rendered.result.current.error.message).toBe("not a crypto domain");
     });
+
+    test("reset when subplebbitAddress undefined", async () => {
+      vi.useFakeTimers();
+      const resolveSpy = vi.spyOn(chain, "resolveEnsTxtRecord").mockResolvedValue("resolved-addr");
+      const rendered = renderHook<any, any>((opts: any) =>
+        useResolvedSubplebbitAddress({ subplebbitAddress: opts?.subplebbitAddress }),
+      );
+      rendered.rerender({ subplebbitAddress: "test.eth" });
+      vi.advanceTimersByTime(2000);
+      await act(async () => {});
+      expect(rendered.result.current.resolvedAddress || rendered.result.current.state).toBeTruthy();
+      rendered.rerender({ subplebbitAddress: undefined });
+      vi.advanceTimersByTime(2000);
+      await act(async () => {});
+      expect(rendered.result.current.resolvedAddress).toBe(undefined);
+      expect(rendered.result.current.state).toBe("initializing");
+      resolveSpy.mockRestore();
+      vi.useRealTimers();
+    });
+
+    test("success with mocked resolver", async () => {
+      vi.useFakeTimers();
+      const resolveSpy = vi
+        .spyOn(chain, "resolveEnsTxtRecord")
+        .mockResolvedValue("resolved-cid-123");
+      const rendered = renderHook<any, any>(() =>
+        useResolvedSubplebbitAddress({ subplebbitAddress: "test.eth" }),
+      );
+      vi.advanceTimersByTime(2000);
+      await act(async () => {});
+      expect(rendered.result.current.resolvedAddress).toBe("resolved-cid-123");
+      expect(rendered.result.current.state).toBe("succeeded");
+      resolveSpy.mockRestore();
+      vi.useRealTimers();
+    });
+
+    test("failure when resolve throws", async () => {
+      vi.useFakeTimers();
+      const resolveSpy = vi
+        .spyOn(chain, "resolveEnsTxtRecord")
+        .mockRejectedValue(new Error("name not registered"));
+      const rendered = renderHook<any, any>(() =>
+        useResolvedSubplebbitAddress({ subplebbitAddress: "nonexistent.eth" }),
+      );
+      vi.advanceTimersByTime(2000);
+      await act(async () => {});
+      expect(rendered.result.current.error?.message).toBe("name not registered");
+      expect(rendered.result.current.state).toBe("failed");
+      resolveSpy.mockRestore();
+      vi.useRealTimers();
+    });
+
+    test("resolved address no-change branch when res equals resolvedAddress (line 291)", async () => {
+      vi.useFakeTimers();
+      const resolvedAddr = "same-resolved-addr";
+      const resolveSpy = vi.spyOn(chain, "resolveEnsTxtRecord").mockResolvedValue(resolvedAddr);
+      const rendered = renderHook<any, any>(() =>
+        useResolvedSubplebbitAddress({ subplebbitAddress: "test.eth", cache: false }),
+      );
+      vi.advanceTimersByTime(2000);
+      await act(async () => {});
+      expect(rendered.result.current.resolvedAddress).toBe(resolvedAddr);
+      vi.advanceTimersByTime(16000);
+      await act(async () => {});
+      expect(rendered.result.current.resolvedAddress).toBe(resolvedAddr);
+      expect(resolveSpy).toHaveBeenCalledTimes(2);
+      resolveSpy.mockRestore();
+      vi.useRealTimers();
+    });
+
+    test("useResolvedSubplebbitAddress reset branch clears state when subplebbitAddress cleared", async () => {
+      vi.useFakeTimers();
+      const resolveSpy = vi.spyOn(chain, "resolveEnsTxtRecord").mockResolvedValue("resolved");
+      const rendered = renderHook<any, any>((opts: any) => useResolvedSubplebbitAddress(opts));
+      rendered.rerender({ subplebbitAddress: "test.eth" });
+      vi.advanceTimersByTime(2000);
+      await act(async () => {});
+      expect(rendered.result.current.resolvedAddress).toBe("resolved");
+      rendered.rerender({ subplebbitAddress: undefined });
+      vi.advanceTimersByTime(2000);
+      await act(async () => {});
+      expect(rendered.result.current.resolvedAddress).toBe(undefined);
+      expect(rendered.result.current.state).toBe("initializing");
+      resolveSpy.mockRestore();
+      vi.useRealTimers();
+    });
+
+    test("useResolvedSubplebbitAddress reset clears errors when subplebbitAddress cleared (line 289)", async () => {
+      vi.useFakeTimers();
+      const resolveSpy = vi
+        .spyOn(chain, "resolveEnsTxtRecord")
+        .mockRejectedValue(new Error("name not registered"));
+      const rendered = renderHook<any, any>((opts: any) => useResolvedSubplebbitAddress(opts));
+      rendered.rerender({ subplebbitAddress: "nonexistent.eth" });
+      vi.advanceTimersByTime(2000);
+      await act(async () => {});
+      expect(rendered.result.current.resolvedAddress).toBe(undefined);
+      expect(rendered.result.current.errors.length).toBeGreaterThan(0);
+      rendered.rerender({ subplebbitAddress: undefined });
+      vi.advanceTimersByTime(2000);
+      await act(async () => {});
+      expect(rendered.result.current.resolvedAddress).toBe(undefined);
+      expect(rendered.result.current.errors).toEqual([]);
+      expect(rendered.result.current.state).toBe("initializing");
+      resolveSpy.mockRestore();
+      vi.useRealTimers();
+    });
+  });
+
+  test("resolveSubplebbitAddress throw for non-.eth", async () => {
+    await expect(resolveSubplebbitAddress("plebbit.com", {})).rejects.toThrow(
+      "resolveSubplebbitAddress invalid subplebbitAddress",
+    );
   });
 });

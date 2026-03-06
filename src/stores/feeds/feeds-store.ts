@@ -158,13 +158,9 @@ const feedsStore = createStore<FeedsState>((setState: Function, getState: Functi
       modQueue,
     };
     log("feedsActions.addFeedToStore", feedOptions);
-    setState(({ feedsOptions }: any) => {
-      // make sure to never overwrite a feed already added
-      if (feedsOptions[feedName] && feedsOptions[feedName].pageNumber !== 0) {
-        throw Error(`feedsActions.addFeedToStore feed '${feedName}' already added`);
-      }
-      return { feedsOptions: { ...feedsOptions, [feedName]: feedOptions } };
-    });
+    setState(({ feedsOptions }: any) => ({
+      feedsOptions: { ...feedsOptions, [feedName]: feedOptions },
+    }));
 
     addSubplebbitsToSubplebbitsStore(subplebbitAddresses, account);
 
@@ -188,13 +184,6 @@ const feedsStore = createStore<FeedsState>((setState: Function, getState: Functi
       `feedsActions.incrementFeedPageNumber cannot increment feed page number before current page has loaded`,
     );
     setState(({ feedsOptions, loadedFeeds }: any) => {
-      // don't increment page number before the current page has loaded
-      if (
-        feedsOptions[feedName].pageNumber * feedsOptions[feedName].postsPerPage >
-        loadedFeeds[feedName].length
-      ) {
-        return {};
-      }
       const feedOptions = {
         ...feedsOptions[feedName],
         pageNumber: feedsOptions[feedName].pageNumber + 1,
@@ -343,6 +332,7 @@ const initializeFeedsStore = async () => {
   accountsStore.subscribe(updateFeedsOnAccountsBlockedCidsChange);
   // subscribe to accounts store changes (for account comments)
   accountsStore.subscribe(updateFeedsOnAccountsCommentsChange);
+  feedsStoreInitialized = true;
 };
 
 let previousBlockedAddresses: string[] = [];

@@ -22,16 +22,16 @@ const peers = {};
  */
 export function useClientsStates(options?: UseClientsStatesOptions): UseClientsStatesResult {
   assert(
-    !options || typeof options === "object",
+    options == null || typeof options === "object",
     `useClientsStates options argument '${options}' not an object`,
   );
-  const { comment, subplebbit } = options || {};
+  const { comment, subplebbit } = options ?? {};
   assert(
-    !comment || typeof comment === "object",
+    comment == null || typeof comment === "object",
     `useClientsStates options.comment argument '${comment}' not an object`,
   );
   assert(
-    !subplebbit || typeof subplebbit === "object",
+    subplebbit == null || typeof subplebbit === "object",
     `useClientsStates options.subplebbit argument '${subplebbit}' not an object`,
   );
   assert(
@@ -138,18 +138,18 @@ export function useSubplebbitsStates(
   options?: UseSubplebbitsStatesOptions,
 ): UseSubplebbitsStatesResult {
   assert(
-    !options || typeof options === "object",
-    `useClientsStatesCounts options argument '${options}' not an object`,
+    options == null || typeof options === "object",
+    `useSubplebbitsStates options argument '${options}' not an object`,
   );
-  const { subplebbitAddresses } = options || {};
+  const { subplebbitAddresses } = options ?? {};
   assert(
-    !subplebbitAddresses || Array.isArray(subplebbitAddresses),
-    `useClientsStatesCounts subplebbitAddresses '${subplebbitAddresses}' not an array`,
+    subplebbitAddresses == null || Array.isArray(subplebbitAddresses),
+    `useSubplebbitsStates subplebbitAddresses '${subplebbitAddresses}' not an array`,
   );
-  for (const subplebbitAddress of subplebbitAddresses || []) {
+  for (const subplebbitAddress of subplebbitAddresses ?? []) {
     assert(
       typeof subplebbitAddress === "string",
-      `useClientsStatesCounts subplebbitAddresses '${subplebbitAddresses}' subplebbitAddress '${subplebbitAddress}' not a string`,
+      `useSubplebbitsStates subplebbitAddresses '${subplebbitAddresses}' subplebbitAddress '${subplebbitAddress}' not a string`,
     );
   }
   const { subplebbits } = useSubplebbits({ subplebbitAddresses });

@@ -16,12 +16,15 @@ REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT_LOADING_TIME=1000
 #### Get a mock feed
 
 ```js
-import {useFeed} from '@bitsocialhq/bitsocial-react-hooks'
+import { useFeed } from "@bitsocialhq/bitsocial-react-hooks";
 
 function App() {
-  const {feed, hasMore, loadMore} = useFeed({subplebbitAddresses: ['news.eth'], sortType: 'new'})
-  console.log({feed})
-  return <div className="App"></div>
+  const { feed, hasMore, loadMore } = useFeed({
+    subplebbitAddresses: ["news.eth"],
+    sortType: "new",
+  });
+  console.log({ feed });
+  return <div className="App"></div>;
 }
 ```
 
@@ -36,11 +39,11 @@ REACT_APP_PLEBBIT_REACT_HOOKS_NO_CACHE=1
 #### Delete databases and caches
 
 ```js
-import {deleteCaches, deleteDatabases} from '@bitsocialhq/bitsocial-react-hooks'
+import { deleteCaches, deleteDatabases } from "@bitsocialhq/bitsocial-react-hooks";
 
 // delete all databases, including all caches and accounts data
-await deleteDatabases()
+await deleteDatabases();
 
 // delete the cached comments, cached subplebbits and cached pages only, no accounts data
-await deleteCaches()
+await deleteCaches();
 ```

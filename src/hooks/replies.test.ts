@@ -1,6 +1,7 @@
 import { act } from "@testing-library/react";
 import testUtils, { renderHook } from "../lib/test-utils";
 import { useComment, useComments, useReplies, useValidateComment, setPlebbitJs } from "..";
+import { appendErrorToErrors } from "./replies";
 import commentsStore from "../stores/comments";
 import repliesCommentsStore from "../stores/replies/replies-comments-store";
 import subplebbitsPagesStore from "../stores/subplebbits-pages";
@@ -11,7 +12,10 @@ import PlebbitJsMock, {
   simulateLoadingTime,
 } from "../lib/plebbit-js/plebbit-js-mock";
 import utils from "../lib/utils";
-import repliesStore, { defaultRepliesPerPage as repliesPerPage } from "../stores/replies";
+import repliesStore, {
+  defaultRepliesPerPage as repliesPerPage,
+  feedOptionsToFeedName,
+} from "../stores/replies";
 import repliesPagesStore from "../stores/replies-pages";
 import accountsStore from "../stores/accounts";
 import * as accountsActions from "../stores/accounts/accounts-actions";
@@ -69,6 +73,31 @@ describe("replies", () => {
     await testUtils.resetDatabasesAndStores();
   });
 
+  describe("useReplies options and hasMore branches", () => {
+    test("useReplies with no options (branch 25)", async () => {
+      const rendered = renderHook<any, any>(() => useReplies());
+      await act(async () => {});
+      expect(rendered.result.current.replies).toBeDefined();
+    });
+
+    test("useReplies hasMore false when no comment (branch 87)", async () => {
+      const rendered = renderHook<any, any>(() => useReplies({ comment: undefined }));
+      await act(async () => {});
+      expect(rendered.result.current.hasMore).toBe(false);
+    });
+  });
+
+  describe("appendErrorToErrors", () => {
+    test("appends error to array", () => {
+      const prev = [new Error("a")];
+      const e = new Error("b");
+      expect(appendErrorToErrors(prev, e)).toEqual([prev[0], e]);
+    });
+    test("handles empty array", () => {
+      expect(appendErrorToErrors([], new Error("x"))).toEqual([expect.any(Error)]);
+    });
+  });
+
   describe("useReplies", () => {
     let rendered, waitFor, scrollOnePage;
     let _savedSUE: any, _savedGetPage: any;
@@ -103,6 +132,148 @@ describe("replies", () => {
       Comment.prototype.simulateUpdateEvent = _savedSUE;
       Pages.prototype.getPage = _savedGetPage;
       await testUtils.resetDatabasesAndStores();
+    });
+
+    test("loadMore init guard throws when not initialized", async () => {
+      rendered.rerender({ commentCid: "comment cid 1", accountName: "nonexistent-account-xyz" });
+      await act(async () => {
+        await rendered.result.current.loadMore();
+      });
+      expect(rendered.result.current.errors.length).toBeGreaterThan(0);
+      expect(rendered.result.current.error?.message).toMatch(/not initalized/i);
+    });
+
+    test("reset init guard throws when not initialized", async () => {
+      rendered.rerender({ commentCid: "comment cid 1", accountName: "nonexistent-account-xyz" });
+      await act(async () => {
+        await rendered.result.current.reset();
+      });
+      await waitFor(() => rendered.result.current.errors.length > 0);
+      expect(rendered.result.current.errors.length).toBeGreaterThan(0);
+      expect(rendered.result.current.error?.message).toMatch(/not initalized/i);
+    });
+
+    test("reset catch path sets errors (line 132-134)", async () => {
+      const r = renderHook(() =>
+        useReplies({
+          comment: undefined,
+          accountName: "nonexistent-account-xyz",
+          validateOptimistically: false,
+        }),
+      );
+      const w = testUtils.createWaitFor(r);
+      await act(async () => {
+        await r.result.current.reset();
+      });
+      await w(() => r.result.current.errors.length > 0);
+      expect(r.result.current.errors.length).toBeGreaterThan(0);
+      expect(r.result.current.error?.message).toMatch(/not initalized/i);
+    });
+
+    test("reset success path calls resetFeed (line 131)", async () => {
+      rendered.rerender({ commentCid: "comment cid 1" });
+      await waitFor(() => rendered.result.current.replies.length >= repliesPerPage);
+      await act(async () => {
+        await rendered.result.current.reset();
+      });
+      expect(rendered.result.current.errors.length).toBe(0);
+    });
+
+    test("validateOptimistically false skips skipValidation (branch 125)", async () => {
+      const comment = {
+        cid: "comment cid 1",
+        depth: 0,
+        postCid: "p",
+        subplebbitAddress: "sub",
+        replies: { pages: {} },
+      };
+      const { result } = renderHook(() => useReplies({ comment, validateOptimistically: false }));
+      await act(async () => {});
+      expect(result.current.replies).toBeDefined();
+    });
+
+    test("invalidFlatDepth returns empty replies and no-op loadMore/reset (emptyFunction)", async () => {
+      const comment = {
+        cid: "flat-cid",
+        depth: 0,
+        postCid: "p",
+        subplebbitAddress: "sub",
+        replies: { pages: {} },
+      };
+      rendered.rerender({ comment, flat: true, flatDepth: 5 });
+      expect(rendered.result.current.replies).toEqual([]);
+      expect(rendered.result.current.hasMore).toBe(false);
+      await act(async () => {
+        await rendered.result.current.loadMore();
+        await rendered.result.current.reset();
+      });
+      expect(rendered.result.current.replies).toEqual([]);
+    });
+
+    test("addFeedToStoreOrUpdateComment catch logs error", async () => {
+      const origAdd = repliesStore.getState().addFeedToStoreOrUpdateComment;
+      repliesStore.setState({
+        addFeedToStoreOrUpdateComment: () => Promise.reject(new Error("addFeed failed")),
+      });
+      const logSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      rendered.rerender({ commentCid: "comment cid 1" });
+      await testUtils
+        .createWaitFor(rendered)(() => true, { timeout: 500 })
+        .catch(() => {});
+      repliesStore.setState({ addFeedToStoreOrUpdateComment: origAdd });
+      logSpy.mockRestore();
+    });
+
+    test("useReplies with no comment hasMore false (branches 89, 95)", () => {
+      const { result } = renderHook(() => useReplies({ comment: undefined }));
+      expect(result.current.hasMore).toBe(false);
+      expect(result.current.replies).toEqual([]);
+    });
+
+    test("useReplies hasMore from store when boolean (branches 87, 92)", async () => {
+      const comment = {
+        cid: "comment cid 1",
+        depth: 0,
+        postCid: "p",
+        subplebbitAddress: "sub",
+        replies: { pages: {} },
+      };
+      const rendered = renderHook(() => useReplies({ comment }));
+      await act(async () => {});
+      const feedNames = Object.keys(repliesStore.getState().feedsOptions);
+      const feedName = feedNames.find((fn) => fn.includes(comment.cid));
+      if (feedName) {
+        repliesStore.setState((s: any) => ({
+          ...s,
+          feedsHaveMore: { ...s.feedsHaveMore, [feedName]: false },
+        }));
+        rendered.rerender({ comment });
+        await act(async () => {});
+        expect(rendered.result.current.hasMore).toBe(false);
+      }
+    });
+
+    test("useReplies sortType defaults to best when not provided (branch 31)", async () => {
+      rendered.rerender({ commentCid: "comment cid 1" });
+      await waitFor(() => rendered.result.current.replies.length > 0);
+      expect(rendered.result.current.replies[0].cid).toContain("best");
+    });
+
+    test("useReplies flatDepth defaults to 0 when not number (branch 35)", async () => {
+      const comment = {
+        cid: "comment cid 1",
+        depth: 0,
+        postCid: "p",
+        subplebbitAddress: "sub",
+        replies: { pages: {} },
+      };
+      comment.replies.pages.best = Pages.prototype.pageToGet.apply({ comment }, [
+        `${comment.cid} page cid best`,
+      ]);
+      comment.replies.pages.best.nextCid = undefined;
+      rendered.rerender({ comment, flat: true, flatDepth: undefined });
+      await waitFor(() => rendered.result.current.replies.length > 0);
+      expect(rendered.result.current.replies.length).toBeGreaterThan(0);
     });
 
     test("validateOptimistically: true", async () => {

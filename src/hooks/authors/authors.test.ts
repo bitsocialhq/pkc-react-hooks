@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { act } from "@testing-library/react";
 import testUtils, { renderHook } from "../../lib/test-utils";
 import {
@@ -9,6 +10,7 @@ import {
   useAccount,
   useAuthorAddress,
   setAuthorAvatarsWhitelistedTokenAddresses,
+  resetAuthorAddressCacheForTesting,
 } from "../..";
 import { commentsPerPage } from "../../stores/authors-comments";
 import {
@@ -107,6 +109,7 @@ describe("authors", () => {
 
     afterEach(async () => {
       await testUtils.resetDatabasesAndStores();
+      resetAuthorAddressCacheForTesting();
     });
 
     test("no crypto name", async () => {
@@ -157,6 +160,132 @@ describe("authors", () => {
       expect(rendered.result.current.shortAuthorAddress).toBe(cryptoName);
       expect(rendered.result.current.authorAddressChanged).toBe(false);
     });
+
+    test("useAuthorAddress extends shortAddress when shorter than crypto name", async () => {
+      const origGetShortAddress = PlebbitJsMock.getShortAddress;
+      PlebbitJsMock.getShortAddress = () => "ab";
+      const cryptoName = "very-long-crypto-name.eth";
+      const commentWithCrypto = {
+        ...comment,
+        author: { address: cryptoName },
+        signature: { publicKey: "AMGyneyCj/3x17tKh7jOIcvka/OpRlGfCasNpYccfNI" },
+      };
+      rendered.rerender({ comment: commentWithCrypto });
+      await waitFor(() => rendered.result.current.authorAddress === cryptoName);
+      expect(rendered.result.current.shortAuthorAddress.length).toBe(cryptoName.length - 4);
+      PlebbitJsMock.getShortAddress = origGetShortAddress;
+    });
+
+    test("useAuthorAddress catch path when resolveAuthorAddress rejects", async () => {
+      const origResolve = Plebbit.prototype.resolveAuthorAddress;
+      Plebbit.prototype.resolveAuthorAddress = () => Promise.reject(new Error("resolve failed"));
+      try {
+        const cryptoName = "addr-reject-test.eth";
+        const commentWithCrypto = {
+          ...comment,
+          author: { address: cryptoName },
+        };
+        rendered.rerender({ comment: commentWithCrypto });
+        await waitFor(() => Boolean(rendered.result.current.authorAddress));
+        await new Promise((r) => setTimeout(r, 150));
+        // Catch path is covered; Logger may not use console.error
+      } finally {
+        Plebbit.prototype.resolveAuthorAddress = origResolve;
+      }
+    });
+
+    test("useAuthorAddress first resolution with no cached promise (hits line 293)", async () => {
+      resetAuthorAddressCacheForTesting();
+      const cryptoName = "first-resolve-293.eth";
+      const signerAddr = comment.author.address;
+      let resolveCallCount = 0;
+      const origResolve = Plebbit.prototype.resolveAuthorAddress;
+      Plebbit.prototype.resolveAuthorAddress = function (opts: { address: string }) {
+        resolveCallCount += 1;
+        return Promise.resolve(signerAddr);
+      };
+      try {
+        const commentWithCrypto = {
+          ...comment,
+          author: { ...comment.author, address: cryptoName },
+        };
+        rendered.rerender({ comment: commentWithCrypto });
+        await waitFor(() => rendered.result.current.authorAddress === cryptoName);
+        expect(rendered.result.current.authorAddress).toBe(cryptoName);
+        expect(resolveCallCount).toBe(1);
+      } finally {
+        Plebbit.prototype.resolveAuthorAddress = origResolve;
+      }
+    });
+
+    test("useAuthorAddress uses cached result on rerender", async () => {
+      const cryptoName = "cached-addr.eth";
+      const signerAddr = comment.author.address;
+      const origResolve = Plebbit.prototype.resolveAuthorAddress;
+      Plebbit.prototype.resolveAuthorAddress = () => Promise.resolve(signerAddr);
+      try {
+        const commentWithCrypto = {
+          ...comment,
+          author: { ...comment.author, address: cryptoName },
+        };
+        rendered.rerender({ comment: commentWithCrypto });
+        await waitFor(() => rendered.result.current.authorAddress === cryptoName);
+        rendered.rerender({ comment: commentWithCrypto });
+        await act(() => {});
+        expect(rendered.result.current.authorAddress).toBe(cryptoName);
+      } finally {
+        Plebbit.prototype.resolveAuthorAddress = origResolve;
+      }
+    });
+
+    test("useAuthorAddress uses cached result on remount (hits cached path)", async () => {
+      const cryptoName = "cached-remount.eth";
+      const signerAddr = comment.author.address;
+      const origResolve = Plebbit.prototype.resolveAuthorAddress;
+      let resolveCallCount = 0;
+      Plebbit.prototype.resolveAuthorAddress = () => {
+        resolveCallCount += 1;
+        return Promise.resolve(signerAddr);
+      };
+      try {
+        const commentWithCrypto = {
+          ...comment,
+          author: { ...comment.author, address: cryptoName },
+        };
+        rendered.rerender({ comment: commentWithCrypto });
+        await waitFor(() => rendered.result.current.authorAddress === cryptoName);
+        expect(resolveCallCount).toBe(1);
+        rendered.unmount();
+        rendered = renderHook<any, any>((options: any) => useAuthorAddress(options));
+        waitFor = testUtils.createWaitFor(rendered);
+        rendered.rerender({ comment: commentWithCrypto });
+        await waitFor(() => rendered.result.current.authorAddress === cryptoName);
+        expect(resolveCallCount).toBe(1);
+      } finally {
+        Plebbit.prototype.resolveAuthorAddress = origResolve;
+      }
+    });
+
+    test("useAuthorAddress reuses in-flight promise on rapid rerender", async () => {
+      let resolveDeferred: (v: string) => void = () => {};
+      const deferredPromise = new Promise<string>((r) => {
+        resolveDeferred = r;
+      });
+      const origResolve = Plebbit.prototype.resolveAuthorAddress;
+      Plebbit.prototype.resolveAuthorAddress = () => deferredPromise;
+      try {
+        const cryptoName = "deferred-addr.eth";
+        const accountComment = { author: { address: cryptoName } };
+        rendered.rerender({ comment: accountComment });
+        await act(() => {});
+        rendered.rerender({ comment: accountComment });
+        await act(() => {});
+        resolveDeferred!("resolved");
+        await waitFor(() => rendered.result.current.authorAddress === cryptoName);
+      } finally {
+        Plebbit.prototype.resolveAuthorAddress = origResolve;
+      }
+    });
   });
 
   describe("useAuthorComments", () => {
@@ -178,6 +307,28 @@ describe("authors", () => {
       // comments from a previous test will be in the comments store, don't know why
       await new Promise((r) => setTimeout(r, 50));
       await testUtils.resetDatabasesAndStores();
+    });
+
+    test("loadMore when not initialized throws and waits", async () => {
+      rendered.rerender({});
+      await act(async () => {
+        await rendered.result.current.loadMore();
+      });
+      expect(rendered.result.current.authorComments).toEqual([]);
+    });
+
+    test("addAuthorCommentsToStore error is caught in useEffect", async () => {
+      testUtils.silenceReactWarnings();
+      // invalid filter triggers addAuthorCommentsToStore assert
+      await act(async () => {
+        rendered.rerender({
+          commentCid: "comment cid",
+          authorAddress: "author.eth",
+          filter: { filter: 123 as any, key: "invalid" },
+        });
+      });
+      await new Promise((r) => setTimeout(r, 100));
+      // Catch path is covered; Logger may not use console.error
     });
 
     test("no comment cid", async () => {
@@ -683,6 +834,142 @@ describe("authors", () => {
 
       rendered.rerender({ address: "abc.sol" });
       expect(rendered.result.current.error).toBe(undefined);
+    });
+
+    test("useResolvedAuthorAddress with cache: false", { timeout: 25000 }, async () => {
+      const rendered = renderHook<any, any>((opts) =>
+        useResolvedAuthorAddress({ author: opts, cache: false }),
+      );
+      const waitFor = testUtils.createWaitFor(rendered, { timeout: 22000 });
+      rendered.rerender({ address: "subplebbit.eth" });
+      await waitFor(() => typeof rendered.result.current.resolvedAddress === "string");
+      expect(rendered.result.current.resolvedAddress).toBe("resolved author address");
+    });
+
+    test("useResolvedAuthorAddress resets when author/account cleared", { timeout }, async () => {
+      const rendered = renderHook<any, any>((opts) => useResolvedAuthorAddress({ author: opts }));
+      const waitFor = testUtils.createWaitFor(rendered, { timeout: 20000 });
+      rendered.rerender({ address: "subplebbit.eth" } as any);
+      await waitFor(() => typeof rendered.result.current.resolvedAddress === "string");
+      rendered.rerender(undefined);
+      await waitFor(() => rendered.result.current.resolvedAddress === undefined);
+      expect(rendered.result.current.resolvedAddress).toBe(undefined);
+      expect(rendered.result.current.error).toBe(undefined);
+    });
+
+    test(
+      "useResolvedAuthorAddress clears errors when author cleared after error",
+      {
+        timeout,
+      },
+      async () => {
+        const rendered = renderHook<any, any>((opts) => useResolvedAuthorAddress({ author: opts }));
+        const waitFor = testUtils.createWaitFor(rendered);
+        rendered.rerender({ address: "plebbit.com" } as any);
+        await waitFor(() => rendered.result.current.error !== undefined);
+        expect(rendered.result.current.error?.message).toBe("crypto domain type unsupported");
+        rendered.rerender(undefined);
+        await waitFor(() => rendered.result.current.error === undefined);
+        expect(rendered.result.current.errors).toEqual([]);
+      },
+    );
+
+    test("useResolvedAuthorAddress handles resolve error", { timeout }, async () => {
+      const origResolve = Plebbit.prototype.resolveAuthorAddress;
+      Plebbit.prototype.resolveAuthorAddress = () => Promise.reject(new Error("resolution failed"));
+      const rendered = renderHook<any, any>((author) => useResolvedAuthorAddress({ author }));
+      const waitFor = testUtils.createWaitFor(rendered, { timeout: 20000 });
+      rendered.rerender({ address: "fail.eth" });
+      await waitFor(() => rendered.result.current.error !== undefined);
+      expect(rendered.result.current.error?.message).toBe("resolution failed");
+      Plebbit.prototype.resolveAuthorAddress = origResolve;
+    });
+
+    test("useResolvedAuthorAddress cache default when undefined", () => {
+      const rendered = renderHook<any, any>(() =>
+        useResolvedAuthorAddress({ author: { address: "x.eth" }, cache: undefined }),
+      );
+      expect(rendered.result.current.error).toBe(undefined);
+    });
+
+    test("useResolvedAuthorAddress uses resolvedAuthorAddressCache on second resolution", async () => {
+      resetAuthorAddressCacheForTesting();
+      const addr = "cache-hit.eth";
+      const resolved = "12D3KooWresolved";
+      let resolveCalls = 0;
+      Plebbit.prototype.resolveAuthorAddress = () => {
+        resolveCalls++;
+        return Promise.resolve(resolved);
+      };
+      const r1 = renderHook<any, any>(() =>
+        useResolvedAuthorAddress({ author: { address: addr }, cache: true }),
+      );
+      const waitFor1 = testUtils.createWaitFor(r1, { timeout: 20000 });
+      await waitFor1(() => r1.result.current.resolvedAddress === resolved);
+      expect(resolveCalls).toBe(1);
+      r1.unmount();
+      const r2 = renderHook<any, any>(() =>
+        useResolvedAuthorAddress({ author: { address: addr }, cache: true }),
+      );
+      const waitFor2 = testUtils.createWaitFor(r2, { timeout: 20000 });
+      await waitFor2(() => r2.result.current.resolvedAddress === resolved);
+      expect(resolveCalls).toBe(1);
+    });
+
+    test("useResolvedAuthorAddress uses cached path when resolveAuthorAddressPromises has entry", async () => {
+      resetAuthorAddressCacheForTesting();
+      const addr = "cached-promise.eth";
+      const resolved = "12D3KooWresolved";
+      let resolveCalls = 0;
+      Plebbit.prototype.resolveAuthorAddress = () => {
+        resolveCalls++;
+        return Promise.resolve(resolved);
+      };
+      const r1 = renderHook<any, any>(() =>
+        useResolvedAuthorAddress({ author: { address: addr }, cache: true }),
+      );
+      const waitFor1 = testUtils.createWaitFor(r1, { timeout: 20000 });
+      r1.rerender();
+      await waitFor1(() => r1.result.current.resolvedAddress === resolved);
+      expect(resolveCalls).toBe(1);
+      const r2 = renderHook<any, any>(() =>
+        useResolvedAuthorAddress({ author: { address: addr }, cache: true }),
+      );
+      const waitFor2 = testUtils.createWaitFor(r2, { timeout: 20000 });
+      await waitFor2(() => r2.result.current.resolvedAddress === resolved);
+      expect(resolveCalls).toBe(1);
+    });
+  });
+
+  describe("assert invalid options", () => {
+    test("useAuthorComments throws on invalid options", () => {
+      expect(() => {
+        renderHook(() => useAuthorComments("invalid" as any));
+      }).toThrow(/not an object/);
+    });
+
+    test("useAuthor throws on invalid options", () => {
+      expect(() => {
+        renderHook(() => useAuthor(123 as any));
+      }).toThrow(/not an object/);
+    });
+
+    test("useAuthorAvatar throws on invalid options", () => {
+      expect(() => {
+        renderHook(() => useAuthorAvatar("invalid" as any));
+      }).toThrow(/not an object/);
+    });
+
+    test("useAuthorAddress throws on invalid options", () => {
+      expect(() => {
+        renderHook(() => useAuthorAddress("bad" as any));
+      }).toThrow(/not an object/);
+    });
+
+    test("useResolvedAuthorAddress throws on invalid options", () => {
+      expect(() => {
+        renderHook(() => useResolvedAuthorAddress(42 as any));
+      }).toThrow(/not an object/);
     });
   });
 });

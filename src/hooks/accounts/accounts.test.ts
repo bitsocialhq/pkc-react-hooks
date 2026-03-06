@@ -193,6 +193,16 @@ describe("accounts", () => {
       expect(rendered2.result.current.name).toBe("custom name");
     });
 
+    test("usePubsubSubscribe before account loads returns initializing", () => {
+      const rendered = renderHook(() =>
+        usePubsubSubscribe({
+          accountName: "NonExistentAccount",
+          subplebbitAddress: "sub.eth",
+        }),
+      );
+      expect(rendered.result.current.state).toBe("initializing");
+    });
+
     test("usePubsubSubscribe", async () => {
       const rendered = renderHook<any, any>((subplebbitAddress) => {
         const result = usePubsubSubscribe({ subplebbitAddress });
@@ -203,6 +213,58 @@ describe("accounts", () => {
       rendered.rerender("subplebbit-address.eth");
       await waitFor(() => rendered.result.current.result.state === "succeeded");
       expect(rendered.result.current.result.state).toBe("succeeded");
+    });
+
+    test("usePubsubSubscribe pubsubSubscribe error", async () => {
+      const originalPubsubSubscribe = Plebbit.prototype.pubsubSubscribe;
+      Plebbit.prototype.pubsubSubscribe = async () => {
+        throw Error("pubsub subscribe error");
+      };
+
+      const rendered = renderHook<any, any>(() =>
+        usePubsubSubscribe({ subplebbitAddress: "error-sub.eth" }),
+      );
+      const waitFor = testUtils.createWaitFor(rendered);
+
+      await waitFor(() => rendered.result.current.state === "failed");
+      expect(rendered.result.current.state).toBe("failed");
+      expect(rendered.result.current.error?.message).toBe("pubsub subscribe error");
+
+      Plebbit.prototype.pubsubSubscribe = originalPubsubSubscribe;
+    });
+
+    test("usePubsubSubscribe pubsubUnsubscribe error on unmount", async () => {
+      const originalPubsubUnsubscribe = Plebbit.prototype.pubsubUnsubscribe;
+      Plebbit.prototype.pubsubUnsubscribe = async () => {
+        throw Error("pubsub unsubscribe error");
+      };
+
+      const rendered = renderHook<any, any>(() =>
+        usePubsubSubscribe({ subplebbitAddress: "unsub-error.eth" }),
+      );
+      const waitFor = testUtils.createWaitFor(rendered);
+
+      await waitFor(() => rendered.result.current.state === "succeeded");
+      rendered.unmount();
+      await new Promise((r) => setTimeout(r, 50));
+
+      Plebbit.prototype.pubsubUnsubscribe = originalPubsubUnsubscribe;
+    });
+
+    test("useNotifications markAsRead when account not initialized throws", async () => {
+      const rendered = renderHook<any, any>(() =>
+        useNotifications({ accountName: "nonexistent-account-xyz" }),
+      );
+      const waitFor = testUtils.createWaitFor(rendered);
+
+      await waitFor(() => rendered.result.current.state === "initializing");
+      expect(typeof rendered.result.current.markAsRead).toBe("function");
+
+      await act(async () => {
+        await rendered.result.current.markAsRead();
+      });
+      expect(rendered.result.current.errors.length).toBeGreaterThan(0);
+      expect(rendered.result.current.error?.message).toMatch(/not initalized/i);
     });
   });
 
@@ -591,6 +653,54 @@ describe("accounts", () => {
 
     describe("deleteComment", () => {
       const subplebbitAddress = "12D3KooW... deleteComment.test";
+
+      test("useAccountComments with filter logs when accountComments and options present", async () => {
+        const filter = (c: AccountComment) => !!c.content;
+        const renderedWithFilter = renderHook<any, any>(() => useAccountComments({ filter }));
+        const waitForFilter = testUtils.createWaitFor(renderedWithFilter);
+        await waitForFilter(() => renderedWithFilter.result.current.state === "succeeded");
+        expect(Array.isArray(renderedWithFilter.result.current.accountComments)).toBe(true);
+      });
+
+      test("useAccountComments interval callback updates state when pending becomes failed", async () => {
+        const now = Math.round(Date.now() / 1000);
+        const recentTimestamp = now - 60;
+        accountsStore.setState((state: any) => {
+          const accountId = state.activeAccountId || Object.keys(state.accounts)[0];
+          const existing = state.accountsComments?.[accountId] || [];
+          return {
+            ...state,
+            accountsComments: {
+              ...state.accountsComments,
+              [accountId]: [
+                ...existing,
+                {
+                  timestamp: recentTimestamp,
+                  subplebbitAddress: "test.eth",
+                  content: "pending",
+                  index: existing.length,
+                },
+              ],
+            },
+          };
+        });
+
+        vi.useFakeTimers();
+        const intervalRendered = renderHook(() => useAccountComments());
+        const waitForInterval = testUtils.createWaitFor(intervalRendered);
+        await waitForInterval(() => intervalRendered.result.current.accountComments?.length >= 1);
+        expect(
+          intervalRendered.result.current.accountComments.some((c: any) => c.state === "pending"),
+        ).toBe(true);
+
+        vi.advanceTimersByTime(21 * 60 * 1000);
+        await act(async () => {});
+
+        expect(
+          intervalRendered.result.current.accountComments.some((c: any) => c.state === "failed"),
+        ).toBe(true);
+        vi.useRealTimers();
+      });
 
       test(`deleteComment(index) removes pending comment, reindexes list, and persists after store reset`, async () => {
         const publishCommentOptions = {
@@ -1188,6 +1298,17 @@ describe("accounts", () => {
         expect(typeof rendered2.result.current.accountEdits[0].timestamp).toBe("number");
       });
 
+      test("useAccountEdits with filter", async () => {
+        await waitFor(() => rendered.result.current.accountEdits.length === 1);
+        const filter = (edit: any) => edit.spoiler === true;
+        const renderedWithFilter = renderHook<any, any>(() =>
+          useAccountEdits({ accountName: "Account 1", filter }),
+        );
+        await waitFor(() => renderedWithFilter.result.current.accountEdits.length === 1);
+        expect(renderedWithFilter.result.current.accountEdits.length).toBe(1);
+        expect(renderedWithFilter.result.current.accountEdits[0].spoiler).toBe(true);
+      });
+
       test("useEditedComment has edited comment", async () => {
         const rendered2 = renderHook<any, any>(() => {
           const comment = useComment({ commentCid: "Qm..." });
@@ -1352,6 +1473,42 @@ describe("accounts", () => {
         }
       }
     };
+
+    test("useAccountComment with comment that has error returns error", async () => {
+      const state = accountsStore.getState() as any;
+      const accountId = state.activeAccountId || Object.keys(state.accounts)[0];
+      const existing = state.accountsComments?.[accountId] || [];
+      const failedIndex = existing.length;
+      accountsStore.setState((s: any) => ({
+        ...s,
+        accountsComments: {
+          ...s.accountsComments,
+          [accountId]: [
+            ...(s.accountsComments?.[accountId] || []),
+            {
+              timestamp: Math.floor(Date.now() / 1000),
+              subplebbitAddress: "test.eth",
+              content: "failed",
+              index: failedIndex,
+              error: Error("publish failed"),
+              errors: [Error("publish failed")],
+            },
+          ],
+        },
+      }));
+      const renderedErr = renderHook(() => useAccountComment({ commentIndex: failedIndex }));
+      const waitForErr = testUtils.createWaitFor(renderedErr);
+      await waitForErr(() => renderedErr.result.current.error !== undefined);
+      expect(renderedErr.result.current.error?.message).toBe("publish failed");
+      expect(renderedErr.result.current.errors).toHaveLength(1);
+    });
+
+    test("useAccountVote with no commentCid returns initializing", async () => {
+      const rendered = renderHook(() => useAccountVote({ accountName: "Account 1" }));
+      const waitFor = testUtils.createWaitFor(rendered);
+      await waitFor(() => rendered.result.current.state !== undefined);
+      expect(rendered.result.current.state).toBe("initializing");
+    });
 
     test(`useAccountComment single comment`, async () => {
       const rendered2 = renderHook<any, any>((props) => useAccountComment(props));
@@ -2049,6 +2206,30 @@ describe("accounts", () => {
   // so not possible to make them deterministic, add a retry
   // the hooks don't have the race condition, only the tests do
   describe("useAccountSubplebbits", { retry: 20 }, () => {
+    test("useAccountSubplebbits returns initializing when no account", () => {
+      const rendered = renderHook(() =>
+        useAccountSubplebbits({ accountName: "NonExistentAccount" }),
+      );
+      expect(rendered.result.current.state).toBe("initializing");
+    });
+
+    test("useAccountSubplebbits with account that has no subplebbits", async () => {
+      const rendered = renderHook(() => {
+        const account = useAccount();
+        const { setAccount } = accountsActions;
+        const { accountSubplebbits, state } = useAccountSubplebbits();
+        return { account, setAccount, accountSubplebbits, state };
+      });
+      const waitFor = testUtils.createWaitFor(rendered);
+      await waitFor(() => rendered.result.current.account.name);
+      const { account, setAccount } = rendered.result.current;
+      await act(async () => {
+        await setAccount({ ...account, subplebbits: {} });
+      });
+      await waitFor(() => rendered.result.current.accountSubplebbits !== undefined);
+      expect(rendered.result.current.state).toBe("succeeded");
+    });
+
     describe("with setup", () => {
       beforeAll(() => {
         testUtils.silenceWaitForWarning = true;
@@ -2557,6 +2738,51 @@ describe("accounts", () => {
       expect(Object.keys(rendered.result.current.editedComment.failedEdits).length).toBe(0);
     });
 
+    test("useEditedComment with comment without cid returns initializing", async () => {
+      const renderedNoCid = renderHook(() => useEditedComment({ comment: {} }));
+      expect(renderedNoCid.result.current.state).toBe("initializing");
+    });
+
+    test("useEditedComment pending when propertyNameEdit is too recent to evaluate", async () => {
+      const commentCid = rendered.result.current.accountComments[0].cid;
+      const subplebbitAddress = rendered.result.current.accountComments[0].subplebbitAddress;
+      const now = Math.round(Date.now() / 1000);
+      const editTimestamp = now - 60 * 10;
+
+      commentsStore.setState((state: any) => ({
+        ...state,
+        comments: {
+          ...state.comments,
+          [commentCid]: {
+            cid: commentCid,
+            spoiler: undefined,
+            updatedAt: now - 60 * 5,
+            subplebbitAddress,
+          },
+        },
+      }));
+
+      accountsStore.setState((state: any) => {
+        const accountId = state.activeAccountId || Object.keys(state.accounts)[0];
+        const existing = state.accountsEdits?.[accountId] || {};
+        return {
+          ...state,
+          accountsEdits: {
+            ...state.accountsEdits,
+            [accountId]: {
+              ...existing,
+              [commentCid]: [{ timestamp: editTimestamp, spoiler: true }],
+            },
+          },
+        };
+      });
+
+      rendered.rerender(commentCid);
+      await waitFor(() => rendered.result.current.editedComment.editedComment);
+      expect(rendered.result.current.editedComment.state).toBe("pending");
+      expect(rendered.result.current.editedComment.pendingEdits.spoiler).toBe(true);
+    });
+
     test("comment moderation succeeded", async () => {
       const commentCid = rendered.result.current.accountComments[0].cid;
       expect(commentCid).not.toBe(undefined);
@@ -2975,6 +3201,132 @@ describe("accounts", () => {
       expect(Object.keys(rendered.result.current.editedComment.succeededEdits).length).toBe(1);
       expect(Object.keys(rendered.result.current.editedComment.pendingEdits).length).toBe(0);
       expect(Object.keys(rendered.result.current.editedComment.failedEdits).length).toBe(0);
+    });
+  });
+
+  describe("coverage edge cases", () => {
+    beforeEach(async () => {
+      await testUtils.resetDatabasesAndStores();
+    });
+
+    test("useAccountComments without options skips log", async () => {
+      const rendered = renderHook(() => useAccountComments());
+      const waitFor = testUtils.createWaitFor(rendered);
+      await waitFor(() => rendered.result.current.state !== undefined);
+      expect(rendered.result.current.accountComments).toBeDefined();
+    });
+
+    test("useAccountComments with options and accountComments logs", async () => {
+      const filter = (c: AccountComment) => !!c.content;
+      const rendered = renderHook(() => useAccountComments({ filter }));
+      const waitFor = testUtils.createWaitFor(rendered);
+      await waitFor(() => rendered.result.current.accountComments);
+      accountsStore.setState((state: any) => {
+        const accountId = state.activeAccountId || Object.keys(state.accounts)[0];
+        return {
+          ...state,
+          accountsComments: {
+            ...state.accountsComments,
+            [accountId]: [{ content: "x", subplebbitAddress: "s.eth", timestamp: 1, index: 0 }],
+          },
+        };
+      });
+      rendered.rerender();
+      await waitFor(() => rendered.result.current.accountComments?.length >= 1);
+      expect(Array.isArray(rendered.result.current.accountComments)).toBe(true);
+    });
+
+    test("useAccountComment with out-of-bounds index returns empty errors", async () => {
+      const rendered = renderHook(() => useAccountComment({ commentIndex: 99999 }));
+      const waitFor = testUtils.createWaitFor(rendered);
+      await waitFor(() => rendered.result.current.state !== undefined);
+      expect(rendered.result.current.errors).toEqual([]);
+    });
+
+    test("useAccountComment with nonexistent account has undefined accountComments", async () => {
+      const rendered = renderHook(() =>
+        useAccountComment({ commentIndex: 0, accountName: "NonExistentAccount" }),
+      );
+      const waitFor = testUtils.createWaitFor(rendered);
+      await waitFor(() => rendered.result.current.state !== undefined);
+      expect(rendered.result.current.state).toBe("initializing");
+    });
+
+    test("useAccountVote with no options returns initializing", async () => {
+      const rendered = renderHook(() => useAccountVote());
+      const waitFor = testUtils.createWaitFor(rendered);
+      await waitFor(() => rendered.result.current.state !== undefined);
+      expect(rendered.result.current.state).toBe("initializing");
+    });
+
+    test("useAccountVote with nonexistent account and no commentCid returns initializing", async () => {
+      const rendered = renderHook(() => useAccountVote({ accountName: "NonExistentAccount" }));
+      const waitFor = testUtils.createWaitFor(rendered);
+      await waitFor(() => rendered.result.current.state !== undefined);
+      expect(rendered.result.current.state).toBe("initializing");
+    });
+
+    test("useEditedComment with no options returns initializing", async () => {
+      const rendered = renderHook(() => useEditedComment());
+      expect(rendered.result.current.state).toBe("initializing");
+    });
+
+    test("useEditedComment with comment and accountName returns unedited when both present", async () => {
+      const rendered = renderHook(() =>
+        useEditedComment({ comment: { cid: "test-cid" }, accountName: "Account 1" }),
+      );
+      const waitFor = testUtils.createWaitFor(rendered);
+      await waitFor(() => rendered.result.current.state === "unedited");
+      expect(rendered.result.current.state).toBe("unedited");
+    });
+
+    test("useEditedComment with commentEdit that has commentModeration merges", async () => {
+      const rendered = renderHook<any, any>((commentCid?: any) => {
+        const account = useAccount();
+        const { accountComments } = useAccountComments();
+        const comment = useComment({ commentCid });
+        const editedComment = useEditedComment({ comment });
+        return { comment, editedComment, accountComments, account };
+      });
+      const waitFor = testUtils.createWaitFor(rendered);
+      await waitFor(() => rendered.result.current.account);
+      await act(async () => {
+        await accountsActions.publishComment({
+          title: "t",
+          content: "c",
+          parentCid: "p",
+          subplebbitAddress: "sub.eth",
+          onChallenge: (ch: any, c: any) => c.publishChallengeAnswers(),
+          onChallengeVerification: () => {},
+        });
+      });
+      await waitFor(() => rendered.result.current.accountComments?.[0]?.cid);
+      const commentCid = rendered.result.current.accountComments[0].cid;
+      const now = Math.floor(Date.now() / 1000);
+      accountsStore.setState((state: any) => {
+        const accountId = state.activeAccountId || Object.keys(state.accounts)[0];
+        return {
+          ...state,
+          accountsEdits: {
+            ...state.accountsEdits,
+            [accountId]: {
+              ...(state.accountsEdits?.[accountId] || {}),
+              [commentCid]: [
+                { timestamp: now - 100, spoiler: true },
+                { timestamp: now, commentModeration: { removed: true } },
+              ],
+            },
+          },
+        };
+      });
+      rendered.rerender(commentCid);
+      await waitFor(() => rendered.result.current.editedComment.editedComment);
+      expect(rendered.result.current.editedComment.editedComment.removed).toBe(true);
+    });
+
+    test("usePubsubSubscribe with no options returns initializing", () => {
+      const rendered = renderHook(() => usePubsubSubscribe());
+      expect(rendered.result.current.state).toBe("initializing");
     });
   });
 

@@ -127,10 +127,12 @@ export function useAccountSubplebbits(
     !options || typeof options === "object",
     `useAccountSubplebbits options argument '${options}' not an object`,
   );
-  const { accountName, onlyIfCached } = options || {};
+  const opts = options ?? {};
+  const { accountName, onlyIfCached } = opts;
   const accountId = useAccountId(accountName);
+  const accountIdKey = accountId || "";
   const accountsStoreAccountSubplebbits = useAccountsStore(
-    (state) => state.accounts[accountId || ""]?.subplebbits,
+    (state) => state.accounts[accountIdKey]?.subplebbits,
   );
 
   // get all unique account subplebbit addresses
@@ -321,7 +323,7 @@ export function useAccountComments(options?: UseAccountCommentsOptions): UseAcco
     }));
   }, [filteredAccountComments, accountCommentStates]);
 
-  if (accountComments && options) {
+  if (options) {
     log("useAccountComments", {
       accountId,
       filteredAccountCommentsWithStates,
@@ -351,7 +353,8 @@ export function useAccountComment(options?: UseAccountCommentOptions): UseAccoun
     !options || typeof options === "object",
     `useAccountComment options argument '${options}' not an object`,
   );
-  const { commentIndex, accountName } = options || {};
+  const opts = options ?? {};
+  const { commentIndex, accountName } = opts;
   const { accountComments } = useAccountComments({ accountName });
   const accountComment = useMemo(
     () => accountComments?.[Number(commentIndex)] || {},
@@ -363,8 +366,8 @@ export function useAccountComment(options?: UseAccountCommentOptions): UseAccoun
     () => ({
       ...accountComment,
       state,
-      error: accountComment?.error,
-      errors: accountComment?.errors || [],
+      error: accountComment.error,
+      errors: accountComment.errors || [],
     }),
     [accountComment, state],
   );
@@ -379,7 +382,8 @@ export function useAccountVotes(options?: UseAccountVotesOptions): UseAccountVot
     !options || typeof options === "object",
     `useAccountVotes options argument '${options}' not an object`,
   );
-  const { accountName, filter } = options || {};
+  const opts = options ?? {};
+  const { accountName, filter } = opts;
   assert(
     !filter || typeof filter === "function",
     `useAccountVotes options.filter argument '${filter}' not an function`,
@@ -428,10 +432,13 @@ export function useAccountVote(options?: UseAccountVoteOptions): UseAccountVoteR
     !options || typeof options === "object",
     `useAccountVote options argument '${options}' not an object`,
   );
-  const { commentCid, accountName } = options || {};
+  const opts = options ?? {};
+  const { commentCid, accountName } = opts;
   const accountId = useAccountId(accountName);
-  const accountVotes = useAccountsStore((state) => state.accountsVotes[accountId || ""]);
-  const accountVote: any = accountVotes?.[commentCid || ""];
+  const accountIdKey = accountId || "";
+  const commentCidKey = commentCid || "";
+  const accountVotes = useAccountsStore((state) => state.accountsVotes[accountIdKey]);
+  const accountVote: any = accountVotes?.[commentCidKey];
   const state = accountId && commentCid ? "succeeded" : "initializing";
 
   // TODO: add failed / pending state
@@ -455,7 +462,8 @@ export function useAccountEdits(options?: UseAccountEditsOptions): UseAccountEdi
     !options || typeof options === "object",
     `useAccountEdits options argument '${options}' not an object`,
   );
-  const { filter, accountName } = options || {};
+  const opts = options ?? {};
+  const { filter, accountName } = opts;
   assert(
     !filter || typeof filter === "function",
     `useAccountEdits options.filter argument '${filter}' not an function`,
@@ -502,14 +510,17 @@ export function useEditedComment(options?: UseEditedCommentOptions): UseEditedCo
     !options || typeof options === "object",
     `useEditedComment options argument '${options}' not an object`,
   );
-  const { comment, accountName } = options || {};
+  const opts = options ?? {};
+  const { comment, accountName } = opts;
   const accountId = useAccountId(accountName);
+  const accountIdKey = accountId || "";
+  const commentCidKey = (comment && comment.cid) || "";
   const commentEdits = useAccountsStore(
-    (state) => state.accountsEdits[accountId || ""]?.[comment?.cid || ""],
+    (state) => state.accountsEdits[accountIdKey]?.[commentCidKey],
   );
 
   let initialState = "initializing";
-  if (accountId && comment?.cid) {
+  if (accountId && comment && comment.cid) {
     initialState = "unedited";
   }
 
@@ -541,22 +552,23 @@ export function useEditedComment(options?: UseEditedCommentOptions): UseEditedCo
     for (let commentEdit of commentEdits) {
       // TODO: commentEdit and commentModeration are now separate, but both still in accountEdits store
       // merge them until we find a better design
+      let editToUse: any = commentEdit;
       if (commentEdit.commentModeration) {
-        commentEdit = { ...commentEdit, ...commentEdit.commentModeration };
-        delete commentEdit.commentModeration;
+        editToUse = { ...commentEdit, ...commentEdit.commentModeration };
+        delete editToUse.commentModeration;
       }
 
-      for (const propertyName in commentEdit) {
+      for (const propertyName in editToUse) {
         // not valid edited properties
-        if (commentEdit[propertyName] === undefined || nonEditPropertyNames.has(propertyName)) {
+        if (editToUse[propertyName] === undefined || nonEditPropertyNames.has(propertyName)) {
           continue;
         }
         const previousTimestamp = propertyNameEdits[propertyName]?.timestamp || 0;
         // only use the latest propertyNameEdit timestamp
-        if (commentEdit.timestamp > previousTimestamp) {
+        if (editToUse.timestamp > previousTimestamp) {
           propertyNameEdits[propertyName] = {
-            timestamp: commentEdit.timestamp,
-            value: commentEdit[propertyName],
+            timestamp: editToUse.timestamp,
+            value: editToUse[propertyName],
             // NOTE: don't use comment edit challengeVerification.challengeSuccess
             // to know if an edit has failed or succeeded, since another mod can also edit
             // if another mod overrides an edit, consider the edit failed
@@ -588,9 +600,6 @@ export function useEditedComment(options?: UseEditedCommentOptions): UseEditedCo
         // if any propertyNameEdit are pending, and none have failed, consider the commentEdit pending
         if (state === "pending" && editedResult.state !== "failed") {
           editedResult.state = "pending";
-        }
-        if (!editedResult.state) {
-          throw Error(`didn't define editedResult.state`);
         }
       };
 
@@ -685,10 +694,11 @@ export function usePubsubSubscribe(options?: UsePubsubSubscribeOptions): UsePubs
     !options || typeof options === "object",
     `usePubsubSubscribe options argument '${options}' not an object`,
   );
-  const { accountName, subplebbitAddress } = options || {};
-  // get state
+  const opts = options ?? {};
+  const { accountName, subplebbitAddress } = opts;
   const accountId = useAccountId(accountName);
-  const account = useAccountsStore((state) => state.accounts[accountId || ""]);
+  const accountIdKey = accountId || "";
+  const account = useAccountsStore((state) => state.accounts[accountIdKey]);
   const [state, setState] = useState("initializing");
   const [errors, setErrors] = useState<Error[]>([]);
 

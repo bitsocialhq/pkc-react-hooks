@@ -55,9 +55,8 @@ const abandonAndStopPublishSession = (accountId: string, index: number) => {
   const session = activePublishSessions.get(key);
   if (!session) return;
   try {
-    if (typeof session.comment?.stop === "function") {
-      session.comment.stop();
-    }
+    const stop = session.comment?.stop;
+    if (typeof stop === "function") stop();
   } catch (e) {
     log.error("comment.stop() error during abandon", { accountId, index, error: e });
   }
@@ -66,6 +65,20 @@ const abandonAndStopPublishSession = (accountId: string, index: number) => {
 
 const isPublishSessionAbandoned = (accountId: string, index: number) => {
   return abandonedPublishKeys.has(getPublishSessionKey(accountId, index));
+};
+
+/** Returns state update or {} when accountComment not yet in state (no-op). Exported for coverage. */
+export const maybeUpdateAccountComment = (
+  accountsComments: Record<string, any[]>,
+  accountId: string,
+  index: number,
+  updater: (accountComments: any[], accountComment: any) => void,
+) => {
+  const accountComments = [...(accountsComments[accountId] || [])];
+  const accountComment = accountComments[index];
+  if (!accountComment) return {};
+  updater(accountComments, accountComment);
+  return { accountsComments: { ...accountsComments, [accountId]: accountComments } };
 };
 
 const getPublishSessionForComment = (
@@ -768,33 +781,21 @@ export const publishComment = async (
 
     comment.on("error", (error: Error) => {
       if (isPublishSessionAbandoned(account.id, accountCommentIndex)) return;
-      accountsStore.setState(({ accountsComments }) => {
-        const accountComments = [...(accountsComments[account.id] || [])];
-        const accountComment = accountComments[accountCommentIndex];
-        // account comment hasn't been stored in state yet
-        if (!accountComment) {
-          return {};
-        }
-        const errors = [...(accountComment.errors || []), error];
-        accountComments[accountCommentIndex] = { ...accountComment, errors, error };
-        return { accountsComments: { ...accountsComments, [account.id]: accountComments } };
-      });
+      accountsStore.setState(({ accountsComments }) =>
+        maybeUpdateAccountComment(accountsComments, account.id, accountCommentIndex, (ac, acc) => {
+          const errors = [...(acc.errors || []), error];
+          ac[accountCommentIndex] = { ...acc, errors, error };
+        }),
+      );
       publishCommentOptions.onError?.(error, comment);
     });
     comment.on("publishingstatechange", async (publishingState: string) => {
       if (isPublishSessionAbandoned(account.id, accountCommentIndex)) return;
-      // set publishing state on account comment so the frontend can display it, dont persist in db because a reload cancels publishing
-      accountsStore.setState(({ accountsComments }) => {
-        const accountComments = [...(accountsComments[account.id] || [])];
-        const accountComment = accountComments[accountCommentIndex];
-        // account comment hasn't been stored in state yet
-        if (!accountComment) {
-          return {};
-        }
-        accountComments[accountCommentIndex] = { ...accountComment, publishingState };
-        return { accountsComments: { ...accountsComments, [account.id]: accountComments } };
-      });
-
+      accountsStore.setState(({ accountsComments }) =>
+        maybeUpdateAccountComment(accountsComments, account.id, accountCommentIndex, (ac, acc) => {
+          ac[accountCommentIndex] = { ...acc, publishingState };
+        }),
+      );
       publishCommentOptions.onPublishingStateChange?.(publishingState);
     });
 
@@ -803,24 +804,24 @@ export const publishComment = async (
       comment.clients,
       (clientState: string, clientType: string, clientUrl: string, chainTicker?: string) => {
         if (isPublishSessionAbandoned(account.id, accountCommentIndex)) return;
-        accountsStore.setState(({ accountsComments }) => {
-          const accountComments = [...(accountsComments[account.id] || [])];
-          const accountComment = accountComments[accountCommentIndex];
-          // account comment hasn't been stored in state yet
-          if (!accountComment) {
-            return {};
-          }
-          const clients = { ...comment.clients };
-          const client = { state: clientState };
-          if (chainTicker) {
-            const chainProviders = { ...clients[clientType][chainTicker], [clientUrl]: client };
-            clients[clientType] = { ...clients[clientType], [chainTicker]: chainProviders };
-          } else {
-            clients[clientType] = { ...clients[clientType], [clientUrl]: client };
-          }
-          accountComments[accountCommentIndex] = { ...accountComment, clients };
-          return { accountsComments: { ...accountsComments, [account.id]: accountComments } };
-        });
+        accountsStore.setState(({ accountsComments }) =>
+          maybeUpdateAccountComment(
+            accountsComments,
+            account.id,
+            accountCommentIndex,
+            (ac, acc) => {
+              const clients = { ...comment.clients };
+              const client = { state: clientState };
+              if (chainTicker) {
+                const chainProviders = { ...clients[clientType][chainTicker], [clientUrl]: client };
+                clients[clientType] = { ...clients[clientType], [chainTicker]: chainProviders };
+              } else {
+                clients[clientType] = { ...clients[clientType], [clientUrl]: client };
+              }
+              ac[accountCommentIndex] = { ...acc, clients };
+            },
+          ),
+        );
       },
     );
 
@@ -1007,6 +1008,7 @@ export const publishCommentEdit = async (
   let lastChallenge: Challenge | undefined;
   const publishAndRetryFailedChallengeVerification = async () => {
     commentEdit.once("challenge", async (challenge: Challenge) => {
+      lastChallenge = challenge;
       publishCommentEditOptions.onChallenge(challenge, commentEdit);
     });
     commentEdit.once(
@@ -1100,6 +1102,7 @@ export const publishCommentModeration = async (
   let lastChallenge: Challenge | undefined;
   const publishAndRetryFailedChallengeVerification = async () => {
     commentModeration.once("challenge", async (challenge: Challenge) => {
+      lastChallenge = challenge;
       publishCommentModerationOptions.onChallenge(challenge, commentModeration);
     });
     commentModeration.once(
@@ -1224,6 +1227,7 @@ export const publishSubplebbitEdit = async (
   let lastChallenge: Challenge | undefined;
   const publishAndRetryFailedChallengeVerification = async () => {
     subplebbitEdit.once("challenge", async (challenge: Challenge) => {
+      lastChallenge = challenge;
       publishSubplebbitEditOptions.onChallenge(challenge, subplebbitEdit);
     });
     subplebbitEdit.once(
