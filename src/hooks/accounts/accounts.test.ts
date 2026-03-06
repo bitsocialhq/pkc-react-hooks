@@ -3090,6 +3090,9 @@ describe("accounts", () => {
       expect(rendered.result.current.editedComment.editedComment).not.toBe(undefined);
       expect(rendered.result.current.editedComment.state).toBe("pending");
       expect(rendered.result.current.editedComment.editedComment.purged).toBe(true);
+      expect(rendered.result.current.editedComment.editedComment.commentModeration?.purged).toBe(
+        true,
+      );
       expect(rendered.result.current.editedComment.pendingEdits.purged).toBe(true);
       expect(Object.keys(rendered.result.current.editedComment.succeededEdits).length).toBe(0);
       expect(Object.keys(rendered.result.current.editedComment.pendingEdits).length).toBe(1);
@@ -3110,6 +3113,7 @@ describe("accounts", () => {
           rendered.result.current.comment.index === undefined,
       );
       expect(rendered.result.current.comment.purged).toBe(true);
+      expect(rendered.result.current.comment.commentModeration?.purged).toBe(true);
       expect(rendered.result.current.comment.index).toBe(undefined);
 
       // wait for edit to become succeeded
@@ -3117,6 +3121,9 @@ describe("accounts", () => {
       expect(rendered.result.current.editedComment.editedComment).not.toBe(undefined);
       expect(rendered.result.current.editedComment.state).toBe("succeeded");
       expect(rendered.result.current.editedComment.editedComment.purged).toBe(true);
+      expect(rendered.result.current.editedComment.editedComment.commentModeration?.purged).toBe(
+        true,
+      );
       expect(rendered.result.current.editedComment.succeededEdits.purged).toBe(true);
       expect(Object.keys(rendered.result.current.editedComment.succeededEdits).length).toBe(1);
       expect(Object.keys(rendered.result.current.editedComment.pendingEdits).length).toBe(0);
@@ -3185,6 +3192,9 @@ describe("accounts", () => {
       expect(rendered.result.current.editedComment.editedComment).not.toBe(undefined);
       expect(rendered.result.current.editedComment.state).toBe("pending");
       expect(rendered.result.current.editedComment.editedComment.purged).toBe(true);
+      expect(rendered.result.current.editedComment.editedComment.commentModeration?.purged).toBe(
+        true,
+      );
       expect(rendered.result.current.editedComment.pendingEdits.purged).toBe(true);
       expect(Object.keys(rendered.result.current.editedComment.succeededEdits).length).toBe(0);
       expect(Object.keys(rendered.result.current.editedComment.pendingEdits).length).toBe(1);
@@ -3202,6 +3212,9 @@ describe("accounts", () => {
       expect(rendered.result.current.editedComment.editedComment).not.toBe(undefined);
       expect(rendered.result.current.editedComment.state).toBe("succeeded");
       expect(rendered.result.current.editedComment.editedComment.purged).toBe(true);
+      expect(rendered.result.current.editedComment.editedComment.commentModeration?.purged).toBe(
+        true,
+      );
       expect(rendered.result.current.editedComment.succeededEdits.purged).toBe(true);
       expect(Object.keys(rendered.result.current.editedComment.succeededEdits).length).toBe(1);
       expect(Object.keys(rendered.result.current.editedComment.pendingEdits).length).toBe(0);

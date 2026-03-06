@@ -167,6 +167,46 @@ describe("comments", () => {
       expect(rendered.result.current.comments[2].upvoteCount).toBe(3);
     });
 
+    test("useComment and useComments mirror moderation flags into commentModeration", async () => {
+      commentsStore.setState({
+        comments: {
+          "comment cid moderation 1": {
+            cid: "comment cid moderation 1",
+            timestamp: 1,
+            updatedAt: 1,
+            purged: true,
+          },
+          "comment cid moderation 2": {
+            cid: "comment cid moderation 2",
+            timestamp: 1,
+            updatedAt: 1,
+            removed: true,
+          },
+        },
+      });
+
+      const renderedSingle = renderHook(() =>
+        useComment({ commentCid: "comment cid moderation 1" }),
+      );
+      const renderedMany = renderHook(() =>
+        useComments({ commentCids: ["comment cid moderation 1", "comment cid moderation 2"] }),
+      );
+      const waitForSingle = testUtils.createWaitFor(renderedSingle);
+      const waitForMany = testUtils.createWaitFor(renderedMany);
+
+      await waitForSingle(() => renderedSingle.result.current.commentModeration?.purged === true);
+      await waitForMany(
+        () => renderedMany.result.current.comments[1]?.commentModeration?.removed === true,
+      );
+
+      expect(renderedSingle.result.current.purged).toBe(true);
+      expect(renderedSingle.result.current.commentModeration?.purged).toBe(true);
+      expect(renderedMany.result.current.comments[0]?.purged).toBe(true);
+      expect(renderedMany.result.current.comments[0]?.commentModeration?.purged).toBe(true);
+      expect(renderedMany.result.current.comments[1]?.removed).toBe(true);
+      expect(renderedMany.result.current.comments[1]?.commentModeration?.removed).toBe(true);
+    });
+
     test("addCommentToStore catch path logs error", async () => {
       const origCreateComment = Plebbit.prototype.createComment;
       (Plebbit.prototype as any).createComment = () =>

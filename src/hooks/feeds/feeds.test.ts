@@ -165,6 +165,25 @@ describe("feeds", () => {
       expect(rendered2.result.current.feed.length).toBe(postsPerPage);
     });
 
+    test("useFeed mirrors moderation flags into commentModeration", async () => {
+      rendered.rerender({ subplebbitAddresses: ["subplebbit address 1"] });
+      await waitFor(() => rendered.result.current.feed.length > 0);
+
+      const [feedName] = Object.keys(feedsStore.getState().loadedFeeds);
+      const currentFeed = feedsStore.getState().loadedFeeds[feedName];
+      feedsStore.setState((state: any) => ({
+        ...state,
+        loadedFeeds: {
+          ...state.loadedFeeds,
+          [feedName]: [{ ...currentFeed[0], purged: true }, ...currentFeed.slice(1)],
+        },
+      }));
+
+      await waitFor(() => rendered.result.current.feed[0]?.commentModeration?.purged === true);
+      expect(rendered.result.current.feed[0]?.purged).toBe(true);
+      expect(rendered.result.current.feed[0]?.commentModeration?.purged).toBe(true);
+    });
+
     test("feed cache expires and hasMore is true", async () => {
       // mock Date.now for fetchedAt cache value
       const now = Date.now();

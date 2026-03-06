@@ -14,6 +14,7 @@ import {
   CommentsFilter,
 } from "../../types";
 import useFeedsStore from "../../stores/feeds";
+import { addCommentModerationToComments } from "../../lib/utils/comment-moderation";
 import shallow from "zustand/shallow";
 
 /**
@@ -139,12 +140,21 @@ export function useFeed(options?: UseFeedOptions): UseFeedResult {
   }
 
   const state = !hasMore ? "succeeded" : "fetching-ipns";
+  const normalizedFeed = useMemo(() => addCommentModerationToComments(feed), [feed]);
+  const normalizedBufferedFeed = useMemo(
+    () => addCommentModerationToComments(bufferedFeed),
+    [bufferedFeed],
+  );
+  const normalizedUpdatedFeed = useMemo(
+    () => addCommentModerationToComments(updatedFeed),
+    [updatedFeed],
+  );
 
   return useMemo(
     () => ({
-      feed: feed || [],
-      bufferedFeed: bufferedFeed || [],
-      updatedFeed: updatedFeed || [],
+      feed: normalizedFeed,
+      bufferedFeed: normalizedBufferedFeed,
+      updatedFeed: normalizedUpdatedFeed,
       hasMore,
       subplebbitAddressesWithNewerPosts: subplebbitAddressesWithNewerPosts || [],
       loadMore,
@@ -153,7 +163,15 @@ export function useFeed(options?: UseFeedOptions): UseFeedResult {
       error: errors[errors.length - 1],
       errors,
     }),
-    [feed, bufferedFeed, updatedFeed, feedName, hasMore, errors, subplebbitAddressesWithNewerPosts],
+    [
+      normalizedFeed,
+      normalizedBufferedFeed,
+      normalizedUpdatedFeed,
+      feedName,
+      hasMore,
+      errors,
+      subplebbitAddressesWithNewerPosts,
+    ],
   );
 }
 
@@ -243,7 +261,7 @@ export function useBufferedFeeds(options?: UseBufferedFeedsOptions): UseBuffered
     const bufferedFeedsArray: Feed[] = [];
     for (const feedName of feedNames) {
       const key = feedName ?? "";
-      bufferedFeedsArray.push(bufferedFeeds[key] ?? []);
+      bufferedFeedsArray.push(addCommentModerationToComments(bufferedFeeds[key]));
     }
     return bufferedFeedsArray;
   }, [bufferedFeeds, feedNames]);

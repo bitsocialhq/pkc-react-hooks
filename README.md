@@ -1064,10 +1064,13 @@ if (editedCommentResult.pendingEdits.removed !== undefined) {
 
 // view the full comment with all edited properties (both succeeded and pending)
 console.log(editedComment.editedComment)
+console.log(editedComment.editedComment.commentModeration?.removed)
 
 // view the state of all edits of the comment
 console.log(editedComment.state) // 'unedited' | 'succeeded' | 'pending' | 'failed'
 ```
+
+Moderation fields are mirrored on both the legacy top-level keys like `comment.removed` and the nested `comment.commentModeration.removed` shape.
 
 #### List all comment and subplebbit edits the account has performed
 

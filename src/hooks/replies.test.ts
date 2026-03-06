@@ -172,6 +172,25 @@ describe("replies", () => {
       expect(rendered.result.current.errors.length).toBe(0);
     });
 
+    test("useReplies mirrors moderation flags into commentModeration", async () => {
+      rendered.rerender({ commentCid: "comment cid 1" });
+      await waitFor(() => rendered.result.current.replies.length > 0);
+
+      const [feedName] = Object.keys(repliesStore.getState().loadedFeeds);
+      const currentReplies = repliesStore.getState().loadedFeeds[feedName];
+      repliesStore.setState((state: any) => ({
+        ...state,
+        loadedFeeds: {
+          ...state.loadedFeeds,
+          [feedName]: [{ ...currentReplies[0], purged: true }, ...currentReplies.slice(1)],
+        },
+      }));
+
+      await waitFor(() => rendered.result.current.replies[0]?.commentModeration?.purged === true);
+      expect(rendered.result.current.replies[0]?.purged).toBe(true);
+      expect(rendered.result.current.replies[0]?.commentModeration?.purged).toBe(true);
+    });
+
     test("validateOptimistically false skips skipValidation (branch 125)", async () => {
       const comment = {
         cid: "comment cid 1",

@@ -5,6 +5,7 @@ import Logger from "@plebbit/plebbit-logger";
 const log = Logger("bitsocial-react-hooks:replies:hooks");
 import assert from "assert";
 import { UseRepliesOptions, UseRepliesResult } from "../types";
+import { addCommentModerationToComments } from "../lib/utils/comment-moderation";
 import useRepliesStore, {
   RepliesState,
   feedOptionsToFeedName,
@@ -160,12 +161,21 @@ export function useReplies(options?: UseRepliesOptions): UseRepliesResult {
   }
 
   const state = !hasMore ? "succeeded" : "fetching";
+  const normalizedReplies = useMemo(() => addCommentModerationToComments(replies), [replies]);
+  const normalizedBufferedReplies = useMemo(
+    () => addCommentModerationToComments(bufferedReplies),
+    [bufferedReplies],
+  );
+  const normalizedUpdatedReplies = useMemo(
+    () => addCommentModerationToComments(updatedReplies),
+    [updatedReplies],
+  );
 
   return useMemo(
     () => ({
-      replies: replies || [],
-      bufferedReplies: bufferedReplies || [],
-      updatedReplies: updatedReplies || [],
+      replies: normalizedReplies,
+      bufferedReplies: normalizedBufferedReplies,
+      updatedReplies: normalizedUpdatedReplies,
       hasMore,
       loadMore,
       reset,
@@ -173,7 +183,14 @@ export function useReplies(options?: UseRepliesOptions): UseRepliesResult {
       error: errors[errors.length - 1],
       errors,
     }),
-    [replies, bufferedReplies, updatedReplies, repliesFeedName, hasMore, errors],
+    [
+      normalizedReplies,
+      normalizedBufferedReplies,
+      normalizedUpdatedReplies,
+      repliesFeedName,
+      hasMore,
+      errors,
+    ],
   );
 }
 

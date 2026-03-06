@@ -39,6 +39,7 @@ import {
   useAccountWithCalculatedProperties,
   useCalculatedNotifications,
 } from "./utils";
+import { addCommentModeration } from "../../lib/utils/comment-moderation";
 import useInterval from "../utils/use-interval";
 
 /**
@@ -666,6 +667,7 @@ export function useEditedComment(options?: UseEditedCommentOptions): UseEditedCo
     for (const propertyName in editedResult.succeededEdits) {
       editedResult.editedComment[propertyName] = editedResult.succeededEdits[propertyName];
     }
+    editedResult.editedComment = addCommentModeration(editedResult.editedComment);
 
     return editedResult;
   }, [comment, commentEdits]);
