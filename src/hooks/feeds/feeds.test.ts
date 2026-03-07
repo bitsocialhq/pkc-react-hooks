@@ -2277,6 +2277,53 @@ describe("feeds", () => {
         ).toBe(false);
       });
 
+      test("modQueue drops posts that stay on the page but lose pendingApproval", async () => {
+        const subplebbitAddresses = ["subplebbit address 1"];
+        rendered.rerender({ subplebbitAddresses, modQueue: ["pendingApproval"] });
+
+        await waitFor(() => rendered.result.current.feed.length > 0);
+        const removedCid = rendered.result.current.feed[0].cid;
+        const pageCid = Object.keys(subplebbitsPagesStore.getState().subplebbitsPages).find((cid) =>
+          cid.includes("pendingApproval"),
+        );
+        expect(pageCid).toBeDefined();
+
+        await act(async () => {
+          subplebbitsPagesStore.setState((state: any) => {
+            const page = state.subplebbitsPages[pageCid as string];
+            const nextComments = page.comments.map((comment: Comment) =>
+              comment.cid === removedCid ? { ...comment, pendingApproval: undefined } : comment,
+            );
+            return {
+              ...state,
+              comments: {
+                ...state.comments,
+                [removedCid]: {
+                  ...state.comments[removedCid],
+                  pendingApproval: undefined,
+                },
+              },
+              subplebbitsPages: {
+                ...state.subplebbitsPages,
+                [pageCid as string]: {
+                  ...page,
+                  comments: nextComments,
+                },
+              },
+            };
+          });
+        });
+
+        await waitFor(
+          () =>
+            rendered.result.current.feed.length === postsPerPage &&
+            rendered.result.current.feed.every((comment: Comment) => comment.cid !== removedCid),
+        );
+        expect(
+          rendered.result.current.feed.some((comment: Comment) => comment.cid === removedCid),
+        ).toBe(false);
+      });
+
       // TODO: test modQueue page state
     });
 

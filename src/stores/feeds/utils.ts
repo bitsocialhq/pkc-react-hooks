@@ -49,6 +49,9 @@ const getFeedPost = (
   if (!areEquivalentSubplebbitAddresses(post.subplebbitAddress, subplebbitAddress)) {
     return;
   }
+  if (!commentMatchesModQueue(post, modQueue)) {
+    return;
+  }
   if (!freshestComment || getCommentFreshness(freshestComment) <= getCommentFreshness(post)) {
     return post;
   }

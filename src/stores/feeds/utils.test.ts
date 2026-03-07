@@ -227,6 +227,54 @@ describe("feeds utils", () => {
       expect(feeds.feed1[0].cid).toBe("c1");
     });
 
+    test("modQueue excludes page comments that no longer have pendingApproval", () => {
+      const subplebbits = {
+        sub1: {
+          address: "sub1",
+          updatedAt: 1,
+          modQueue: {
+            pageCids: { pendingApproval: "mod-queue-page-cid" },
+            pages: {},
+          },
+        },
+      };
+      const subplebbitsPages = {
+        "mod-queue-page-cid": {
+          comments: [
+            {
+              cid: "public-cid",
+              subplebbitAddress: "sub1",
+              timestamp: 1,
+            },
+            {
+              cid: "pending-cid",
+              subplebbitAddress: "sub1",
+              timestamp: 2,
+              pendingApproval: true,
+            },
+          ],
+          nextCid: undefined,
+        },
+      };
+      const feedsOptions = {
+        feed1: {
+          subplebbitAddresses: ["sub1"],
+          sortType: "new",
+          accountId: mockAccountId,
+          modQueue: ["pendingApproval"],
+        },
+      };
+
+      const feeds = getFilteredSortedFeeds(
+        feedsOptions,
+        subplebbits,
+        subplebbitsPages,
+        makeMockAccounts(),
+      );
+
+      expect(feeds.feed1.map((post: any) => post.cid)).toEqual(["pending-cid"]);
+    });
+
     test("keeps posts when requested subplebbitAddress is a .bso alias of the post .eth address", () => {
       const subplebbits = {
         "music-posting.bso": {

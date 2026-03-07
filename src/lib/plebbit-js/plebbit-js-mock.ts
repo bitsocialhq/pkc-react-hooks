@@ -211,6 +211,7 @@ export class Pages {
   // mock this method to get pages with different content, or use to getPage without simulated loading time
   pageToGet(pageCid: string) {
     const subplebbitAddress = this.subplebbit?.address || this.comment?.subplebbitAddress;
+    const isPendingApprovalPage = pageCid.includes("pendingApproval");
     const page: any = {
       nextCid: subplebbitAddress + " " + pageCid + " - next page cid",
       comments: [],
@@ -218,7 +219,7 @@ export class Pages {
     const postCount = 100;
     let index = 0;
     while (index++ < postCount) {
-      page.comments.push({
+      const comment: any = {
         timestamp: index,
         cid: pageCid + " comment cid " + index,
         subplebbitAddress,
@@ -228,7 +229,11 @@ export class Pages {
           address: pageCid + " author address " + index,
         },
         updatedAt: index,
-      });
+      };
+      if (isPendingApprovalPage) {
+        comment.pendingApproval = true;
+      }
+      page.comments.push(comment);
     }
     return page;
   }
