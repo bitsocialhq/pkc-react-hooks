@@ -217,6 +217,7 @@ export class Pages {
     pageToGet(pageCid) {
         var _a, _b;
         const subplebbitAddress = ((_a = this.subplebbit) === null || _a === void 0 ? void 0 : _a.address) || ((_b = this.comment) === null || _b === void 0 ? void 0 : _b.subplebbitAddress);
+        const isPendingApprovalPage = pageCid.includes("pendingApproval");
         const page = {
             nextCid: subplebbitAddress + " " + pageCid + " - next page cid",
             comments: [],
@@ -224,7 +225,7 @@ export class Pages {
         const postCount = 100;
         let index = 0;
         while (index++ < postCount) {
-            page.comments.push({
+            const comment = {
                 timestamp: index,
                 cid: pageCid + " comment cid " + index,
                 subplebbitAddress,
@@ -234,7 +235,11 @@ export class Pages {
                     address: pageCid + " author address " + index,
                 },
                 updatedAt: index,
-            });
+            };
+            if (isPendingApprovalPage) {
+                comment.pendingApproval = true;
+            }
+            page.comments.push(comment);
         }
         return page;
     }
