@@ -2311,6 +2311,28 @@ describe("accounts", () => {
         ).toBe("owner");
       });
 
+      test("dedupes equivalent .eth and .bso account subplebbits under the canonical .bso key", async () => {
+        const { account, setAccount } = rendered.result.current;
+        const role = { role: "moderator" };
+        await act(async () => {
+          await setAccount({
+            ...account,
+            subplebbits: {
+              "music-posting.eth": { role },
+              "music-posting.bso": { role },
+            },
+          });
+        });
+
+        await waitFor(() => rendered.result.current.accountSubplebbits["music-posting.bso"]);
+        const accountSubplebbitKeys = Object.keys(rendered.result.current.accountSubplebbits);
+        expect(accountSubplebbitKeys).toContain("music-posting.bso");
+        expect(accountSubplebbitKeys).not.toContain("music-posting.eth");
+        expect(rendered.result.current.accountSubplebbits["music-posting.bso"].address).toBe(
+          "music-posting.bso",
+        );
+      });
+
       test("remove subplebbit role to account.subplebbits[subplebbitAddress].role after encountering it removed a subplebbit", async () => {
         await waitFor(() => rendered.result.current.accountSubplebbits["subplebbit address 1"]);
         expect(rendered.result.current.accountSubplebbits["subplebbit address 1"].role.role).toBe(

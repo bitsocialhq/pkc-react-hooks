@@ -1,4 +1,10 @@
-import { areEquivalentSubplebbitAddresses, normalizeEthAliasDomain } from "./subplebbit-address";
+import {
+  areEquivalentSubplebbitAddresses,
+  getCanonicalSubplebbitAddress,
+  getEquivalentSubplebbitAddressGroupKey,
+  normalizeEthAliasDomain,
+  pickPreferredEquivalentSubplebbitAddress,
+} from "./subplebbit-address";
 
 describe("subplebbit-address", () => {
   test("treats .eth and .bso aliases as equivalent", () => {
@@ -17,5 +23,21 @@ describe("subplebbit-address", () => {
   test("normalizes .bso aliases to .eth", () => {
     expect(normalizeEthAliasDomain("music-posting.bso")).toBe("music-posting.eth");
     expect(normalizeEthAliasDomain("music-posting.eth")).toBe("music-posting.eth");
+  });
+
+  test("canonicalizes .eth aliases to .bso for public keys", () => {
+    expect(getCanonicalSubplebbitAddress("music-posting.eth")).toBe("music-posting.bso");
+    expect(getCanonicalSubplebbitAddress("music-posting.bso")).toBe("music-posting.bso");
+  });
+
+  test("uses the same group key for equivalent aliases", () => {
+    expect(getEquivalentSubplebbitAddressGroupKey("music-posting.eth")).toBe("music-posting.bso");
+    expect(getEquivalentSubplebbitAddressGroupKey("music-posting.bso")).toBe("music-posting.bso");
+  });
+
+  test("prefers the .bso variant when equivalent aliases are present", () => {
+    expect(
+      pickPreferredEquivalentSubplebbitAddress(["music-posting.eth", "music-posting.bso"]),
+    ).toBe("music-posting.bso");
   });
 });
