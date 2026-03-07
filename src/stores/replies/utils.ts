@@ -15,6 +15,7 @@ import { getRepliesPages, getRepliesFirstPageCid } from "../replies-pages";
 import repliesSorter from "../feeds/feed-sorter";
 import accountsStore from "../accounts";
 import { flattenCommentsPages, commentIsValid, removeInvalidComments } from "../../lib/utils";
+import { areEquivalentSubplebbitAddresses } from "../../lib/subplebbit-address";
 import Logger from "@plebbit/plebbit-logger";
 const log = Logger("bitsocial-react-hooks:replies:stores");
 
@@ -45,7 +46,9 @@ export const getFilteredSortedFeeds = (
       if (preloadedReplies) {
         for (const reply of preloadedReplies) {
           // replies are manually validated, could have fake subplebbitAddress
-          if (reply.subplebbitAddress !== comment.subplebbitAddress) {
+          if (
+            !areEquivalentSubplebbitAddresses(reply.subplebbitAddress, comment.subplebbitAddress)
+          ) {
             break;
           }
           bufferedFeedReplies.push(reply);
@@ -58,7 +61,9 @@ export const getFilteredSortedFeeds = (
         if (repliesPage?.comments) {
           for (const reply of repliesPage.comments) {
             // replies are manually validated, could have fake subplebbitAddress
-            if (reply.subplebbitAddress !== comment.subplebbitAddress) {
+            if (
+              !areEquivalentSubplebbitAddresses(reply.subplebbitAddress, comment.subplebbitAddress)
+            ) {
               break;
             }
             bufferedFeedReplies.push(reply);

@@ -3,6 +3,7 @@ import QuickLru from "quick-lru";
 import Logger from "@plebbit/plebbit-logger";
 import PlebbitJs from "../plebbit-js";
 import { Comment } from "../../types";
+import { areEquivalentSubplebbitAddresses } from "../subplebbit-address";
 const log = Logger("bitsocial-react-hooks:utils");
 
 const merge = (...args: any) => {
@@ -359,7 +360,7 @@ export const repliesAreValid = async (
   // manual validation
   for (const reply of replies) {
     if (
-      reply.subplebbitAddress !== comment.subplebbitAddress ||
+      !areEquivalentSubplebbitAddresses(reply.subplebbitAddress, comment.subplebbitAddress) ||
       reply.depth !== comment.depth + 1 ||
       reply.parentCid !== comment.cid
     ) {
@@ -369,7 +370,7 @@ export const repliesAreValid = async (
       console.log("invalid comment", {
         comment: reply,
         error:
-          "reply.subplebbitAddress !== comment.subplebbitAddress || reply.depth !== comment.depth + 1 || reply.parentCid !== comment.cid",
+          "!areEquivalentSubplebbitAddresses(reply.subplebbitAddress, comment.subplebbitAddress) || reply.depth !== comment.depth + 1 || reply.parentCid !== comment.cid",
       });
       return false;
     }

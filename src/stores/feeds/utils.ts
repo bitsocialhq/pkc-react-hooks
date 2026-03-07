@@ -21,6 +21,7 @@ import {
   commentIsValid,
   removeInvalidComments,
 } from "../../lib/utils";
+import { areEquivalentSubplebbitAddresses } from "../../lib/subplebbit-address";
 import Logger from "@plebbit/plebbit-logger";
 const log = Logger("bitsocial-react-hooks:feeds:stores");
 
@@ -67,7 +68,7 @@ export const getFilteredSortedFeeds = (
       if (preloadedPosts) {
         for (const post of preloadedPosts) {
           // posts are manually validated, could have fake subplebbitAddress
-          if (post.subplebbitAddress !== subplebbitAddress) {
+          if (!areEquivalentSubplebbitAddresses(post.subplebbitAddress, subplebbitAddress)) {
             break;
           }
           bufferedFeedPosts.push(post);
@@ -85,7 +86,7 @@ export const getFilteredSortedFeeds = (
         if (subplebbitPage?.comments) {
           for (const post of subplebbitPage.comments) {
             // posts are manually validated, could have fake subplebbitAddress
-            if (post.subplebbitAddress !== subplebbitAddress) {
+            if (!areEquivalentSubplebbitAddresses(post.subplebbitAddress, subplebbitAddress)) {
               break;
             }
             bufferedFeedPosts.push(post);

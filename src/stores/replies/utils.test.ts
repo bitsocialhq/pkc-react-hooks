@@ -190,6 +190,40 @@ describe("replies utils", () => {
       expect(feeds.feed1[0].cid).toBe("r1");
     });
 
+    test("keeps replies when comment and reply subplebbit addresses use .eth/.bso aliases", () => {
+      const comments = {
+        comment1: {
+          cid: "comment1",
+          subplebbitAddress: "music-posting.bso",
+          updatedAt: 1,
+          replies: {
+            pages: {
+              new: {
+                comments: [
+                  { cid: "r1", subplebbitAddress: "music-posting.eth", timestamp: 1 },
+                  { cid: "r2", subplebbitAddress: "music-posting.eth", timestamp: 2 },
+                ],
+              },
+            },
+          },
+        },
+      };
+      const feedsOptions = {
+        feed1: {
+          commentCid: "comment1",
+          sortType: "new",
+          accountId: mockAccountId,
+        },
+      };
+      const feeds = getFilteredSortedFeeds(
+        feedsOptions,
+        comments,
+        {},
+        { [mockAccountId]: { plebbit: {}, blockedAddresses: {}, blockedCids: {} } },
+      );
+      expect(feeds.feed1.map((reply: any) => reply.cid)).toEqual(["r2", "r1"]);
+    });
+
     test("fallback to any page when no pageCids, no nextCids, single preloaded page", () => {
       const reply = {
         cid: "fallback-reply",

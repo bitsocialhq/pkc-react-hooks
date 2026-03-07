@@ -227,6 +227,34 @@ describe("feeds utils", () => {
       expect(feeds.feed1[0].cid).toBe("c1");
     });
 
+    test("keeps posts when requested subplebbitAddress is a .bso alias of the post .eth address", () => {
+      const subplebbits = {
+        "music-posting.bso": {
+          address: "music-posting.bso",
+          updatedAt: 1,
+          posts: {
+            pages: {
+              new: {
+                comments: [
+                  { cid: "c1", subplebbitAddress: "music-posting.eth", timestamp: 1 },
+                  { cid: "c2", subplebbitAddress: "music-posting.eth", timestamp: 2 },
+                ],
+              },
+            },
+          },
+        },
+      };
+      const feedsOptions = {
+        feed1: {
+          subplebbitAddresses: ["music-posting.bso"],
+          sortType: "new",
+          accountId: mockAccountId,
+        },
+      };
+      const feeds = getFilteredSortedFeeds(feedsOptions, subplebbits, {}, makeMockAccounts());
+      expect(feeds.feed1.map((post: any) => post.cid)).toEqual(["c2", "c1"]);
+    });
+
     test("skips post when subplebbit address is blocked", () => {
       const blockedSubAddr = "blocked-sub-addr";
       const subplebbits = {
