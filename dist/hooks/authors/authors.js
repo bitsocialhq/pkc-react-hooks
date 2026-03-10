@@ -18,6 +18,7 @@ import { useComment } from "../comments";
 import { useAuthorCommentsName, usePlebbitAddress } from "./utils";
 import useAuthorsCommentsStore from "../../stores/authors-comments";
 import PlebbitJs from "../../lib/plebbit-js";
+import { normalizeEthAliasDomain } from "../../lib/subplebbit-address";
 import QuickLRU from "quick-lru";
 export { setAuthorAvatarsWhitelistedTokenAddresses } from "./author-avatars";
 const cacheResolveAuthorAddressPromise = (address, promise) => {
@@ -317,7 +318,7 @@ export function resetAuthorAddressCacheForTesting() {
  */
 // NOTE: useResolvedAuthorAddress tests are skipped, if changes are made they must be tested manually
 export function useResolvedAuthorAddress(options) {
-    var _a, _b;
+    var _a;
     assert(!options || typeof options === "object", `useResolvedAuthorAddress options argument '${options}' not an object`);
     let { author, accountName, cache } = options || {};
     // cache by default
@@ -342,7 +343,10 @@ export function useResolvedAuthorAddress(options) {
         initialState = "ready";
     }
     const isCryptoName = author === null || author === void 0 ? void 0 : author.address.includes(".");
-    const tld = isCryptoName ? (_b = author === null || author === void 0 ? void 0 : author.address) === null || _b === void 0 ? void 0 : _b.split(".").pop() : undefined;
+    const normalizedCryptoDomain = isCryptoName && (author === null || author === void 0 ? void 0 : author.address)
+        ? normalizeEthAliasDomain(author.address.toLowerCase())
+        : undefined;
+    const chainProviderKey = normalizedCryptoDomain === null || normalizedCryptoDomain === void 0 ? void 0 : normalizedCryptoDomain.split(".").pop();
     const resolveAuthorAddressNoCache = () => {
         if (Boolean(resolveAuthorAddressPromises[author === null || author === void 0 ? void 0 : author.address])) {
             return resolveAuthorAddressPromises[author === null || author === void 0 ? void 0 : author.address];
@@ -384,8 +388,8 @@ export function useResolvedAuthorAddress(options) {
             }
             return;
         }
-        // only support resolving '.eth/.sol' for now
-        if (tld !== "eth" && tld !== "sol") {
+        // only support resolving '.eth/.bso' aliases and '.sol' for now
+        if (chainProviderKey !== "eth" && chainProviderKey !== "sol") {
             if (state !== "failed") {
                 setErrors([Error("crypto domain type unsupported")]);
                 setState("failed");
@@ -422,7 +426,7 @@ export function useResolvedAuthorAddress(options) {
         }))();
     }, interval, true, [author === null || author === void 0 ? void 0 : author.address, chainProviders]);
     log("useResolvedAuthorAddress", { author, state, errors, resolvedAddress, chainProviders });
-    const chainProvider = chainProviders === null || chainProviders === void 0 ? void 0 : chainProviders[tld];
+    const chainProvider = chainProviderKey ? chainProviders === null || chainProviders === void 0 ? void 0 : chainProviders[chainProviderKey] : undefined;
     return useMemo(() => ({
         resolvedAddress,
         chainProvider,
