@@ -36,6 +36,7 @@ This repo is a temporary fork of [plebbit/plebbit-react-hooks](https://github.co
 | Tests added or changed (`src/**/*.test.ts`, `test/`) | Run `yarn test` to verify |
 | GitHub operation needed | Use `gh` CLI, not GitHub MCP |
 | User asks for commit/issue phrasing | Use `docs/agent-playbooks/commit-issue-format.md` |
+| Repo AI workflow files changed (`.codex/**`, `.cursor/**`) | Keep the Codex and Cursor copies aligned when they represent the same workflow |
 | Surprising/ambiguous repo behavior encountered | Alert developer and, once confirmed, document in `docs/agent-playbooks/known-surprises.md` |
 
 ## Stack
@@ -115,6 +116,11 @@ src/
 - Do not use GitHub MCP.
 - Do not use browser MCP servers.
 - If many MCP tools are present in context, warn user and suggest disabling unused MCPs.
+
+### AI Tooling Rules
+
+- Treat `.codex/` and `.cursor/` as repo-managed contributor tooling, not private scratch space.
+- Keep equivalent workflow files aligned across both toolchains when both directories contain the same skill, hook, or agent.
 
 ### Security and Boundaries
 
