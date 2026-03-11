@@ -1009,8 +1009,8 @@ const _community = useCommunity({ communityAddress: createdCommunity.address });
 
 ```jsx
 const { accountCommunities } = useAccountCommunities();
-const ownerCommunityAddresses = Object.keys(accountCommunities).map(
-  (communityAddress) => accountCommunities[communityAddress].role === "owner",
+const ownerCommunityAddresses = Object.keys(accountCommunities).filter(
+  (communityAddress) => accountCommunities[communityAddress].role?.role === "owner",
 );
 const communities = useCommunities({ communityAddresses: ownerCommunityAddresses });
 ```

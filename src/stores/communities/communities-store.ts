@@ -38,7 +38,7 @@ const communitiesStore = createStore<CommunitiesState>(
         `communitiesStore.addCommunityToStore invalid communityAddress argument '${communityAddress}'`,
       );
       assert(
-        typeof account?.plebbit?.getCommunity === "function",
+        typeof account?.plebbit?.createCommunity === "function",
         `communitiesStore.addCommunityToStore invalid account argument '${account}'`,
       );
 

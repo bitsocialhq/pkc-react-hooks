@@ -283,7 +283,9 @@ const onCommunityPostsClientsStateChange =
     });
   };
 
-const fetchPageCommunities: { [communityAddress: string]: any } = {}; // cache plebbit.createCommunities because sometimes it's slow
+const fetchPageCommunities: {
+  [accountId: string]: { plebbit: any; communities: { [communityAddress: string]: any } };
+} = {}; // cache created community clients per account because creating them can be slow
 let fetchPagePending: { [key: string]: boolean } = {};
 const fetchPage = async (
   pageCid: string,
@@ -296,15 +298,22 @@ const fetchPage = async (
   if (cachedCommunityPage) {
     return cachedCommunityPage;
   }
-  if (!fetchPageCommunities[communityAddress]) {
-    fetchPageCommunities[communityAddress] = await account.plebbit.createCommunity({
+  if (
+    !fetchPageCommunities[account.id] ||
+    fetchPageCommunities[account.id].plebbit !== account.plebbit
+  ) {
+    fetchPageCommunities[account.id] = { plebbit: account.plebbit, communities: {} };
+  }
+  const accountCommunities = fetchPageCommunities[account.id].communities;
+  if (!accountCommunities[communityAddress]) {
+    accountCommunities[communityAddress] = await account.plebbit.createCommunity({
       address: communityAddress,
     });
-    listeners.push(fetchPageCommunities[communityAddress]);
+    listeners.push(accountCommunities[communityAddress]);
 
     // set clients states on communities store so the frontend can display it
     utils.pageClientsOnStateChange(
-      fetchPageCommunities[communityAddress][pageType]?.clients,
+      accountCommunities[communityAddress][pageType]?.clients,
       onCommunityPostsClientsStateChange(communityAddress),
     );
   }
@@ -315,7 +324,7 @@ const fetchPage = async (
       error,
     );
   const fetchedCommunityPage = await utils.retryInfinity(
-    () => fetchPageCommunities[communityAddress][pageType].getPage({ cid: pageCid }),
+    () => accountCommunities[communityAddress][pageType].getPage({ cid: pageCid }),
     { onError },
   );
   await communitiesPagesDatabase.setItem(pageCid, utils.clone(fetchedCommunityPage));
@@ -385,8 +394,12 @@ const originalState = communitiesPagesStore.getState();
 // async function because some stores have async init
 export const resetCommunitiesPagesStore = async () => {
   fetchPagePending = {};
+  for (const accountId in fetchPageCommunities) {
+    delete fetchPageCommunities[accountId];
+  }
   // remove all event listeners
   listeners.forEach((listener: any) => listener.removeAllListeners());
+  listeners.length = 0;
   // destroy all component subscriptions to the store
   communitiesPagesStore.destroy();
   // restore original state

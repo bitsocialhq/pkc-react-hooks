@@ -1,6 +1,11 @@
 import utils from "./utils";
 
 describe("utils", () => {
+  test("communityPostsCacheExpired returns false when fetchedAt is missing", () => {
+    expect(utils.communityPostsCacheExpired(undefined)).toBe(false);
+    expect(utils.communityPostsCacheExpired({})).toBe(false);
+  });
+
   describe("repliesAreValid", () => {
     test("accepts reply pages when comment and reply community addresses are .eth/.bso aliases", async () => {
       const comment = {

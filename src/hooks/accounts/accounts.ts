@@ -142,7 +142,7 @@ export function useAccountCommunities(
   );
 
   // get all unique account community addresses
-  const ownerCommunityAddresses = useListCommunities();
+  const ownerCommunityAddresses = useListCommunities(accountName);
   const groupedCommunityAddresses = useMemo(() => {
     const accountCommunityAddresses = [];
     if (accountsStoreAccountCommunities) {

@@ -278,6 +278,21 @@ export class Community extends EventEmitter {
       this.modQueue.pageCids = createCommunityOptions?.modQueue?.pageCids;
     }
 
+    if (createCommunityOptions) {
+      for (const prop in createCommunityOptions) {
+        if (createCommunityOptions[prop] !== undefined) {
+          const descriptor =
+            Object.getOwnPropertyDescriptor(this, prop) ||
+            Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this), prop);
+          if (descriptor && !descriptor.writable && !descriptor.set) {
+            continue;
+          }
+          // @ts-ignore
+          this[prop] = createCommunityOptions[prop];
+        }
+      }
+    }
+
     // only trigger a first update if argument is only ({address})
     if (!createCommunityOptions?.address || Object.keys(createCommunityOptions).length !== 1) {
       this.firstUpdate = false;
@@ -381,7 +396,13 @@ export class Community extends EventEmitter {
 
     // do community.edit
     for (const prop in editCommunityOptions) {
-      if (editCommunityOptions[prop]) {
+      if (editCommunityOptions[prop] !== undefined) {
+        const descriptor =
+          Object.getOwnPropertyDescriptor(this, prop) ||
+          Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this), prop);
+        if (descriptor && !descriptor.writable && !descriptor.set) {
+          continue;
+        }
         // @ts-ignore
         this[prop] = editCommunityOptions[prop];
       }

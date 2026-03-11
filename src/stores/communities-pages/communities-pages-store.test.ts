@@ -231,6 +231,26 @@ describe("communities pages store", () => {
     expect(state.communitiesPages).toEqual({});
   });
 
+  test("addNextCommunityPageToStore scopes cached page clients per account", async () => {
+    const createCommunityA = vi.fn(async ({ address }: any) => new MockCommunity({ address }));
+    const createCommunityB = vi.fn(async ({ address }: any) => new MockCommunity({ address }));
+    const accountA = { id: "account-a", plebbit: { createCommunity: createCommunityA } };
+    const accountB = { id: "account-b", plebbit: { createCommunity: createCommunityB } };
+    const community = new MockCommunity({ address: "shared-community-address" });
+    const sortType = "new";
+    const firstPageCid = community.posts.pageCids[sortType];
+    const secondPageCid = `${firstPageCid} - next page cid`;
+
+    await rendered.result.current.addNextCommunityPageToStore(community, sortType, accountA);
+    await waitFor(() => rendered.result.current.communitiesPages[firstPageCid]);
+
+    await rendered.result.current.addNextCommunityPageToStore(community, sortType, accountB);
+    await waitFor(() => rendered.result.current.communitiesPages[secondPageCid]);
+
+    expect(createCommunityA).toHaveBeenCalledTimes(1);
+    expect(createCommunityB).toHaveBeenCalledTimes(1);
+  });
+
   test("invalidateCommunityPages clears stored page chains for posts", async () => {
     const firstPageCid = "invalidate-posts-page-1";
     const secondPageCid = "invalidate-posts-page-2";

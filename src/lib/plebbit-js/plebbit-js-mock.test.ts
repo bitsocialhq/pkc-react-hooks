@@ -84,7 +84,7 @@ describe("PlebbitJsMock", () => {
     const plebbit = await PlebbitJsMock();
     const comment = await plebbit.createComment({
       content: "content",
-      communityAddresses: "community address",
+      communityAddress: "community address",
     });
 
     // initial state is stopped
@@ -154,5 +154,25 @@ describe("PlebbitJsMock", () => {
     expect(comment.publishingState).toBe("stopped");
     expect(onStatechange.mock.calls.some((c) => c[0] === "stopped")).toBe(true);
     expect(onPublishingstatechange.mock.calls.some((c) => c[0] === "stopped")).toBe(true);
+  });
+
+  test("Community create/edit preserves intentional falsy values", async () => {
+    const plebbit = await PlebbitJsMock();
+    const community = await plebbit.createCommunity({
+      address: "community address",
+      customFlag: false,
+      customCount: 0,
+      customLabel: "",
+      suggested: true,
+      title: "title",
+    });
+
+    expect((community as any).customFlag).toBe(false);
+    expect((community as any).customCount).toBe(0);
+    expect((community as any).customLabel).toBe("");
+
+    await community.edit({ suggested: false, title: "" });
+    expect(community.suggested).toBe(false);
+    expect(community.title).toBe("");
   });
 });

@@ -93,27 +93,42 @@ export function useCommunityStats(options?: UseCommunityStatsOptions): UseCommun
   const setCommunityStats = useCommunitiesStatsStore(
     (state: CommunitiesStatsState) => state.setCommunityStats,
   );
+  const [fetchError, setFetchError] = useState<Error | undefined>();
 
   useEffect(() => {
+    setFetchError(undefined);
     if (!communityAddress || !communityStatsCid || !account) {
       return;
     }
+    let cancelled = false;
     (async () => {
       let fetchedCid;
       try {
         fetchedCid = await account.plebbit.fetchCid({ cid: communityStatsCid });
         fetchedCid = JSON.parse(fetchedCid);
+        if (cancelled) {
+          return;
+        }
         setCommunityStats(communityAddress, fetchedCid);
       } catch (error) {
+        const normalizedError =
+          error instanceof Error ? error : new Error(typeof error === "string" ? error : "error");
+        if (cancelled) {
+          return;
+        }
+        setFetchError(normalizedError);
         log.error("useCommunityStats plebbit.fetchCid error", {
           communityAddress,
           communityStatsCid,
           community,
           fetchedCid,
-          error,
+          error: normalizedError,
         });
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [communityStatsCid, account?.id, communityAddress, setCommunityStats]);
 
   if (account && communityStatsCid) {
@@ -126,16 +141,23 @@ export function useCommunityStats(options?: UseCommunityStatsOptions): UseCommun
     });
   }
 
-  const state = communityStats ? "succeeded" : "fetching-ipfs";
+  const state =
+    !communityAddress || !account || !communityStatsCid
+      ? "uninitialized"
+      : fetchError
+        ? "failed"
+        : communityStats
+          ? "succeeded"
+          : "fetching-ipfs";
 
   return useMemo(
     () => ({
       ...communityStats,
       state,
-      error: undefined,
-      errors: [],
+      error: fetchError,
+      errors: fetchError ? [fetchError] : [],
     }),
-    [communityStats, communityStatsCid, communityAddress],
+    [communityStats, state, fetchError],
   );
 }
 
@@ -209,8 +231,8 @@ export function useCommunities(options?: UseCommunitiesOptions): UseCommunitiesR
 /**
  * Returns all the owner communities created by plebbit-js by calling plebbit.listCommunities()
  */
-export function useListCommunities() {
-  const account = useAccount();
+export function useListCommunities(accountName?: string) {
+  const account = useAccount({ accountName });
   const [communityAddresses, setCommunityAddresses] = useState<string[]>([]);
 
   const delay = 1000;

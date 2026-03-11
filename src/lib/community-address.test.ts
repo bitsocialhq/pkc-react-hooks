@@ -22,6 +22,7 @@ describe("community-address", () => {
 
   test("normalizes .bso aliases to .eth", () => {
     expect(normalizeEthAliasDomain("music-posting.bso")).toBe("music-posting.eth");
+    expect(normalizeEthAliasDomain("Music-Posting.BSO")).toBe("Music-Posting.eth");
     expect(normalizeEthAliasDomain("music-posting.eth")).toBe("music-posting.eth");
   });
 

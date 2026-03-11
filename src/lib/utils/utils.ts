@@ -280,8 +280,8 @@ const pageClientsOnStateChange = (clients: any, onStateChange: Function) => {
 
 export const communityPostsCacheExpired = (community: any) => {
   // NOTE: fetchedAt is undefined on owner communities
-  if (!community?.fetchedAt) {
-    false;
+  if (!community || community.fetchedAt == null) {
+    return false;
   }
   // if community cache is older than 1 hour, its community.posts are considered expired
   const oneHourAgo = Date.now() / 1000 - 60 * 60;

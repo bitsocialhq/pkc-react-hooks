@@ -1118,7 +1118,7 @@ class Community extends EventEmitter {
     this.statsCid = "statscid";
 
     for (const prop in createCommunityOptions) {
-      if (createCommunityOptions[prop]) {
+      if (createCommunityOptions[prop] !== undefined) {
         // @ts-ignore
         this[prop] = createCommunityOptions[prop];
       }
@@ -1156,7 +1156,7 @@ class Community extends EventEmitter {
       `invalid editCommunityOptions '${editCommunityOptions}'`,
     );
     for (const prop in editCommunityOptions) {
-      if (editCommunityOptions[prop]) {
+      if (editCommunityOptions[prop] !== undefined) {
         // @ts-ignore
         this[prop] = editCommunityOptions[prop];
       }

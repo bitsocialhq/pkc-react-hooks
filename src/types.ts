@@ -76,7 +76,7 @@ export interface UseAccountCommunitiesOptions extends Options {
   onlyIfCached?: boolean;
 }
 export interface UseAccountCommunitiesResult extends Result {
-  accountCommunities: AccountCommunity[];
+  accountCommunities: { [communityAddress: string]: AccountCommunity & Partial<Community> };
 }
 
 // usePubsubSubscribe(options): result

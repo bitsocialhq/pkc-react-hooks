@@ -4,7 +4,7 @@ const isEthAliasDomain = (address: string) => {
 };
 
 export const normalizeEthAliasDomain = (address: string) =>
-  address.endsWith(".bso") ? address.slice(0, -4) + ".eth" : address;
+  address.toLowerCase().endsWith(".bso") ? address.slice(0, -4) + ".eth" : address;
 
 export const getCanonicalCommunityAddress = (address: string) =>
   address.toLowerCase().endsWith(".eth") ? address.slice(0, -4) + ".bso" : address;

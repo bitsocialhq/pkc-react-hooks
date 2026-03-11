@@ -2,7 +2,7 @@
 /**
  * Reads coverage-final.json and reports uncovered statements, functions, and branches
  * for files matching: feed-sorter, feeds-store, feeds/utils, replies-pages-store,
- * replies-store, replies/utils, communitys-pages, communitys-store
+ * replies-store, replies/utils, communities-pages, communities-store
  */
 
 import { readFileSync } from "fs";
@@ -20,8 +20,8 @@ const MATCH_KEYS = [
   "replies-pages-store",
   "replies-store",
   "replies/utils",
-  "communitys-pages",
-  "communitys-store",
+  "communities-pages",
+  "communities-store",
 ];
 
 const data = JSON.parse(readFileSync(coveragePath, "utf8"));

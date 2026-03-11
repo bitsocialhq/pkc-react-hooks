@@ -319,6 +319,25 @@ describe("communities", () => {
     }
   });
 
+  test("useListCommunities reads communities from the requested account", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.spyOn(accountsHooks, "useAccount").mockImplementation(({ accountName }: any = {}) =>
+        accountName === "Account 2"
+          ? ({ plebbit: { communities: ["account 2 owner community"] } } as any)
+          : ({ plebbit: { communities: ["active owner community"] } } as any),
+      );
+      const rendered = renderHook<any, any>(() => useListCommunities("Account 2"));
+      await act(async () => {});
+      vi.advanceTimersByTime(1100);
+      await act(async () => {});
+      expect(rendered.result.current).toEqual(["account 2 owner community"]);
+    } finally {
+      vi.mocked(accountsHooks.useAccount).mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
   test("useListCommunities no-change branch when arrays match (line 227)", async () => {
     vi.useFakeTimers();
     try {
@@ -367,7 +386,7 @@ describe("communities", () => {
   test("useCommunityStats with no options (branch 88)", async () => {
     const rendered = renderHook<any, any>(() => useCommunityStats());
     await act(async () => {});
-    expect(rendered.result.current.state).toBe("fetching-ipfs");
+    expect(rendered.result.current.state).toBe("uninitialized");
   });
 
   test("useCommunityStats", async () => {
@@ -386,9 +405,10 @@ describe("communities", () => {
     const rendered = renderHook<any, any>(() =>
       useCommunityStats({ communityAddress: "community address 1" }),
     );
-    await testUtils
-      .createWaitFor(rendered)(() => true, { timeout: 2000 })
-      .catch(() => {});
+    const waitFor = testUtils.createWaitFor(rendered);
+    await waitFor(() => rendered.result.current.state === "failed");
+    expect(rendered.result.current.error?.message).toBe("fetchCid failed");
+    expect(rendered.result.current.errors).toHaveLength(1);
     (Plebbit.prototype as any).fetchCid = origFetch;
     logSpy.mockRestore();
   });

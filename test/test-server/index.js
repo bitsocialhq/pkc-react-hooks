@@ -42,7 +42,7 @@ const plebbitDataPath = getTmpFolderPath();
   const signer = await plebbit.createSigner({ privateKey, type: "ed25519" });
 
   console.log(`creating community with address '${signer.address}'...`);
-  const community = await plebbit.createCommunity({
+  const community = await plebbit.createSubplebbit({
     signer: signer,
   });
   community.on("challengerequest", console.log);

@@ -2234,6 +2234,48 @@ describe("accounts", () => {
       expect(rendered.result.current.state).toBe("succeeded");
     });
 
+    test("useAccountCommunities keeps owner communities scoped to the requested account", async () => {
+      await act(async () => {
+        await accountsActions.createAccount("Account 2");
+        await accountsActions.setActiveAccount("Account 1");
+      });
+
+      const state = accountsStore.getState();
+      const activeAccount = state.accounts[state.activeAccountId];
+      const account2 = state.accounts[state.accountNamesToAccountIds["Account 2"]];
+
+      Object.defineProperty(activeAccount.plebbit, "communities", {
+        configurable: true,
+        get: () => ["active owner community"],
+      });
+      Object.defineProperty(account2.plebbit, "communities", {
+        configurable: true,
+        get: () => ["account 2 owner community"],
+      });
+
+      try {
+        const rendered = renderHook<any, any>(() =>
+          useAccountCommunities({ accountName: "Account 2" }),
+        );
+        const waitFor = testUtils.createWaitFor(rendered, { timeout: 4000 });
+
+        await waitFor(
+          () =>
+            rendered.result.current.accountCommunities["account 2 owner community"]?.role?.role ===
+            "owner",
+        );
+        expect(
+          rendered.result.current.accountCommunities["account 2 owner community"]?.role?.role,
+        ).toBe("owner");
+        expect(
+          rendered.result.current.accountCommunities["active owner community"],
+        ).toBeUndefined();
+      } finally {
+        delete (activeAccount.plebbit as any).communities;
+        delete (account2.plebbit as any).communities;
+      }
+    });
+
     describe("with setup", () => {
       beforeAll(() => {
         testUtils.silenceWaitForWarning = true;

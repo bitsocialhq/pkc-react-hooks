@@ -244,7 +244,7 @@ const { feed, hasMore, loadMore } = useFeed({
   sortType: "topAll",
 });
 const community = useCommunity({ communityAddress });
-const stateString = useFeedStateString(communityAddresses);
+const stateString = useFeedStateString([communityAddress]);
 const errorString = useMemo(() => {
   if (community?.state === "failed") {
     let errorString = "Failed fetching community";
