@@ -12,7 +12,7 @@ import {
   Comment,
   AccountsComments,
   AccountCommentsReplies,
-  Subplebbit,
+  Community,
 } from "../../types";
 import utils from "../../lib/utils";
 
@@ -116,7 +116,7 @@ export const startUpdatingAccountCommentOnCommentUpdateEvents = async (
     const hasReplies = replyCount > 0;
     const repliesAreValid = await utils.repliesAreValid(
       updatedComment,
-      { validateReplies: false, blockSubplebbit: true },
+      { validateReplies: false, blockCommunity: true },
       account.plebbit,
     );
 
@@ -318,30 +318,30 @@ export const markNotificationsAsRead = async (account: Account) => {
   });
 };
 
-// internal accounts action: if a subplebbit has a role with an account's address
-// add it to the account.subplebbits database
-export const addSubplebbitRoleToAccountsSubplebbits = async (subplebbit: Subplebbit) => {
-  if (!subplebbit) {
+// internal accounts action: if a community has a role with an account's address
+// add it to the account.communities database
+export const addCommunityRoleToAccountsCommunities = async (community: Community) => {
+  if (!community) {
     return;
   }
   const { accounts } = accountsStore.getState();
   assert(accounts, `can't use accountsStore.accountActions before initialized`);
 
-  // find subplebbit roles to add and remove
-  const getRole = (subplebbit: any, authorAddress: string) =>
-    subplebbit.roles && subplebbit.roles[authorAddress];
-  const getChange = (accounts: any, subplebbit: any) => {
+  // find community roles to add and remove
+  const getRole = (community: any, authorAddress: string) =>
+    community.roles && community.roles[authorAddress];
+  const getChange = (accounts: any, community: any) => {
     const toAdd: string[] = [];
     const toRemove: string[] = [];
     for (const accountId in accounts) {
       const account = accounts[accountId];
-      const role = getRole(subplebbit, account.author.address);
+      const role = getRole(community, account.author.address);
       if (!role) {
-        if (account.subplebbits[subplebbit.address]) {
+        if (account.communities[community.address]) {
           toRemove.push(accountId);
         }
       } else {
-        if (!account.subplebbits[subplebbit.address]) {
+        if (!account.communities[community.address]) {
           toAdd.push(accountId);
         }
       }
@@ -349,35 +349,35 @@ export const addSubplebbitRoleToAccountsSubplebbits = async (subplebbit: Subpleb
     return { toAdd, toRemove, hasChange: toAdd.length !== 0 || toRemove.length !== 0 };
   };
 
-  const { hasChange } = getChange(accounts, subplebbit);
+  const { hasChange } = getChange(accounts, community);
   if (!hasChange) {
     return;
   }
 
   accountsStore.setState(({ accounts }) => {
-    const { toAdd, toRemove, hasChange } = getChange(accounts, subplebbit);
+    const { toAdd, toRemove, hasChange } = getChange(accounts, community);
     const nextAccounts = { ...accounts };
 
     // edit databases and build next accounts (toAdd implies role exists from getChange)
     for (const accountId of toAdd) {
       const account = { ...nextAccounts[accountId] };
-      const role = subplebbit.roles![account.author.address];
-      account.subplebbits = {
-        ...account.subplebbits,
-        [subplebbit.address]: { role },
+      const role = community.roles![account.author.address];
+      account.communities = {
+        ...account.communities,
+        [community.address]: { role },
       };
       nextAccounts[accountId] = account;
       accountsDatabase.addAccount(account);
     }
     for (const accountId of toRemove) {
       const account = { ...nextAccounts[accountId] };
-      account.subplebbits = { ...account.subplebbits };
-      delete account.subplebbits[subplebbit.address];
+      account.communities = { ...account.communities };
+      delete account.communities[community.address];
       nextAccounts[accountId] = account;
       accountsDatabase.addAccount(account);
     }
 
-    log("accountsActions.addSubplebbitRoleToAccountsSubplebbits", { subplebbit, toAdd, toRemove });
+    log("accountsActions.addCommunityRoleToAccountsCommunities", { community, toAdd, toRemove });
     return { accounts: nextAccounts };
   });
 };
