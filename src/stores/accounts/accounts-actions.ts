@@ -28,6 +28,7 @@ import {
   createPlebbitCommunityEdit,
   getPlebbitCommunityAddresses,
   normalizeCommunityEditOptionsForPlebbit,
+  normalizePublicationOptionsForStore,
   normalizePublicationOptionsForPlebbit,
 } from "../../lib/plebbit-compat";
 import {
@@ -647,6 +648,7 @@ export const publishComment = async (
   delete createCommentOptions.onError;
   delete createCommentOptions.onPublishingStateChange;
   delete createCommentOptions._onPendingCommentIndex;
+  const storedCreateCommentOptions = normalizePublicationOptionsForStore(createCommentOptions);
 
   // make sure the options dont throw
   await account.plebbit.createComment(createCommentOptions);
@@ -681,7 +683,7 @@ export const publishComment = async (
     });
   };
   let createdAccountComment = {
-    ...createCommentOptions,
+    ...storedCreateCommentOptions,
     depth,
     index: accountCommentIndex,
     accountId: account.id,
@@ -917,6 +919,7 @@ export const publishVote = async (publishVoteOptions: PublishVoteOptions, accoun
   delete createVoteOptions.onChallengeVerification;
   delete createVoteOptions.onError;
   delete createVoteOptions.onPublishingStateChange;
+  const storedCreateVoteOptions = normalizePublicationOptionsForStore(createVoteOptions);
 
   let vote = await account.plebbit.createVote(createVoteOptions);
   let lastChallenge: Challenge | undefined;
@@ -951,16 +954,16 @@ export const publishVote = async (publishVoteOptions: PublishVoteOptions, accoun
   };
 
   publishAndRetryFailedChallengeVerification();
-  await accountsDatabase.addAccountVote(account.id, createVoteOptions);
+  await accountsDatabase.addAccountVote(account.id, storedCreateVoteOptions);
   log("accountsActions.publishVote", { createVoteOptions });
   accountsStore.setState(({ accountsVotes }) => ({
     accountsVotes: {
       ...accountsVotes,
       [account.id]: {
         ...accountsVotes[account.id],
-        [createVoteOptions.commentCid]:
+        [storedCreateVoteOptions.commentCid]:
           // remove signer and author because not needed and they expose private key
-          { ...createVoteOptions, signer: undefined, author: undefined },
+          { ...storedCreateVoteOptions, signer: undefined, author: undefined },
       },
     },
   }));
@@ -996,6 +999,8 @@ export const publishCommentEdit = async (
   delete createCommentEditOptions.onChallengeVerification;
   delete createCommentEditOptions.onError;
   delete createCommentEditOptions.onPublishingStateChange;
+  const storedCreateCommentEditOptions =
+    normalizePublicationOptionsForStore(createCommentEditOptions);
 
   let commentEdit = await account.plebbit.createCommentEdit(createCommentEditOptions);
   let lastChallenge: Challenge | undefined;
@@ -1039,19 +1044,23 @@ export const publishCommentEdit = async (
 
   publishAndRetryFailedChallengeVerification();
 
-  await accountsDatabase.addAccountEdit(account.id, createCommentEditOptions);
+  await accountsDatabase.addAccountEdit(account.id, storedCreateCommentEditOptions);
   log("accountsActions.publishCommentEdit", { createCommentEditOptions });
   accountsStore.setState(({ accountsEdits }) => {
     // remove signer and author because not needed and they expose private key
-    const commentEdit = { ...createCommentEditOptions, signer: undefined, author: undefined };
-    let commentEdits = accountsEdits[account.id][createCommentEditOptions.commentCid] || [];
+    const commentEdit = {
+      ...storedCreateCommentEditOptions,
+      signer: undefined,
+      author: undefined,
+    };
+    let commentEdits = accountsEdits[account.id][storedCreateCommentEditOptions.commentCid] || [];
     commentEdits = [...commentEdits, commentEdit];
     return {
       accountsEdits: {
         ...accountsEdits,
         [account.id]: {
           ...accountsEdits[account.id],
-          [createCommentEditOptions.commentCid]: commentEdits,
+          [storedCreateCommentEditOptions.commentCid]: commentEdits,
         },
       },
     };
@@ -1088,6 +1097,9 @@ export const publishCommentModeration = async (
   delete createCommentModerationOptions.onChallengeVerification;
   delete createCommentModerationOptions.onError;
   delete createCommentModerationOptions.onPublishingStateChange;
+  const storedCreateCommentModerationOptions = normalizePublicationOptionsForStore(
+    createCommentModerationOptions,
+  );
 
   let commentModeration = await account.plebbit.createCommentModeration(
     createCommentModerationOptions,
@@ -1138,24 +1150,24 @@ export const publishCommentModeration = async (
 
   publishAndRetryFailedChallengeVerification();
 
-  await accountsDatabase.addAccountEdit(account.id, createCommentModerationOptions);
+  await accountsDatabase.addAccountEdit(account.id, storedCreateCommentModerationOptions);
   log("accountsActions.publishCommentModeration", { createCommentModerationOptions });
   accountsStore.setState(({ accountsEdits }) => {
     // remove signer and author because not needed and they expose private key
     const commentModeration = {
-      ...createCommentModerationOptions,
+      ...storedCreateCommentModerationOptions,
       signer: undefined,
       author: undefined,
     };
     let commentModerations =
-      accountsEdits[account.id][createCommentModerationOptions.commentCid] || [];
+      accountsEdits[account.id][storedCreateCommentModerationOptions.commentCid] || [];
     commentModerations = [...commentModerations, commentModeration];
     return {
       accountsEdits: {
         ...accountsEdits,
         [account.id]: {
           ...accountsEdits[account.id],
-          [createCommentModerationOptions.commentCid]: commentModerations,
+          [storedCreateCommentModerationOptions.commentCid]: commentModerations,
         },
       },
     };

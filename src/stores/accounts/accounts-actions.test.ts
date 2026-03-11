@@ -854,6 +854,26 @@ describe("accounts-actions", () => {
           onChallengeVerification: () => {},
         });
       });
+
+      const { activeAccountId, accountsComments, accountsVotes, accountsEdits } =
+        accountsStore.getState();
+      const accountId = activeAccountId!;
+      const storedComment = accountsComments[accountId][0];
+      const storedVote = accountsVotes[accountId]["legacy cid"];
+      const storedEdits = accountsEdits[accountId]["legacy cid"] || [];
+
+      expect(storedComment.communityAddress).toBe("sub.eth");
+      expect(storedComment.subplebbitAddress).toBeUndefined();
+      expect(storedComment.shortCommunityAddress).toBeDefined();
+
+      expect(storedVote.communityAddress).toBe("sub.eth");
+      expect(storedVote.subplebbitAddress).toBeUndefined();
+
+      expect(storedEdits).toHaveLength(2);
+      for (const storedEdit of storedEdits) {
+        expect(storedEdit.communityAddress).toBe("sub.eth");
+        expect(storedEdit.subplebbitAddress).toBeUndefined();
+      }
     });
   });
 

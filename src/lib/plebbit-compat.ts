@@ -43,6 +43,18 @@ export const normalizePublicationOptionsForPlebbit = <T extends Record<string, a
   return normalized as T;
 };
 
+export const normalizePublicationOptionsForStore = <T extends Record<string, any>>(
+  options: T,
+): T => {
+  const communityAddress = options.communityAddress ?? options.subplebbitAddress;
+  if (!communityAddress) {
+    return options;
+  }
+  const normalized: Record<string, any> = { ...options, communityAddress };
+  delete normalized.subplebbitAddress;
+  return normalized as T;
+};
+
 export const normalizeCommunityEditOptionsForPlebbit = <T extends Record<string, any>>(
   plebbit: any,
   options: T,
