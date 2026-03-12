@@ -766,11 +766,8 @@ export const publishComment = async (
           });
 
           // clone the comment or it bugs publishing callbacks
-          const updatingComment = backfillPublicationCommunityAddress(
-            await account.plebbit.createComment(
-              normalizePublicationOptionsForPlebbit(account.plebbit, { ...comment }),
-            ),
-            comment,
+          const updatingComment = await account.plebbit.createComment(
+            normalizePublicationOptionsForPlebbit(account.plebbit, { ...comment }),
           );
           accountsActionsInternal
             .startUpdatingAccountCommentOnCommentUpdateEvents(
