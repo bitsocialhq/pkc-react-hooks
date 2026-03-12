@@ -63,10 +63,19 @@ export const normalizeCommunityEditOptionsForPlebbit = <T extends Record<string,
 export const getCommentCommunityAddress = (comment: any): string | undefined =>
   comment?.communityAddress || comment?.subplebbitAddress;
 
+const isLiveCommentInstance = (comment: any) =>
+  typeof comment?.on === "function" ||
+  typeof comment?.once === "function" ||
+  typeof comment?.update === "function";
+
 export const normalizeCommentCommunityAddress = <T extends Record<string, any> | undefined>(
   comment: T,
 ): T => {
   if (!comment || comment.communityAddress || !comment.subplebbitAddress) {
+    return comment;
+  }
+  if (isLiveCommentInstance(comment)) {
+    comment.communityAddress = comment.subplebbitAddress;
     return comment;
   }
   return { ...comment, communityAddress: comment.subplebbitAddress } as T;
