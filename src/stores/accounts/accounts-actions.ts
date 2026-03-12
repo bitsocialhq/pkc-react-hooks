@@ -935,7 +935,10 @@ export const publishVote = async (publishVoteOptions: PublishVoteOptions, accoun
   delete createVoteOptions.onPublishingStateChange;
   const storedCreateVoteOptions = normalizePublicationOptionsForStore(createVoteOptions);
 
-  let vote = await account.plebbit.createVote(createVoteOptions);
+  let vote = backfillPublicationCommunityAddress(
+    await account.plebbit.createVote(createVoteOptions),
+    createVoteOptions,
+  );
   let lastChallenge: Challenge | undefined;
   const publishAndRetryFailedChallengeVerification = async () => {
     vote.once("challenge", async (challenge: Challenge) => {
@@ -947,7 +950,10 @@ export const publishVote = async (publishVoteOptions: PublishVoteOptions, accoun
       if (!challengeVerification.challengeSuccess && lastChallenge) {
         // publish again automatically on fail
         createVoteOptions = { ...createVoteOptions, timestamp: Math.floor(Date.now() / 1000) };
-        vote = await account.plebbit.createVote(createVoteOptions);
+        vote = backfillPublicationCommunityAddress(
+          await account.plebbit.createVote(createVoteOptions),
+          createVoteOptions,
+        );
         lastChallenge = undefined;
         publishAndRetryFailedChallengeVerification();
       }
@@ -1016,7 +1022,10 @@ export const publishCommentEdit = async (
   const storedCreateCommentEditOptions =
     normalizePublicationOptionsForStore(createCommentEditOptions);
 
-  let commentEdit = await account.plebbit.createCommentEdit(createCommentEditOptions);
+  let commentEdit = backfillPublicationCommunityAddress(
+    await account.plebbit.createCommentEdit(createCommentEditOptions),
+    createCommentEditOptions,
+  );
   let lastChallenge: Challenge | undefined;
   const publishAndRetryFailedChallengeVerification = async () => {
     commentEdit.once("challenge", async (challenge: Challenge) => {
@@ -1033,7 +1042,10 @@ export const publishCommentEdit = async (
             ...createCommentEditOptions,
             timestamp: Math.floor(Date.now() / 1000),
           };
-          commentEdit = await account.plebbit.createCommentEdit(createCommentEditOptions);
+          commentEdit = backfillPublicationCommunityAddress(
+            await account.plebbit.createCommentEdit(createCommentEditOptions),
+            createCommentEditOptions,
+          );
           lastChallenge = undefined;
           publishAndRetryFailedChallengeVerification();
         }
@@ -1115,7 +1127,8 @@ export const publishCommentModeration = async (
     createCommentModerationOptions,
   );
 
-  let commentModeration = await account.plebbit.createCommentModeration(
+  let commentModeration = backfillPublicationCommunityAddress(
+    await account.plebbit.createCommentModeration(createCommentModerationOptions),
     createCommentModerationOptions,
   );
   let lastChallenge: Challenge | undefined;
@@ -1137,7 +1150,8 @@ export const publishCommentModeration = async (
             ...createCommentModerationOptions,
             timestamp: Math.floor(Date.now() / 1000),
           };
-          commentModeration = await account.plebbit.createCommentModeration(
+          commentModeration = backfillPublicationCommunityAddress(
+            await account.plebbit.createCommentModeration(createCommentModerationOptions),
             createCommentModerationOptions,
           );
           lastChallenge = undefined;

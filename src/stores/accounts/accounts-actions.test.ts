@@ -213,7 +213,9 @@ function createLegacyPublicationSchemaPlebbitMock() {
       if ("communityAddress" in opts) {
         throw new Error("createVote received communityAddress");
       }
-      return super.createVote(opts);
+      const vote: any = await super.createVote(opts);
+      vote.subplebbitAddress = opts.subplebbitAddress;
+      return vote;
     }
 
     async createCommentEdit(opts: any) {
@@ -223,14 +225,18 @@ function createLegacyPublicationSchemaPlebbitMock() {
       if ("communityEdit" in opts) {
         throw new Error("createCommentEdit received communityEdit");
       }
-      return super.createCommentEdit(opts);
+      const commentEdit: any = await super.createCommentEdit(opts);
+      commentEdit.subplebbitAddress = opts.subplebbitAddress;
+      return commentEdit;
     }
 
     async createCommentModeration(opts: any) {
       if ("communityAddress" in opts) {
         throw new Error("createCommentModeration received communityAddress");
       }
-      return super.createCommentModeration(opts);
+      const commentModeration: any = await super.createCommentModeration(opts);
+      commentModeration.subplebbitAddress = opts.subplebbitAddress;
+      return commentModeration;
     }
 
     async createCommunityEdit(opts: any) {
@@ -969,6 +975,10 @@ describe("accounts-actions", () => {
         throw new Error("timed out waiting for store update");
       };
 
+      let remoteVotePublication: any;
+      let remoteCommentEditPublication: any;
+      let remoteCommentModerationPublication: any;
+
       await act(async () => {
         await accountsActions.publishComment({
           communityAddress: "sub.eth",
@@ -989,30 +999,48 @@ describe("accounts-actions", () => {
           communityAddress: "sub.eth",
           commentCid: "mixed cid",
           vote: 1,
-          onChallenge: (ch: any, v: any) => v.publishChallengeAnswers(["4"]),
-          onChallengeVerification: () => {},
+          onChallenge: (ch: any, v: any) => {
+            remoteVotePublication = v;
+            v.publishChallengeAnswers(["4"]);
+          },
+          onChallengeVerification: (_verification: any, v: any) => {
+            remoteVotePublication = v;
+          },
         });
       });
+      await waitForStore(() => remoteVotePublication?.communityAddress === "sub.eth");
 
       await act(async () => {
         await accountsActions.publishCommentEdit({
           communityAddress: "sub.eth",
           commentCid: "mixed cid",
           spoiler: true,
-          onChallenge: (ch: any, e: any) => e.publishChallengeAnswers(["4"]),
-          onChallengeVerification: () => {},
+          onChallenge: (ch: any, e: any) => {
+            remoteCommentEditPublication = e;
+            e.publishChallengeAnswers(["4"]);
+          },
+          onChallengeVerification: (_verification: any, e: any) => {
+            remoteCommentEditPublication = e;
+          },
         });
       });
+      await waitForStore(() => remoteCommentEditPublication?.communityAddress === "sub.eth");
 
       await act(async () => {
         await accountsActions.publishCommentModeration({
           communityAddress: "sub.eth",
           commentCid: "mixed cid",
           commentModeration: { locked: true },
-          onChallenge: (ch: any, m: any) => m.publishChallengeAnswers(["4"]),
-          onChallengeVerification: () => {},
+          onChallenge: (ch: any, m: any) => {
+            remoteCommentModerationPublication = m;
+            m.publishChallengeAnswers(["4"]);
+          },
+          onChallengeVerification: (_verification: any, m: any) => {
+            remoteCommentModerationPublication = m;
+          },
         });
       });
+      await waitForStore(() => remoteCommentModerationPublication?.communityAddress === "sub.eth");
 
       let remoteCommunityEditPublication: any;
       await act(async () => {
@@ -1043,11 +1071,14 @@ describe("accounts-actions", () => {
       expect(storedComment.subplebbitAddress).toBeUndefined();
       expect(storedVote.communityAddress).toBe("sub.eth");
       expect(storedVote.subplebbitAddress).toBeUndefined();
+      expect(remoteVotePublication.communityAddress).toBe("sub.eth");
       expect(storedEdits).toHaveLength(2);
       for (const storedEdit of storedEdits) {
         expect(storedEdit.communityAddress).toBe("sub.eth");
         expect(storedEdit.subplebbitAddress).toBeUndefined();
       }
+      expect(remoteCommentEditPublication.communityAddress).toBe("sub.eth");
+      expect(remoteCommentModerationPublication.communityAddress).toBe("sub.eth");
       expect(remoteCommunityEditPublication.communityAddress).toBe("remote-sub.eth");
     });
   });
