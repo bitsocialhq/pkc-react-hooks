@@ -1,18 +1,18 @@
-import { useAccount, useAccounts, useAccountComment, useAccountComments, useAccountVotes, useAccountVote, useAccountEdits, useEditedComment, useNotifications, useAccountSubplebbits, usePubsubSubscribe } from "./hooks/accounts";
+import { useAccount, useAccounts, useAccountComment, useAccountComments, useAccountVotes, useAccountVote, useAccountEdits, useEditedComment, useNotifications, useAccountCommunities, usePubsubSubscribe } from "./hooks/accounts";
 import { useComment, useComments, useValidateComment } from "./hooks/comments";
 import { useReplies } from "./hooks/replies";
-import { useSubplebbit, useSubplebbits, useSubplebbitStats, useResolvedSubplebbitAddress } from "./hooks/subplebbits";
+import { useCommunity, useCommunities, useCommunityStats, useListCommunities, useResolvedCommunityAddress } from "./hooks/communities";
 import { useFeed, useBufferedFeeds } from "./hooks/feeds";
 import { useAuthor, useAuthorComments, useAuthorAvatar, useResolvedAuthorAddress, useAuthorAddress, setAuthorAvatarsWhitelistedTokenAddresses, resetAuthorAddressCacheForTesting } from "./hooks/authors";
-import { useSubscribe, useBlock, usePublishComment, usePublishVote, useCreateSubplebbit, usePublishCommentEdit, usePublishCommentModeration, usePublishSubplebbitEdit } from "./hooks/actions";
-import { createAccount, deleteAccount, deleteComment, setAccount, setActiveAccount, setAccountsOrder, importAccount, exportAccount, deleteSubplebbit } from "./stores/accounts/accounts-actions";
-import { useClientsStates, useSubplebbitsStates } from "./hooks/states";
+import { useSubscribe, useBlock, usePublishComment, usePublishVote, useCreateCommunity, usePublishCommentEdit, usePublishCommentModeration, usePublishCommunityEdit } from "./hooks/actions";
+import { createAccount, deleteAccount, deleteComment, setAccount, setActiveAccount, setAccountsOrder, importAccount, exportAccount, deleteCommunity } from "./stores/accounts/accounts-actions";
+import { useClientsStates, useCommunitiesStates } from "./hooks/states";
 import { usePlebbitRpcSettings } from "./hooks/plebbit-rpc";
 import { getEthWalletFromPlebbitPrivateKey, getSolWalletFromPlebbitPrivateKey, getEthPrivateKeyFromPlebbitPrivateKey, getSolPrivateKeyFromPlebbitPrivateKey, validateEthWallet, validateSolWallet } from "./lib/chain";
 import { setPlebbitJs, restorePlebbitJs } from "./lib/plebbit-js";
 import { deleteDatabases, deleteCaches } from "./lib/debug-utils";
 export * from "./types";
-export { useAccount, useAccounts, useAccountComment, useAccountComments, useAccountVotes, useAccountVote, useAccountEdits, useAccountSubplebbits, useNotifications, usePubsubSubscribe, useComment, useComments, useEditedComment, useValidateComment, useReplies, useSubplebbit, useSubplebbits, useSubplebbitStats, useResolvedSubplebbitAddress, useAuthor, useAuthorComments, useAuthorAvatar, useResolvedAuthorAddress, useAuthorAddress, setAuthorAvatarsWhitelistedTokenAddresses, resetAuthorAddressCacheForTesting, useFeed, useBufferedFeeds, useSubscribe, useBlock, usePublishComment, usePublishVote, usePublishCommentEdit, usePublishCommentModeration, usePublishSubplebbitEdit, useCreateSubplebbit, createAccount, deleteAccount, deleteComment, setAccount, setActiveAccount, setAccountsOrder, importAccount, exportAccount, deleteSubplebbit, useClientsStates, useSubplebbitsStates, usePlebbitRpcSettings, getEthWalletFromPlebbitPrivateKey, getSolWalletFromPlebbitPrivateKey, getEthPrivateKeyFromPlebbitPrivateKey, getSolPrivateKeyFromPlebbitPrivateKey, validateEthWallet, validateSolWallet, setPlebbitJs, restorePlebbitJs, deleteDatabases, deleteCaches, };
+export { useAccount, useAccounts, useAccountComment, useAccountComments, useAccountVotes, useAccountVote, useAccountEdits, useAccountCommunities, useNotifications, usePubsubSubscribe, useComment, useComments, useEditedComment, useValidateComment, useReplies, useCommunity, useCommunities, useCommunityStats, useListCommunities, useResolvedCommunityAddress, useAuthor, useAuthorComments, useAuthorAvatar, useResolvedAuthorAddress, useAuthorAddress, setAuthorAvatarsWhitelistedTokenAddresses, resetAuthorAddressCacheForTesting, useFeed, useBufferedFeeds, useSubscribe, useBlock, usePublishComment, usePublishVote, usePublishCommentEdit, usePublishCommentModeration, usePublishCommunityEdit, useCreateCommunity, createAccount, deleteAccount, deleteComment, setAccount, setActiveAccount, setAccountsOrder, importAccount, exportAccount, deleteCommunity, useClientsStates, useCommunitiesStates, usePlebbitRpcSettings, getEthWalletFromPlebbitPrivateKey, getSolWalletFromPlebbitPrivateKey, getEthPrivateKeyFromPlebbitPrivateKey, getSolPrivateKeyFromPlebbitPrivateKey, validateEthWallet, validateSolWallet, setPlebbitJs, restorePlebbitJs, deleteDatabases, deleteCaches, };
 declare const hooks: {
     useAccount: typeof useAccount;
     useAccounts: typeof useAccounts;
@@ -21,7 +21,7 @@ declare const hooks: {
     useAccountVotes: typeof useAccountVotes;
     useAccountVote: typeof useAccountVote;
     useAccountEdits: typeof useAccountEdits;
-    useAccountSubplebbits: typeof useAccountSubplebbits;
+    useAccountCommunities: typeof useAccountCommunities;
     useNotifications: typeof useNotifications;
     usePubsubSubscribe: typeof usePubsubSubscribe;
     useComment: typeof useComment;
@@ -29,10 +29,11 @@ declare const hooks: {
     useEditedComment: typeof useEditedComment;
     useValidateComment: typeof useValidateComment;
     useReplies: typeof useReplies;
-    useSubplebbit: typeof useSubplebbit;
-    useSubplebbits: typeof useSubplebbits;
-    useSubplebbitStats: typeof useSubplebbitStats;
-    useResolvedSubplebbitAddress: typeof useResolvedSubplebbitAddress;
+    useCommunity: typeof useCommunity;
+    useCommunities: typeof useCommunities;
+    useCommunityStats: typeof useCommunityStats;
+    useListCommunities: typeof useListCommunities;
+    useResolvedCommunityAddress: typeof useResolvedCommunityAddress;
     useAuthor: typeof useAuthor;
     useAuthorComments: typeof useAuthorComments;
     useAuthorAvatar: typeof useAuthorAvatar;
@@ -48,8 +49,8 @@ declare const hooks: {
     usePublishVote: typeof usePublishVote;
     usePublishCommentEdit: typeof usePublishCommentEdit;
     usePublishCommentModeration: typeof usePublishCommentModeration;
-    usePublishSubplebbitEdit: typeof usePublishSubplebbitEdit;
-    useCreateSubplebbit: typeof useCreateSubplebbit;
+    usePublishCommunityEdit: typeof usePublishCommunityEdit;
+    useCreateCommunity: typeof useCreateCommunity;
     createAccount: (accountName?: string) => Promise<void>;
     deleteAccount: (accountName?: string) => Promise<void>;
     deleteComment: (commentCidOrAccountCommentIndex: string | number, accountName?: string) => Promise<void>;
@@ -58,9 +59,9 @@ declare const hooks: {
     setAccountsOrder: (newOrderedAccountNames: string[]) => Promise<void>;
     importAccount: (serializedAccount: string) => Promise<void>;
     exportAccount: (accountName?: string) => Promise<string>;
-    deleteSubplebbit: (subplebbitAddress: string, accountName?: string) => Promise<void>;
+    deleteCommunity: (communityAddress: string, accountName?: string) => Promise<void>;
     useClientsStates: typeof useClientsStates;
-    useSubplebbitsStates: typeof useSubplebbitsStates;
+    useCommunitiesStates: typeof useCommunitiesStates;
     usePlebbitRpcSettings: typeof usePlebbitRpcSettings;
     getEthWalletFromPlebbitPrivateKey: (privateKeyBase64: string, authorAddress: string) => Promise<{
         address: string;

@@ -10,17 +10,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import EventEmitter from "events";
 const loadingTime = 10;
 export const simulateLoadingTime = () => new Promise((r) => setTimeout(r, loadingTime));
-// keep a list of created and edited owner subplebbits
-// to reinitialize them with plebbit.createSubplebbit()
-let createdOwnerSubplebbits = {};
-let editedOwnerSubplebbits = {};
+// keep a list of created and edited owner communities
+// to reinitialize them with plebbit.createCommunity()
+let createdOwnerCommunities = {};
+let editedOwnerCommunities = {};
 // reset the plebbit-js global state in between tests
 export const resetPlebbitJsMock = () => {
-    createdOwnerSubplebbits = {};
-    editedOwnerSubplebbits = {};
+    createdOwnerCommunities = {};
+    editedOwnerCommunities = {};
 };
 export const debugPlebbitJsMock = () => {
-    console.log({ createdOwnerSubplebbits, editedOwnerSubplebbits });
+    console.log({ createdOwnerCommunities, editedOwnerCommunities });
 };
 export class Plebbit extends EventEmitter {
     constructor() {
@@ -44,69 +44,69 @@ export class Plebbit extends EventEmitter {
             };
         });
     }
-    createSubplebbit(createSubplebbitOptions) {
+    createCommunity(createCommunityOptions) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!createSubplebbitOptions) {
-                createSubplebbitOptions = {};
+            if (!createCommunityOptions) {
+                createCommunityOptions = {};
             }
-            // no address provided so probably a user creating an owner subplebbit
-            if (!createSubplebbitOptions.address &&
-                !createdOwnerSubplebbits[createSubplebbitOptions.address]) {
-                createSubplebbitOptions = Object.assign(Object.assign({}, createSubplebbitOptions), { address: "created subplebbit address" });
-                // createdSubplebbitAddresses.push('created subplebbit address')
-                createdOwnerSubplebbits[createSubplebbitOptions.address] = Object.assign({}, createSubplebbitOptions);
+            // no address provided so probably a user creating an owner community
+            if (!createCommunityOptions.address &&
+                !createdOwnerCommunities[createCommunityOptions.address]) {
+                createCommunityOptions = Object.assign(Object.assign({}, createCommunityOptions), { address: "created community address" });
+                // createdCommunityAddresses.push('created community address')
+                createdOwnerCommunities[createCommunityOptions.address] = Object.assign({}, createCommunityOptions);
             }
-            // only address provided, so could be a previously created owner subplebbit
+            // only address provided, so could be a previously created owner community
             // add props from previously created sub
-            else if (createdOwnerSubplebbits[createSubplebbitOptions.address] &&
-                JSON.stringify(Object.keys(createSubplebbitOptions)) === '["address"]') {
-                for (const prop in createdOwnerSubplebbits[createSubplebbitOptions.address]) {
-                    if (createdOwnerSubplebbits[createSubplebbitOptions.address][prop]) {
-                        createSubplebbitOptions[prop] =
-                            createdOwnerSubplebbits[createSubplebbitOptions.address][prop];
+            else if (createdOwnerCommunities[createCommunityOptions.address] &&
+                JSON.stringify(Object.keys(createCommunityOptions)) === '["address"]') {
+                for (const prop in createdOwnerCommunities[createCommunityOptions.address]) {
+                    if (createdOwnerCommunities[createCommunityOptions.address][prop]) {
+                        createCommunityOptions[prop] =
+                            createdOwnerCommunities[createCommunityOptions.address][prop];
                     }
                 }
             }
-            // add edited props if owner subplebbit was edited in the past
-            if (editedOwnerSubplebbits[createSubplebbitOptions.address]) {
-                for (const prop in editedOwnerSubplebbits[createSubplebbitOptions.address]) {
-                    if (editedOwnerSubplebbits[createSubplebbitOptions.address][prop]) {
-                        createSubplebbitOptions[prop] =
-                            editedOwnerSubplebbits[createSubplebbitOptions.address][prop];
+            // add edited props if owner community was edited in the past
+            if (editedOwnerCommunities[createCommunityOptions.address]) {
+                for (const prop in editedOwnerCommunities[createCommunityOptions.address]) {
+                    if (editedOwnerCommunities[createCommunityOptions.address][prop]) {
+                        createCommunityOptions[prop] =
+                            editedOwnerCommunities[createCommunityOptions.address][prop];
                     }
                 }
             }
-            return new Subplebbit(createSubplebbitOptions);
+            return new Community(createCommunityOptions);
         });
     }
-    getSubplebbit(options) {
+    getCommunity(options) {
         return __awaiter(this, void 0, void 0, function* () {
             const address = options === null || options === void 0 ? void 0 : options.address;
             yield simulateLoadingTime();
-            const createSubplebbitOptions = { address };
-            const subplebbit = new Subplebbit(createSubplebbitOptions);
-            subplebbit.title = subplebbit.address + " title";
-            const hotPageCid = subplebbit.address + " page cid hot";
-            subplebbit.posts.pages.hot = subplebbit.posts.pageToGet(hotPageCid);
-            subplebbit.posts.pageCids = {
+            const createCommunityOptions = { address };
+            const community = new Community(createCommunityOptions);
+            community.title = community.address + " title";
+            const hotPageCid = community.address + " page cid hot";
+            community.posts.pages.hot = community.posts.pageToGet(hotPageCid);
+            community.posts.pageCids = {
                 hot: hotPageCid,
-                topAll: subplebbit.address + " page cid topAll",
-                new: subplebbit.address + " page cid new",
-                active: subplebbit.address + " page cid active",
+                topAll: community.address + " page cid topAll",
+                new: community.address + " page cid new",
+                active: community.address + " page cid active",
             };
-            subplebbit.modQueue.pageCids = {
-                pendingApproval: subplebbit.address + " page cid pendingApproval",
+            community.modQueue.pageCids = {
+                pendingApproval: community.address + " page cid pendingApproval",
             };
-            return subplebbit;
+            return community;
         });
     }
-    // TODO: implement event subplebbitschange
-    get subplebbits() {
+    // TODO: implement event communitieschange
+    get communities() {
         return [
             ...new Set([
-                "list subplebbit address 1",
-                "list subplebbit address 2",
-                ...Object.keys(createdOwnerSubplebbits),
+                "list community address 1",
+                "list community address 2",
+                ...Object.keys(createdOwnerCommunities),
             ]),
         ];
     }
@@ -148,9 +148,9 @@ export class Plebbit extends EventEmitter {
             return new CommentModeration(createCommentModerationOptions);
         });
     }
-    createSubplebbitEdit(createSubplebbitEditOptions) {
+    createCommunityEdit(createCommunityEditOptions) {
         return __awaiter(this, void 0, void 0, function* () {
-            return new SubplebbitEdit(createSubplebbitEditOptions);
+            return new CommunityEdit(createCommunityEditOptions);
         });
     }
     fetchCid(options) {
@@ -162,10 +162,10 @@ export class Plebbit extends EventEmitter {
             throw Error(`plebbit.fetchCid not implemented in plebbit-js mock for cid '${cid}'`);
         });
     }
-    pubsubSubscribe(subplebbitAddress) {
+    pubsubSubscribe(communityAddress) {
         return __awaiter(this, void 0, void 0, function* () { });
     }
-    pubsubUnsubscribe(subplebbitAddress) {
+    pubsubUnsubscribe(communityAddress) {
         return __awaiter(this, void 0, void 0, function* () { });
     }
     validateComment(comment, validateCommentOptions) {
@@ -196,8 +196,8 @@ export class Pages {
     constructor(pagesOptions) {
         this.pageCids = {};
         this.pages = {};
-        Object.defineProperty(this, "subplebbit", {
-            value: pagesOptions === null || pagesOptions === void 0 ? void 0 : pagesOptions.subplebbit,
+        Object.defineProperty(this, "community", {
+            value: pagesOptions === null || pagesOptions === void 0 ? void 0 : pagesOptions.community,
             enumerable: false,
         });
         Object.defineProperty(this, "comment", { value: pagesOptions === null || pagesOptions === void 0 ? void 0 : pagesOptions.comment, enumerable: false });
@@ -216,10 +216,10 @@ export class Pages {
     // mock this method to get pages with different content, or use to getPage without simulated loading time
     pageToGet(pageCid) {
         var _a, _b;
-        const subplebbitAddress = ((_a = this.subplebbit) === null || _a === void 0 ? void 0 : _a.address) || ((_b = this.comment) === null || _b === void 0 ? void 0 : _b.subplebbitAddress);
+        const communityAddress = ((_a = this.community) === null || _a === void 0 ? void 0 : _a.address) || ((_b = this.comment) === null || _b === void 0 ? void 0 : _b.communityAddress);
         const isPendingApprovalPage = pageCid.includes("pendingApproval");
         const page = {
-            nextCid: subplebbitAddress + " " + pageCid + " - next page cid",
+            nextCid: communityAddress + " " + pageCid + " - next page cid",
             comments: [],
         };
         const postCount = 100;
@@ -228,7 +228,7 @@ export class Pages {
             const comment = {
                 timestamp: index,
                 cid: pageCid + " comment cid " + index,
-                subplebbitAddress,
+                communityAddress,
                 upvoteCount: index,
                 downvoteCount: 10,
                 author: {
@@ -244,35 +244,48 @@ export class Pages {
         return page;
     }
 }
-export class Subplebbit extends EventEmitter {
-    constructor(createSubplebbitOptions) {
+export class Community extends EventEmitter {
+    constructor(createCommunityOptions) {
         var _a, _b, _c, _d, _e, _f;
         super();
         this.updateCalledTimes = 0;
         this.updating = false;
         this.firstUpdate = true;
-        this.address = createSubplebbitOptions === null || createSubplebbitOptions === void 0 ? void 0 : createSubplebbitOptions.address;
-        this.title = createSubplebbitOptions === null || createSubplebbitOptions === void 0 ? void 0 : createSubplebbitOptions.title;
-        this.description = createSubplebbitOptions === null || createSubplebbitOptions === void 0 ? void 0 : createSubplebbitOptions.description;
+        this.address = createCommunityOptions === null || createCommunityOptions === void 0 ? void 0 : createCommunityOptions.address;
+        this.title = createCommunityOptions === null || createCommunityOptions === void 0 ? void 0 : createCommunityOptions.title;
+        this.description = createCommunityOptions === null || createCommunityOptions === void 0 ? void 0 : createCommunityOptions.description;
         this.statsCid = "statscid";
         this.state = "stopped";
         this.updatingState = "stopped";
-        this.updatedAt = createSubplebbitOptions === null || createSubplebbitOptions === void 0 ? void 0 : createSubplebbitOptions.updatedAt;
-        this.posts = new Pages({ subplebbit: this });
-        // add subplebbit.posts from createSubplebbitOptions
-        if ((_a = createSubplebbitOptions === null || createSubplebbitOptions === void 0 ? void 0 : createSubplebbitOptions.posts) === null || _a === void 0 ? void 0 : _a.pages) {
-            this.posts.pages = (_b = createSubplebbitOptions === null || createSubplebbitOptions === void 0 ? void 0 : createSubplebbitOptions.posts) === null || _b === void 0 ? void 0 : _b.pages;
+        this.updatedAt = createCommunityOptions === null || createCommunityOptions === void 0 ? void 0 : createCommunityOptions.updatedAt;
+        this.posts = new Pages({ community: this });
+        // add community.posts from createCommunityOptions
+        if ((_a = createCommunityOptions === null || createCommunityOptions === void 0 ? void 0 : createCommunityOptions.posts) === null || _a === void 0 ? void 0 : _a.pages) {
+            this.posts.pages = (_b = createCommunityOptions === null || createCommunityOptions === void 0 ? void 0 : createCommunityOptions.posts) === null || _b === void 0 ? void 0 : _b.pages;
         }
-        if ((_c = createSubplebbitOptions === null || createSubplebbitOptions === void 0 ? void 0 : createSubplebbitOptions.posts) === null || _c === void 0 ? void 0 : _c.pageCids) {
-            this.posts.pageCids = (_d = createSubplebbitOptions === null || createSubplebbitOptions === void 0 ? void 0 : createSubplebbitOptions.posts) === null || _d === void 0 ? void 0 : _d.pageCids;
+        if ((_c = createCommunityOptions === null || createCommunityOptions === void 0 ? void 0 : createCommunityOptions.posts) === null || _c === void 0 ? void 0 : _c.pageCids) {
+            this.posts.pageCids = (_d = createCommunityOptions === null || createCommunityOptions === void 0 ? void 0 : createCommunityOptions.posts) === null || _d === void 0 ? void 0 : _d.pageCids;
         }
-        this.modQueue = new Pages({ subplebbit: this });
-        // add subplebbit.modQueue from createSubplebbitOptions
-        if ((_e = createSubplebbitOptions === null || createSubplebbitOptions === void 0 ? void 0 : createSubplebbitOptions.modQueue) === null || _e === void 0 ? void 0 : _e.pageCids) {
-            this.modQueue.pageCids = (_f = createSubplebbitOptions === null || createSubplebbitOptions === void 0 ? void 0 : createSubplebbitOptions.modQueue) === null || _f === void 0 ? void 0 : _f.pageCids;
+        this.modQueue = new Pages({ community: this });
+        // add community.modQueue from createCommunityOptions
+        if ((_e = createCommunityOptions === null || createCommunityOptions === void 0 ? void 0 : createCommunityOptions.modQueue) === null || _e === void 0 ? void 0 : _e.pageCids) {
+            this.modQueue.pageCids = (_f = createCommunityOptions === null || createCommunityOptions === void 0 ? void 0 : createCommunityOptions.modQueue) === null || _f === void 0 ? void 0 : _f.pageCids;
+        }
+        if (createCommunityOptions) {
+            for (const prop in createCommunityOptions) {
+                if (createCommunityOptions[prop] !== undefined) {
+                    const descriptor = Object.getOwnPropertyDescriptor(this, prop) ||
+                        Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this), prop);
+                    if (descriptor && !descriptor.writable && !descriptor.set) {
+                        continue;
+                    }
+                    // @ts-ignore
+                    this[prop] = createCommunityOptions[prop];
+                }
+            }
         }
         // only trigger a first update if argument is only ({address})
-        if (!(createSubplebbitOptions === null || createSubplebbitOptions === void 0 ? void 0 : createSubplebbitOptions.address) || Object.keys(createSubplebbitOptions).length !== 1) {
+        if (!(createCommunityOptions === null || createCommunityOptions === void 0 ? void 0 : createCommunityOptions.address) || Object.keys(createCommunityOptions).length !== 1) {
             this.firstUpdate = false;
         }
     }
@@ -280,10 +293,10 @@ export class Subplebbit extends EventEmitter {
         return __awaiter(this, void 0, void 0, function* () {
             this.updateCalledTimes++;
             if (this.updateCalledTimes > 1) {
-                throw Error("with the current hooks, subplebbit.update() should be called maximum 1 times, this number might change if the hooks change and is only there to catch bugs, the real comment.update() can be called infinite times");
+                throw Error("with the current hooks, community.update() should be called maximum 1 times, this number might change if the hooks change and is only there to catch bugs, the real comment.update() can be called infinite times");
             }
             if (!this.address) {
-                throw Error(`can't update without subplebbit.address`);
+                throw Error(`can't update without community.address`);
             }
             // don't update twice
             if (this.updating) {
@@ -302,8 +315,8 @@ export class Subplebbit extends EventEmitter {
     delete() {
         return __awaiter(this, void 0, void 0, function* () {
             if (this.address) {
-                delete createdOwnerSubplebbits[this.address];
-                delete editedOwnerSubplebbits[this.address];
+                delete createdOwnerCommunities[this.address];
+                delete editedOwnerCommunities[this.address];
             }
         });
     }
@@ -319,7 +332,7 @@ export class Subplebbit extends EventEmitter {
         this.emit("update", this);
         this.emit("updatingstatechange", "succeeded");
     }
-    // the first update event adds all the field from getSubplebbit
+    // the first update event adds all the field from getCommunity
     simulateFirstUpdateEvent() {
         return __awaiter(this, void 0, void 0, function* () {
             this.firstUpdate = false;
@@ -356,44 +369,49 @@ export class Subplebbit extends EventEmitter {
     rolesToGet() {
         return {};
     }
-    edit(editSubplebbitOptions) {
+    edit(editCommunityOptions) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!this.address || typeof this.address !== "string") {
-                throw Error(`can't subplebbit.edit with no subplebbit.address`);
+                throw Error(`can't community.edit with no community.address`);
             }
             const previousAddress = this.address;
-            // do subplebbit.edit
-            for (const prop in editSubplebbitOptions) {
-                if (editSubplebbitOptions[prop]) {
+            // do community.edit
+            for (const prop in editCommunityOptions) {
+                if (editCommunityOptions[prop] !== undefined) {
+                    const descriptor = Object.getOwnPropertyDescriptor(this, prop) ||
+                        Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this), prop);
+                    if (descriptor && !descriptor.writable && !descriptor.set) {
+                        continue;
+                    }
                     // @ts-ignore
-                    this[prop] = editSubplebbitOptions[prop];
+                    this[prop] = editCommunityOptions[prop];
                 }
             }
-            // keep a list of edited subplebbits to reinitialize
-            // them with plebbit.createSubplebbit()
-            editedOwnerSubplebbits[this.address] = {
+            // keep a list of edited communities to reinitialize
+            // them with plebbit.createCommunity()
+            editedOwnerCommunities[this.address] = {
                 address: this.address,
                 title: this.title,
                 description: this.description,
             };
-            // handle change of subplebbit.address
-            if (editSubplebbitOptions.address) {
-                // apply address change to editedOwnerSubplebbits
-                editedOwnerSubplebbits[previousAddress] = {
+            // handle change of community.address
+            if (editCommunityOptions.address) {
+                // apply address change to editedOwnerCommunities
+                editedOwnerCommunities[previousAddress] = {
                     address: this.address,
                     title: this.title,
                     description: this.description,
                 };
-                delete editedOwnerSubplebbits[previousAddress];
-                // apply address change to createdOwnerSubplebbits
-                createdOwnerSubplebbits[this.address] = Object.assign(Object.assign({}, createdOwnerSubplebbits[previousAddress]), { address: this.address });
-                delete createdOwnerSubplebbits[previousAddress];
+                delete editedOwnerCommunities[previousAddress];
+                // apply address change to createdOwnerCommunities
+                createdOwnerCommunities[this.address] = Object.assign(Object.assign({}, createdOwnerCommunities[previousAddress]), { address: this.address });
+                delete createdOwnerCommunities[previousAddress];
             }
         });
     }
 }
 // make roles enumarable so it acts like a regular prop
-Object.defineProperty(Subplebbit.prototype, "roles", { enumerable: true });
+Object.defineProperty(Community.prototype, "roles", { enumerable: true });
 let challengeRequestCount = 0;
 let challengeAnswerCount = 0;
 class Publication extends EventEmitter {
@@ -471,7 +489,7 @@ export class Comment extends Publication {
         this.author = createCommentOptions === null || createCommentOptions === void 0 ? void 0 : createCommentOptions.author;
         this.timestamp = createCommentOptions === null || createCommentOptions === void 0 ? void 0 : createCommentOptions.timestamp;
         this.parentCid = createCommentOptions === null || createCommentOptions === void 0 ? void 0 : createCommentOptions.parentCid;
-        this.subplebbitAddress = createCommentOptions === null || createCommentOptions === void 0 ? void 0 : createCommentOptions.subplebbitAddress;
+        this.communityAddress = createCommentOptions === null || createCommentOptions === void 0 ? void 0 : createCommentOptions.communityAddress;
         this.state = "stopped";
         this.updatingState = "stopped";
         this.publishingState = "stopped";
@@ -529,7 +547,7 @@ export class Comment extends Publication {
             this.author = commentIpfs.author;
             this.timestamp = commentIpfs.timestamp;
             this.parentCid = commentIpfs.parentCid;
-            this.subplebbitAddress = commentIpfs.subplebbitAddress;
+            this.communityAddress = commentIpfs.communityAddress;
             // simulate the ipns update
             this.updatingState = "fetching-update-ipns";
             this.emit("update", this);
@@ -546,7 +564,7 @@ export class CommentEdit extends Publication {
 }
 export class CommentModeration extends Publication {
 }
-export class SubplebbitEdit extends Publication {
+export class CommunityEdit extends Publication {
 }
 const createPlebbit = (...args) => __awaiter(void 0, void 0, void 0, function* () {
     return new Plebbit(...args);

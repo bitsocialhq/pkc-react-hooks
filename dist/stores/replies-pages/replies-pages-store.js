@@ -31,7 +31,7 @@ const repliesPagesStore = createStore((setState, getState) => ({
         var _a, _b;
         assert((comment === null || comment === void 0 ? void 0 : comment.cid) && typeof (comment === null || comment === void 0 ? void 0 : comment.cid) === "string", `repliesPagesStore.addNextRepliesPageToStore comment '${comment}' invalid`);
         assert(sortType && typeof sortType === "string", `repliesPagesStore.addNextRepliesPageToStore sortType '${sortType}' invalid`);
-        assert(typeof ((_a = account === null || account === void 0 ? void 0 : account.plebbit) === null || _a === void 0 ? void 0 : _a.createSubplebbit) === "function", `repliesPagesStore.addNextRepliesPageToStore account '${account}' invalid`);
+        assert(typeof ((_a = account === null || account === void 0 ? void 0 : account.plebbit) === null || _a === void 0 ? void 0 : _a.createComment) === "function", `repliesPagesStore.addNextRepliesPageToStore account '${account}' invalid`);
         // check the preloaded replies on comment.replies.pages first, then the comment.replies.pageCids
         const repliesFirstPageCid = getRepliesFirstPageCid(comment, sortType);
         if (!repliesFirstPageCid) {
@@ -73,7 +73,7 @@ const repliesPagesStore = createStore((setState, getState) => ({
                 pageCid: pageCidToAdd,
                 page,
                 commentCid: comment.cid,
-                subplebbitAddress: comment.subplebbitAddress,
+                communityAddress: comment.communityAddress,
                 account,
             });
         }
@@ -195,11 +195,11 @@ const fetchPage = (pageCid, comment, account) => __awaiter(void 0, void 0, void 
         fetchPageComments[comment.cid] = yield account.plebbit.createComment({
             cid: comment.cid,
             postCid: comment.postCid,
-            subplebbitAddress: comment.subplebbitAddress,
+            communityAddress: comment.communityAddress,
             depth: comment.depth,
         });
         listeners.push(fetchPageComments[comment.cid]);
-        // set clients states on subplebbits store so the frontend can display it
+        // set clients states on communities store so the frontend can display it
         utils.pageClientsOnStateChange((_a = fetchPageComments[comment.cid].replies) === null || _a === void 0 ? void 0 : _a.clients, onCommentRepliesClientsStateChange(comment.cid));
     }
     const onError = (error) => log.error(`repliesPagesStore comment '${comment.cid}' failed comment.replies.getPage page cid '${pageCid}':`, error);

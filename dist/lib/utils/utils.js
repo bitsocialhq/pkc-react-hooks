@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import assert from "assert";
 import QuickLru from "quick-lru";
 import Logger from "@plebbit/plebbit-logger";
-import { areEquivalentSubplebbitAddresses } from "../subplebbit-address";
+import { areEquivalentCommunityAddresses } from "../community-address";
 const log = Logger("bitsocial-react-hooks:utils");
 const merge = (...args) => {
     // @ts-ignore
@@ -236,86 +236,86 @@ const pageClientsOnStateChange = (clients, onStateChange) => {
         }
     }
 };
-export const subplebbitPostsCacheExpired = (subplebbit) => {
-    // NOTE: fetchedAt is undefined on owner subplebbits
-    if (!(subplebbit === null || subplebbit === void 0 ? void 0 : subplebbit.fetchedAt)) {
-        false;
+export const communityPostsCacheExpired = (community) => {
+    // NOTE: fetchedAt is undefined on owner communities
+    if (!community || community.fetchedAt == null) {
+        return false;
     }
-    // if subplebbit cache is older than 1 hour, its subplebbit.posts are considered expired
+    // if community cache is older than 1 hour, its community.posts are considered expired
     const oneHourAgo = Date.now() / 1000 - 60 * 60;
-    return oneHourAgo > subplebbit.fetchedAt;
+    return oneHourAgo > community.fetchedAt;
 };
-export const removeInvalidComments = (comments_1, _a, plebbit_1) => __awaiter(void 0, [comments_1, _a, plebbit_1], void 0, function* (comments, { validateReplies, blockSubplebbit }, plebbit) {
+export const removeInvalidComments = (comments_1, _a, plebbit_1) => __awaiter(void 0, [comments_1, _a, plebbit_1], void 0, function* (comments, { validateReplies, blockCommunity }, plebbit) {
     if (!comments.length) {
         return [];
     }
-    const isValid = yield Promise.all(comments.map((comment) => commentIsValid(comment, { validateReplies, blockSubplebbit }, plebbit)));
+    const isValid = yield Promise.all(comments.map((comment) => commentIsValid(comment, { validateReplies, blockCommunity }, plebbit)));
     const validComments = comments.filter((_, i) => isValid[i]);
     return validComments;
 });
-const subplebbitsWithInvalidComments = {};
-export const commentIsValid = (comment_1, ...args_1) => __awaiter(void 0, [comment_1, ...args_1], void 0, function* (comment, { validateReplies, blockSubplebbit } = {}, plebbit) {
+const communitiesWithInvalidComments = {};
+export const commentIsValid = (comment_1, ...args_1) => __awaiter(void 0, [comment_1, ...args_1], void 0, function* (comment, { validateReplies, blockCommunity } = {}, plebbit) {
     validateReplies = Boolean(validateReplies);
-    if (blockSubplebbit === undefined || blockSubplebbit === null) {
-        blockSubplebbit = true;
+    if (blockCommunity === undefined || blockCommunity === null) {
+        blockCommunity = true;
     }
     if (!comment) {
         return false;
     }
-    if (subplebbitsWithInvalidComments[comment.subplebbitAddress]) {
-        console.log(`subplebbit '${comment.subplebbitAddress}' had an invalid comment, invalidate all its future comments to avoid wasting resources`);
+    if (communitiesWithInvalidComments[comment.communityAddress]) {
+        console.log(`community '${comment.communityAddress}' had an invalid comment, invalidate all its future comments to avoid wasting resources`);
         return false;
     }
     try {
         yield plebbit.validateComment(comment, { validateReplies });
     }
     catch (e) {
-        if (blockSubplebbit) {
-            subplebbitsWithInvalidComments[comment.subplebbitAddress] = true;
+        if (blockCommunity) {
+            communitiesWithInvalidComments[comment.communityAddress] = true;
         }
         console.log("invalid comment", { comment, error: e });
         return false;
     }
     return true;
 });
-const repliesAreValid = (comment_1, ...args_1) => __awaiter(void 0, [comment_1, ...args_1], void 0, function* (comment, { validateReplies, blockSubplebbit } = {}, plebbit) {
+const repliesAreValid = (comment_1, ...args_1) => __awaiter(void 0, [comment_1, ...args_1], void 0, function* (comment, { validateReplies, blockCommunity } = {}, plebbit) {
     var _a;
     validateReplies = Boolean(validateReplies);
-    if (blockSubplebbit === undefined || blockSubplebbit === null) {
-        blockSubplebbit = true;
+    if (blockCommunity === undefined || blockCommunity === null) {
+        blockCommunity = true;
     }
     if (!comment) {
         return false;
     }
-    if (subplebbitsWithInvalidComments[comment.subplebbitAddress]) {
-        console.log(`subplebbit '${comment.subplebbitAddress}' had an invalid comment, invalidate all its future comments to avoid wasting resources`);
+    if (communitiesWithInvalidComments[comment.communityAddress]) {
+        console.log(`community '${comment.communityAddress}' had an invalid comment, invalidate all its future comments to avoid wasting resources`);
         return false;
     }
     const replyPageArray = Object.values(((_a = comment.replies) === null || _a === void 0 ? void 0 : _a.pages) || {});
     const replies = replyPageArray.flatMap(({ comments }) => comments);
     // manual validation
     for (const reply of replies) {
-        if (!areEquivalentSubplebbitAddresses(reply.subplebbitAddress, comment.subplebbitAddress) ||
+        if (!areEquivalentCommunityAddresses(reply.communityAddress, comment.communityAddress) ||
             reply.depth !== comment.depth + 1 ||
             reply.parentCid !== comment.cid) {
-            if (blockSubplebbit) {
-                subplebbitsWithInvalidComments[comment.subplebbitAddress] = true;
+            if (blockCommunity) {
+                communitiesWithInvalidComments[comment.communityAddress] = true;
             }
             console.log("invalid comment", {
                 comment: reply,
-                error: "!areEquivalentSubplebbitAddresses(reply.subplebbitAddress, comment.subplebbitAddress) || reply.depth !== comment.depth + 1 || reply.parentCid !== comment.cid",
+                error: "!areEquivalentCommunityAddresses(reply.communityAddress, comment.communityAddress) || reply.depth !== comment.depth + 1 || reply.parentCid !== comment.cid",
             });
             return false;
         }
     }
     // signature verification
     try {
-        const promises = replies.map((reply) => commentIsValid(reply, { validateReplies: false, blockSubplebbit: true }, plebbit));
+        const promises = replies.map((reply) => commentIsValid(reply, { validateReplies: false, blockCommunity: true }, plebbit));
         yield Promise.all(promises);
     }
     catch (e) {
-        if (blockSubplebbit) {
-            subplebbitsWithInvalidComments[comment.subplebbitAddress] = true;
+        if (blockCommunity) {
+            communitiesWithInvalidComments[comment.communityAddress] = true;
         }
         console.log("invalid comment", { comment, error: e });
         return false;
@@ -334,7 +334,7 @@ const utils = {
     retryInfinityMaxTimeout: 1000 * 60 * 60 * 24,
     clientsOnStateChange,
     pageClientsOnStateChange,
-    subplebbitPostsCacheExpired,
+    communityPostsCacheExpired,
     commentIsValid,
     removeInvalidComments,
     repliesAreValid,

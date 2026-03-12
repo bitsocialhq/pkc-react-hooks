@@ -1,0 +1,13 @@
+export declare const getPlebbitCreateCommunity: (plebbit: any) => any;
+export declare const getPlebbitGetCommunity: (plebbit: any) => any;
+export declare const getPlebbitCreateCommunityEdit: (plebbit: any) => any;
+export declare const getPlebbitCommunityAddresses: (plebbit: any) => string[];
+export declare const normalizePublicationOptionsForPlebbit: <T extends Record<string, any>>(_plebbit: any, options: T) => T;
+export declare const normalizePublicationOptionsForStore: <T extends Record<string, any>>(options: T) => T;
+export declare const normalizeCommunityEditOptionsForPlebbit: <T extends Record<string, any>>(plebbit: any, options: T) => T;
+export declare const getCommentCommunityAddress: (comment: any) => string | undefined;
+export declare const normalizeCommentCommunityAddress: <T extends Record<string, any> | undefined>(comment: T) => T;
+export declare const backfillPublicationCommunityAddress: <T extends Record<string, any> | undefined, O extends Record<string, any> | undefined>(publication: T, options: O) => T;
+export declare const createPlebbitCommunity: (plebbit: any, options: any) => Promise<any>;
+export declare const getPlebbitCommunity: (plebbit: any, options: any) => Promise<any>;
+export declare const createPlebbitCommunityEdit: (plebbit: any, options: any) => Promise<any>;

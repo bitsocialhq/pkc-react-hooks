@@ -206,7 +206,7 @@ const fetchCommentOnShouldFetchOrNextCidChange = (options) => (state) => {
 // if commentStore changed, update loadedComments, bufferedCommentCids, shouldFetchNextComment and nextCommentCidsToFetch
 let previousComments = new QuickLru({ maxSize: 10000 });
 let authorCommentCidsFetching = {};
-let subplebbitLastCommentCidsFetching = {};
+let communityLastCommentCidsFetching = {};
 const updateCommentsOnCommentsChange = (options, commentCid) => (state) => {
     var _a, _b, _c;
     // not a next cid, do nothing
@@ -235,19 +235,19 @@ const updateCommentsOnCommentsChange = (options, commentCid) => (state) => {
     }
     // one of the comment changed, must update loaded comments
     updateLoadedComments();
-    // the changed comment might have a new author.subplebbit.lastCommentCid, try to fetch it
-    const subplebbitLastCommentCid = (_c = (_b = comment.author) === null || _b === void 0 ? void 0 : _b.subplebbit) === null || _c === void 0 ? void 0 : _c.lastCommentCid;
-    if (subplebbitLastCommentCid) {
+    // the changed comment might have a new author.community.lastCommentCid, try to fetch it
+    const communityLastCommentCid = (_c = (_b = comment.author) === null || _b === void 0 ? void 0 : _b.community) === null || _c === void 0 ? void 0 : _c.lastCommentCid;
+    if (communityLastCommentCid) {
         // when last comment has fetched, update lastCommentCid
-        if (!subplebbitLastCommentCidsFetching[subplebbitLastCommentCid]) {
-            subplebbitLastCommentCidsFetching[subplebbitLastCommentCid] = true;
-            commentsStore.subscribe(setLastCommentCidOnCommentsChange(options, subplebbitLastCommentCid));
+        if (!communityLastCommentCidsFetching[communityLastCommentCid]) {
+            communityLastCommentCidsFetching[communityLastCommentCid] = true;
+            commentsStore.subscribe(setLastCommentCidOnCommentsChange(options, communityLastCommentCid));
         }
         // start fetching lastCommentCid
         const account = accountsStore.getState().accounts[options.accountId];
-        state.addCommentToStore(subplebbitLastCommentCid, account).catch((error) => log.error("authorsCommentsStore updateCommentsOnCommentsChange addCommentToStore error", {
+        state.addCommentToStore(communityLastCommentCid, account).catch((error) => log.error("authorsCommentsStore updateCommentsOnCommentsChange addCommentToStore error", {
             error,
-            subplebbitLastCommentCid,
+            communityLastCommentCid,
             account,
         }));
     }
@@ -256,7 +256,7 @@ let previousLastComments = new QuickLru({ maxSize: 10000 });
 const setLastCommentCidOnCommentsChange = (options, commentCid) => (state) => {
     var _a, _b;
     // not a last cid candidate, do nothing
-    if (!subplebbitLastCommentCidsFetching[commentCid]) {
+    if (!communityLastCommentCidsFetching[commentCid]) {
         return;
     }
     const { comments } = state;
@@ -321,7 +321,7 @@ const setLastCommentCidOnCommentsChange = (options, commentCid) => (state) => {
 const originalState = authorsCommentsStore.getState();
 // async function because some stores have async init
 export const resetAuthorsCommentsStore = () => __awaiter(void 0, void 0, void 0, function* () {
-    subplebbitLastCommentCidsFetching = {};
+    communityLastCommentCidsFetching = {};
     previousComments = new QuickLru({ maxSize: 10000 });
     authorCommentCidsFetching = {};
     previousLastComments = new QuickLru({ maxSize: 10000 });

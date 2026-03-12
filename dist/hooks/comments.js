@@ -8,7 +8,7 @@ import useCommentsStore from "../stores/comments";
 import useAccountsStore from "../stores/accounts";
 import { commentIsValid } from "../lib/utils";
 import { addCommentModeration, addCommentModerationToComments, } from "../lib/utils/comment-moderation";
-import useSubplebbitsPagesStore from "../stores/subplebbits-pages";
+import useCommunitiesPagesStore from "../stores/communities-pages";
 import useRepliesPagesStore from "../stores/replies-pages";
 import shallow from "zustand/shallow";
 export function getCommentFreshness(comment) {
@@ -35,7 +35,7 @@ export function useComment(options) {
     const account = useAccount({ accountName });
     const commentFromStore = useCommentsStore((state) => state.comments[commentCid || ""]);
     const addCommentToStore = useCommentsStore((state) => state.addCommentToStore);
-    const subplebbitsPagesComment = useSubplebbitsPagesStore((state) => state.comments[commentCid || ""]);
+    const communitiesPagesComment = useCommunitiesPagesStore((state) => state.comments[commentCid || ""]);
     const repliesPagesComment = useRepliesPagesStore((state) => state.comments[commentCid || ""]);
     const errors = useCommentsStore((state) => state.errors[commentCid || ""]);
     // get account comment of the cid if any
@@ -55,8 +55,8 @@ export function useComment(options) {
         }
     }, [commentCid, account === null || account === void 0 ? void 0 : account.id, onlyIfCached]);
     let comment = commentFromStore;
-    if (commentCid && subplebbitsPagesComment) {
-        comment = preferFresher(comment, subplebbitsPagesComment);
+    if (commentCid && communitiesPagesComment) {
+        comment = preferFresher(comment, communitiesPagesComment);
     }
     if (commentCid && repliesPagesComment) {
         comment = preferFresher(comment, repliesPagesComment);
@@ -94,7 +94,7 @@ export function useComment(options) {
             replyCount,
             state,
             commentFromStore,
-            subplebbitsPagesComment,
+            communitiesPagesComment,
             repliesPagesComment,
             accountComment,
             commentsStore: useCommentsStore.getState().comments,
@@ -115,7 +115,7 @@ export function useComments(options) {
     const { commentCids = [], accountName, onlyIfCached } = options !== null && options !== void 0 ? options : {};
     const account = useAccount({ accountName });
     const commentsStoreComments = useCommentsStore((state) => commentCids.map((commentCid) => state.comments[commentCid || ""]), shallow);
-    const subplebbitsPagesComments = useSubplebbitsPagesStore((state) => commentCids.map((commentCid) => state.comments[commentCid || ""]), shallow);
+    const communitiesPagesComments = useCommunitiesPagesStore((state) => commentCids.map((commentCid) => state.comments[commentCid || ""]), shallow);
     const addCommentToStore = useCommentsStore((state) => state.addCommentToStore);
     useEffect(() => {
         if (!commentCids || !account) {
@@ -138,16 +138,16 @@ export function useComments(options) {
             account,
         });
     }
-    // if comment from subplebbit pages exists and is fresher (or current missing), use it instead
+    // if comment from community pages exists and is fresher (or current missing), use it instead
     const comments = useMemo(() => {
         const result = [...commentsStoreComments];
         for (const i in result) {
-            const candidate = subplebbitsPagesComments[i];
+            const candidate = communitiesPagesComments[i];
             if (candidate)
                 result[i] = preferFresher(result[i], candidate);
         }
         return result;
-    }, [commentsStoreComments, subplebbitsPagesComments]);
+    }, [commentsStoreComments, communitiesPagesComments]);
     const normalizedComments = useMemo(() => addCommentModerationToComments(comments), [comments]);
     // succeed if no comments are undefined
     const state = normalizedComments.indexOf(undefined) === -1 ? "succeeded" : "fetching-ipfs";
@@ -170,10 +170,10 @@ export function useValidateComment(options) {
             setValidated(undefined);
             return;
         }
-        // don't automatically block subplebbit because what subplebbit it comes from
-        // a malicious subplebbit could try to block other subplebbits, etc
-        const blockSubplebbit = false;
-        commentIsValid(comment, { validateReplies, blockSubplebbit }, account.plebbit).then((validated) => setValidated(validated));
+        // don't automatically block community because what community it comes from
+        // a malicious community could try to block other communities, etc
+        const blockCommunity = false;
+        commentIsValid(comment, { validateReplies, blockCommunity }, account.plebbit).then((validated) => setValidated(validated));
     }, [comment, validateReplies, account === null || account === void 0 ? void 0 : account.plebbit]);
     let state = "initializing";
     if (validated === true) {

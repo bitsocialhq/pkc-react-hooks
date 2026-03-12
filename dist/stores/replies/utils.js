@@ -11,7 +11,7 @@ import { getRepliesPages, getRepliesFirstPageCid } from "../replies-pages";
 import repliesSorter from "../feeds/feed-sorter";
 import accountsStore from "../accounts";
 import { flattenCommentsPages, commentIsValid, removeInvalidComments } from "../../lib/utils";
-import { areEquivalentSubplebbitAddresses } from "../../lib/subplebbit-address";
+import { areEquivalentCommunityAddresses } from "../../lib/community-address";
 import Logger from "@plebbit/plebbit-logger";
 const log = Logger("bitsocial-react-hooks:replies:stores");
 /**
@@ -32,8 +32,8 @@ export const getFilteredSortedFeeds = (feedsOptions, comments, repliesPages, acc
             const preloadedReplies = getPreloadedReplies(comment, sortType);
             if (preloadedReplies) {
                 for (const reply of preloadedReplies) {
-                    // replies are manually validated, could have fake subplebbitAddress
-                    if (!areEquivalentSubplebbitAddresses(reply.subplebbitAddress, comment.subplebbitAddress)) {
+                    // replies are manually validated, could have fake communityAddress
+                    if (!areEquivalentCommunityAddresses(reply.communityAddress, comment.communityAddress)) {
                         break;
                     }
                     bufferedFeedReplies.push(reply);
@@ -44,8 +44,8 @@ export const getFilteredSortedFeeds = (feedsOptions, comments, repliesPages, acc
             for (const repliesPage of _repliesPages) {
                 if (repliesPage === null || repliesPage === void 0 ? void 0 : repliesPage.comments) {
                     for (const reply of repliesPage.comments) {
-                        // replies are manually validated, could have fake subplebbitAddress
-                        if (!areEquivalentSubplebbitAddresses(reply.subplebbitAddress, comment.subplebbitAddress)) {
+                        // replies are manually validated, could have fake communityAddress
+                        if (!areEquivalentCommunityAddresses(reply.communityAddress, comment.communityAddress)) {
                             break;
                         }
                         bufferedFeedReplies.push(reply);
@@ -61,7 +61,7 @@ export const getFilteredSortedFeeds = (feedsOptions, comments, repliesPages, acc
         // filter the feed
         const filteredSortedBufferedFeedReplies = [];
         for (const reply of sortedBufferedFeedReplies) {
-            // TODO: maybe skip if comment subplebbit address, comment cid or comment author is blocked?
+            // TODO: maybe skip if comment community address, comment cid or comment author is blocked?
             // feedOptions filter function
             if (filter && !filter.filter(reply)) {
                 continue;

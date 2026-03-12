@@ -14,11 +14,39 @@ import Logger from "@plebbit/plebbit-logger";
 import assert from "assert";
 const log = Logger("bitsocial-react-hooks:accounts:stores");
 import utils from "../../lib/utils";
+import { backfillPublicationCommunityAddress, getCommentCommunityAddress, normalizePublicationOptionsForPlebbit, normalizePublicationOptionsForStore, } from "../../lib/plebbit-compat";
+import { addShortAddressesToAccountComment } from "./utils";
+const backfillLiveCommentCommunityAddress = (comment, communityAddress) => {
+    if (!comment || comment.communityAddress || !communityAddress) {
+        return;
+    }
+    try {
+        Object.defineProperty(comment, "communityAddress", {
+            value: communityAddress,
+            writable: true,
+            configurable: true,
+            enumerable: false,
+        });
+    }
+    catch (error) {
+        try {
+            comment.communityAddress = communityAddress;
+        }
+        catch (assignmentError) {
+            log.trace("backfillLiveCommentCommunityAddress failed", {
+                cid: comment.cid,
+                error,
+                assignmentError,
+            });
+        }
+    }
+};
 // TODO: we currently subscribe to updates for every single comment
 // in the user's account history. This probably does not scale, we
 // need to eventually schedule and queue older comments to look
 // for updates at a lower priority.
 export const startUpdatingAccountCommentOnCommentUpdateEvents = (comment, account, accountCommentIndex) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     assert(typeof accountCommentIndex === "number", `startUpdatingAccountCommentOnCommentUpdateEvents accountCommentIndex '${accountCommentIndex}' not a number`);
     assert(typeof (account === null || account === void 0 ? void 0 : account.id) === "string", `startUpdatingAccountCommentOnCommentUpdateEvents account '${account}' account.id '${account === null || account === void 0 ? void 0 : account.id}' not a string`);
     const commentArgument = comment;
@@ -35,10 +63,14 @@ export const startUpdatingAccountCommentOnCommentUpdateEvents = (comment, accoun
     }));
     // comment is not a `Comment` instance
     if (!comment.on) {
-        comment = yield account.plebbit.createComment(comment);
+        comment = backfillPublicationCommunityAddress(yield account.plebbit.createComment(normalizePublicationOptionsForPlebbit(account.plebbit, comment)), comment);
     }
+    const initialStoredComment = (_a = accountsStore.getState().accountsComments[account.id]) === null || _a === void 0 ? void 0 : _a[accountCommentIndex];
+    backfillLiveCommentCommunityAddress(comment, getCommentCommunityAddress(commentArgument) ||
+        (initialStoredComment === null || initialStoredComment === void 0 ? void 0 : initialStoredComment.communityAddress) ||
+        (initialStoredComment === null || initialStoredComment === void 0 ? void 0 : initialStoredComment.subplebbitAddress));
     comment.on("update", (updatedComment) => __awaiter(void 0, void 0, void 0, function* () {
-        var _a;
+        var _a, _b, _c;
         const mapping = accountsStore.getState().commentCidsToAccountsComments[updatedComment.cid || ""];
         if (!mapping || mapping.accountId !== account.id) {
             accountsStore.setState(({ accountsCommentsUpdating }) => {
@@ -62,7 +94,22 @@ export const startUpdatingAccountCommentOnCommentUpdateEvents = (comment, accoun
         }
         const currentIndex = mapping.accountCommentIndex;
         // merge should not be needed if plebbit-js is implemented properly, but no harm in fixing potential errors
+        const storedComment = (_a = accountsStore.getState().accountsComments[account.id]) === null || _a === void 0 ? void 0 : _a[currentIndex];
         updatedComment = utils.merge(commentArgument, comment, updatedComment);
+        updatedComment.communityAddress =
+            getCommentCommunityAddress(updatedComment) ||
+                getCommentCommunityAddress(comment) ||
+                getCommentCommunityAddress(commentArgument) ||
+                (storedComment === null || storedComment === void 0 ? void 0 : storedComment.communityAddress) ||
+                (storedComment === null || storedComment === void 0 ? void 0 : storedComment.subplebbitAddress);
+        updatedComment = addShortAddressesToAccountComment(normalizePublicationOptionsForStore(updatedComment));
+        if ((_b = updatedComment.replies) === null || _b === void 0 ? void 0 : _b.pages) {
+            updatedComment = Object.assign(Object.assign({}, updatedComment), { replies: Object.assign(Object.assign({}, updatedComment.replies), { pages: Object.fromEntries(Object.entries(updatedComment.replies.pages).map(([pageCid, page]) => [
+                        pageCid,
+                        (page === null || page === void 0 ? void 0 : page.comments)
+                            ? Object.assign(Object.assign({}, page), { comments: page.comments.map((reply) => normalizePublicationOptionsForStore(reply)) }) : page,
+                    ])) }) });
+        }
         yield accountsDatabase.addAccountComment(account.id, updatedComment, currentIndex);
         log("startUpdatingAccountCommentOnCommentUpdateEvents comment update", {
             commentCid: comment.cid,
@@ -83,13 +130,13 @@ export const startUpdatingAccountCommentOnCommentUpdateEvents = (comment, accoun
             return { accountsComments: Object.assign(Object.assign({}, accountsComments), { [account.id]: updatedAccountComments }) };
         });
         // update AccountCommentsReplies with new replies if has any new replies
-        const replyPageArray = Object.values(((_a = updatedComment.replies) === null || _a === void 0 ? void 0 : _a.pages) || {});
+        const replyPageArray = Object.values(((_c = updatedComment.replies) === null || _c === void 0 ? void 0 : _c.pages) || {});
         const getReplyCount = (replyPage) => { var _a, _b; return (_b = (_a = replyPage === null || replyPage === void 0 ? void 0 : replyPage.comments) === null || _a === void 0 ? void 0 : _a.length) !== null && _b !== void 0 ? _b : 0; };
         const replyCount = replyPageArray.length > 0
             ? replyPageArray.map(getReplyCount).reduce((prev, curr) => prev + curr)
             : 0;
         const hasReplies = replyCount > 0;
-        const repliesAreValid = yield utils.repliesAreValid(updatedComment, { validateReplies: false, blockSubplebbit: true }, account.plebbit);
+        const repliesAreValid = yield utils.repliesAreValid(updatedComment, { validateReplies: false, blockCommunity: true }, account.plebbit);
         if (hasReplies && repliesAreValid) {
             accountsStore.setState(({ accountsCommentsReplies }) => {
                 var _a, _b;
@@ -229,58 +276,68 @@ export const markNotificationsAsRead = (account) => __awaiter(void 0, void 0, vo
         };
     });
 });
-// internal accounts action: if a subplebbit has a role with an account's address
-// add it to the account.subplebbits database
-export const addSubplebbitRoleToAccountsSubplebbits = (subplebbit) => __awaiter(void 0, void 0, void 0, function* () {
-    if (!subplebbit) {
+// internal accounts action: if a community has a role with an account's address
+// add it to the account.communities database
+export const addCommunityRoleToAccountsCommunities = (community) => __awaiter(void 0, void 0, void 0, function* () {
+    if (!community) {
         return;
     }
     const { accounts } = accountsStore.getState();
     assert(accounts, `can't use accountsStore.accountActions before initialized`);
-    // find subplebbit roles to add and remove
-    const getRole = (subplebbit, authorAddress) => subplebbit.roles && subplebbit.roles[authorAddress];
-    const getChange = (accounts, subplebbit) => {
-        const toAdd = [];
+    // find community roles to add and remove
+    const getRole = (community, authorAddress) => community.roles && community.roles[authorAddress];
+    const getChange = (accounts, community) => {
+        var _a;
+        const toUpsert = [];
         const toRemove = [];
         for (const accountId in accounts) {
             const account = accounts[accountId];
-            const role = getRole(subplebbit, account.author.address);
+            const role = getRole(community, account.author.address);
             if (!role) {
-                if (account.subplebbits[subplebbit.address]) {
+                if (account.communities[community.address]) {
                     toRemove.push(accountId);
                 }
             }
             else {
-                if (!account.subplebbits[subplebbit.address]) {
-                    toAdd.push(accountId);
+                const currentRole = (_a = account.communities[community.address]) === null || _a === void 0 ? void 0 : _a.role;
+                if (!currentRole || currentRole.role !== role.role) {
+                    toUpsert.push(accountId);
                 }
             }
         }
-        return { toAdd, toRemove, hasChange: toAdd.length !== 0 || toRemove.length !== 0 };
+        return {
+            toUpsert,
+            toRemove,
+            hasChange: toUpsert.length !== 0 || toRemove.length !== 0,
+        };
     };
-    const { hasChange } = getChange(accounts, subplebbit);
+    const { hasChange } = getChange(accounts, community);
     if (!hasChange) {
         return;
     }
     accountsStore.setState(({ accounts }) => {
-        const { toAdd, toRemove, hasChange } = getChange(accounts, subplebbit);
+        const { toUpsert, toRemove } = getChange(accounts, community);
         const nextAccounts = Object.assign({}, accounts);
-        // edit databases and build next accounts (toAdd implies role exists from getChange)
-        for (const accountId of toAdd) {
+        // edit databases and build next accounts (toUpsert implies role exists from getChange)
+        for (const accountId of toUpsert) {
             const account = Object.assign({}, nextAccounts[accountId]);
-            const role = subplebbit.roles[account.author.address];
-            account.subplebbits = Object.assign(Object.assign({}, account.subplebbits), { [subplebbit.address]: { role } });
+            const role = community.roles[account.author.address];
+            account.communities = Object.assign(Object.assign({}, account.communities), { [community.address]: Object.assign(Object.assign({}, account.communities[community.address]), { role }) });
             nextAccounts[accountId] = account;
             accountsDatabase.addAccount(account);
         }
         for (const accountId of toRemove) {
             const account = Object.assign({}, nextAccounts[accountId]);
-            account.subplebbits = Object.assign({}, account.subplebbits);
-            delete account.subplebbits[subplebbit.address];
+            account.communities = Object.assign({}, account.communities);
+            delete account.communities[community.address];
             nextAccounts[accountId] = account;
             accountsDatabase.addAccount(account);
         }
-        log("accountsActions.addSubplebbitRoleToAccountsSubplebbits", { subplebbit, toAdd, toRemove });
+        log("accountsActions.addCommunityRoleToAccountsCommunities", {
+            community,
+            toUpsert,
+            toRemove,
+        });
         return { accounts: nextAccounts };
     });
 });

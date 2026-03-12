@@ -454,7 +454,7 @@ const getAccountEdits = (accountId) => __awaiter(void 0, void 0, void 0, functio
     }
     const editsArray = yield Promise.all(promises);
     for (const edit of editsArray) {
-        // TODO: must change this logic for subplebbit edits
+        // TODO: must change this logic for community edits
         if (!edits[edit === null || edit === void 0 ? void 0 : edit.commentCid]) {
             edits[edit === null || edit === void 0 ? void 0 : edit.commentCid] = [];
         }

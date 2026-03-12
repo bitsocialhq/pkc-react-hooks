@@ -90,8 +90,8 @@ const generateDefaultAccount = () => __awaiter(void 0, void 0, void 0, function*
         },
     };
     const accountName = yield getNextAvailableDefaultAccountName();
-    // subplebbits where the account has a role, like moderator, admin, owner, etc.
-    const subplebbits = {};
+    // communities where the account has a role, like moderator, admin, owner, etc.
+    const communities = {};
     const account = {
         id: uuid(),
         version: accountsDatabase.accountVersion,
@@ -103,7 +103,7 @@ const generateDefaultAccount = () => __awaiter(void 0, void 0, void 0, function*
         subscriptions: [],
         blockedAddresses: {},
         blockedCids: {},
-        subplebbits,
+        communities,
         mediaIpfsGatewayUrl: defaultMediaIpfsGatewayUrl,
     };
     return account;

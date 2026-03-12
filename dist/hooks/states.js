@@ -2,34 +2,34 @@ import { useMemo } from "react";
 import Logger from "@plebbit/plebbit-logger";
 const log = Logger("bitsocial-react-hooks:states:hooks");
 import assert from "assert";
-import { useSubplebbits } from "./subplebbits";
-import { subplebbitPostsCacheExpired } from "../lib/utils";
+import { useCommunities } from "./communities";
+import { communityPostsCacheExpired } from "../lib/utils";
 // TODO: implement getting peers
 const peers = {};
 /**
  * @param comment - The comment to get the states from
- * @param subplebbit - The subplebbit to get the states from
+ * @param community - The community to get the states from
  * @param acountName - The nickname of the account, e.g. 'Account 1'. If no accountName is provided, use
  * the active account.
  */
 export function useClientsStates(options) {
     assert(options == null || typeof options === "object", `useClientsStates options argument '${options}' not an object`);
-    const { comment, subplebbit } = options !== null && options !== void 0 ? options : {};
+    const { comment, community } = options !== null && options !== void 0 ? options : {};
     assert(comment == null || typeof comment === "object", `useClientsStates options.comment argument '${comment}' not an object`);
-    assert(subplebbit == null || typeof subplebbit === "object", `useClientsStates options.subplebbit argument '${subplebbit}' not an object`);
-    assert(!(comment && subplebbit), `useClientsStates options.comment and options.subplebbit arguments cannot be defined at the same time`);
-    const commentOrSubplebbit = comment || subplebbit;
+    assert(community == null || typeof community === "object", `useClientsStates options.community argument '${community}' not an object`);
+    assert(!(comment && community), `useClientsStates options.comment and options.community arguments cannot be defined at the same time`);
+    const commentOrCommunity = comment || community;
     const states = useMemo(() => {
         var _a, _b, _c, _d, _e, _f;
         const states = {};
         // if comment is newer than 5 minutes, don't show updating state so user knows it finished
-        if ((commentOrSubplebbit === null || commentOrSubplebbit === void 0 ? void 0 : commentOrSubplebbit.cid) && commentOrSubplebbit.timestamp + 5 * 60 > Date.now() / 1000) {
+        if ((commentOrCommunity === null || commentOrCommunity === void 0 ? void 0 : commentOrCommunity.cid) && commentOrCommunity.timestamp + 5 * 60 > Date.now() / 1000) {
             return states;
         }
-        if (!(commentOrSubplebbit === null || commentOrSubplebbit === void 0 ? void 0 : commentOrSubplebbit.clients)) {
+        if (!(commentOrCommunity === null || commentOrCommunity === void 0 ? void 0 : commentOrCommunity.clients)) {
             return states;
         }
-        const clients = commentOrSubplebbit === null || commentOrSubplebbit === void 0 ? void 0 : commentOrSubplebbit.clients;
+        const clients = commentOrCommunity === null || commentOrCommunity === void 0 ? void 0 : commentOrCommunity.clients;
         const addState = (state, clientUrl) => {
             if (!state || state === "stopped") {
                 return;
@@ -40,7 +40,7 @@ export function useClientsStates(options) {
             states[state].push(clientUrl);
         };
         // dont show state if the data is already fetched
-        if (!(commentOrSubplebbit === null || commentOrSubplebbit === void 0 ? void 0 : commentOrSubplebbit.updatedAt) || subplebbitPostsCacheExpired(commentOrSubplebbit)) {
+        if (!(commentOrCommunity === null || commentOrCommunity === void 0 ? void 0 : commentOrCommunity.updatedAt) || communityPostsCacheExpired(commentOrCommunity)) {
             for (const clientUrl in clients === null || clients === void 0 ? void 0 : clients.ipfsGateways) {
                 addState((_a = clients.ipfsGateways[clientUrl]) === null || _a === void 0 ? void 0 : _a.state, clientUrl);
             }
@@ -62,8 +62,8 @@ export function useClientsStates(options) {
                 }
             }
         }
-        // find subplebbit pages and comment replies pages states
-        const pages = (commentOrSubplebbit === null || commentOrSubplebbit === void 0 ? void 0 : commentOrSubplebbit.posts) || (commentOrSubplebbit === null || commentOrSubplebbit === void 0 ? void 0 : commentOrSubplebbit.replies);
+        // find community pages and comment replies pages states
+        const pages = (commentOrCommunity === null || commentOrCommunity === void 0 ? void 0 : commentOrCommunity.posts) || (commentOrCommunity === null || commentOrCommunity === void 0 ? void 0 : commentOrCommunity.replies);
         if (pages) {
             for (const clientType in pages.clients) {
                 for (const sortType in pages.clients[clientType]) {
@@ -82,13 +82,13 @@ export function useClientsStates(options) {
             }
         }
         log("useClientsStates", {
-            subplebbitAddress: commentOrSubplebbit === null || commentOrSubplebbit === void 0 ? void 0 : commentOrSubplebbit.address,
-            commentCid: commentOrSubplebbit === null || commentOrSubplebbit === void 0 ? void 0 : commentOrSubplebbit.cid,
+            communityAddress: commentOrCommunity === null || commentOrCommunity === void 0 ? void 0 : commentOrCommunity.address,
+            commentCid: commentOrCommunity === null || commentOrCommunity === void 0 ? void 0 : commentOrCommunity.cid,
             states,
-            commentOrSubplebbit,
+            commentOrCommunity,
         });
         return states;
-    }, [commentOrSubplebbit]);
+    }, [commentOrCommunity]);
     return useMemo(() => ({
         states,
         peers,
@@ -98,68 +98,68 @@ export function useClientsStates(options) {
     }), [states, peers]);
 }
 /**
- * @param subplebbitAddresses - The subplebbit addresses to get the states from
+ * @param communityAddresses - The community addresses to get the states from
  * @param acountName - The nickname of the account, e.g. 'Account 1'. If no accountName is provided, use
  * the active account.
  */
-export function useSubplebbitsStates(options) {
-    assert(options == null || typeof options === "object", `useSubplebbitsStates options argument '${options}' not an object`);
-    const { subplebbitAddresses } = options !== null && options !== void 0 ? options : {};
-    assert(subplebbitAddresses == null || Array.isArray(subplebbitAddresses), `useSubplebbitsStates subplebbitAddresses '${subplebbitAddresses}' not an array`);
-    for (const subplebbitAddress of subplebbitAddresses !== null && subplebbitAddresses !== void 0 ? subplebbitAddresses : []) {
-        assert(typeof subplebbitAddress === "string", `useSubplebbitsStates subplebbitAddresses '${subplebbitAddresses}' subplebbitAddress '${subplebbitAddress}' not a string`);
+export function useCommunitiesStates(options) {
+    assert(options == null || typeof options === "object", `useCommunitiesStates options argument '${options}' not an object`);
+    const { communityAddresses } = options !== null && options !== void 0 ? options : {};
+    assert(communityAddresses == null || Array.isArray(communityAddresses), `useCommunitiesStates communityAddresses '${communityAddresses}' not an array`);
+    for (const communityAddress of communityAddresses !== null && communityAddresses !== void 0 ? communityAddresses : []) {
+        assert(typeof communityAddress === "string", `useCommunitiesStates communityAddresses '${communityAddresses}' communityAddress '${communityAddress}' not a string`);
     }
-    const { subplebbits } = useSubplebbits({ subplebbitAddresses });
+    const { communities } = useCommunities({ communityAddresses });
     const states = useMemo(() => {
         var _a;
         const states = {};
-        for (const subplebbit of subplebbits) {
-            if (!(subplebbit === null || subplebbit === void 0 ? void 0 : subplebbit.updatingState)) {
+        for (const community of communities) {
+            if (!(community === null || community === void 0 ? void 0 : community.updatingState)) {
                 continue;
             }
-            // dont show subplebbit state if data is already fetched
-            if ((!subplebbit.updatedAt || subplebbitPostsCacheExpired(subplebbit)) &&
-                (subplebbit === null || subplebbit === void 0 ? void 0 : subplebbit.updatingState) !== "stopped" &&
-                (subplebbit === null || subplebbit === void 0 ? void 0 : subplebbit.updatingState) !== "succeeded") {
-                if (!states[subplebbit.updatingState]) {
-                    states[subplebbit.updatingState] = {
-                        subplebbitAddresses: new Set(),
+            // dont show community state if data is already fetched
+            if ((!community.updatedAt || communityPostsCacheExpired(community)) &&
+                (community === null || community === void 0 ? void 0 : community.updatingState) !== "stopped" &&
+                (community === null || community === void 0 ? void 0 : community.updatingState) !== "succeeded") {
+                if (!states[community.updatingState]) {
+                    states[community.updatingState] = {
+                        communityAddresses: new Set(),
                         clientUrls: new Set(),
                     };
                 }
-                states[subplebbit.updatingState].subplebbitAddresses.add(subplebbit.address);
+                states[community.updatingState].communityAddresses.add(community.address);
                 // find client urls
-                for (const clientType in subplebbit.clients) {
+                for (const clientType in community.clients) {
                     if (clientType === "chainProviders") {
-                        for (const chainTicker in subplebbit.clients.chainProviders) {
-                            for (const clientUrl in subplebbit.clients.chainProviders[chainTicker]) {
-                                const state = subplebbit.clients.chainProviders[chainTicker][clientUrl].state;
-                                // TODO: client states should always be the same as subplebbit.updatingState
+                        for (const chainTicker in community.clients.chainProviders) {
+                            for (const clientUrl in community.clients.chainProviders[chainTicker]) {
+                                const state = community.clients.chainProviders[chainTicker][clientUrl].state;
+                                // TODO: client states should always be the same as community.updatingState
                                 // but possibly because of a plebbit-js bug they are sometimes not
-                                if (state !== "stopped" && state === subplebbit.updatingState) {
-                                    states[subplebbit.updatingState].clientUrls.add(clientUrl);
+                                if (state !== "stopped" && state === community.updatingState) {
+                                    states[community.updatingState].clientUrls.add(clientUrl);
                                 }
                             }
                         }
                     }
                     else {
-                        for (const clientUrl in subplebbit.clients[clientType]) {
-                            const state = subplebbit.clients[clientType][clientUrl].state;
-                            // TODO: client states should always be the same as subplebbit.updatingState
+                        for (const clientUrl in community.clients[clientType]) {
+                            const state = community.clients[clientType][clientUrl].state;
+                            // TODO: client states should always be the same as community.updatingState
                             // but possibly because of a plebbit-js bug they are sometimes not
-                            if (state !== "stopped" && state === subplebbit.updatingState) {
-                                states[subplebbit.updatingState].clientUrls.add(clientUrl);
+                            if (state !== "stopped" && state === community.updatingState) {
+                                states[community.updatingState].clientUrls.add(clientUrl);
                             }
                         }
                     }
                 }
             }
-            // find subplebbit pages states and client urls
+            // find community pages states and client urls
             const pagesClientsUrls = {};
-            for (const clientType in (_a = subplebbit === null || subplebbit === void 0 ? void 0 : subplebbit.posts) === null || _a === void 0 ? void 0 : _a.clients) {
-                for (const sortType in subplebbit.posts.clients[clientType]) {
-                    for (const clientUrl in subplebbit.posts.clients[clientType][sortType]) {
-                        let state = subplebbit.posts.clients[clientType][sortType][clientUrl].state;
+            for (const clientType in (_a = community === null || community === void 0 ? void 0 : community.posts) === null || _a === void 0 ? void 0 : _a.clients) {
+                for (const sortType in community.posts.clients[clientType]) {
+                    for (const clientUrl in community.posts.clients[clientType][sortType]) {
+                        let state = community.posts.clients[clientType][sortType][clientUrl].state;
                         if (state !== "stopped") {
                             state += `-page-${sortType}`;
                             if (!pagesClientsUrls[state]) {
@@ -170,12 +170,12 @@ export function useSubplebbitsStates(options) {
                     }
                 }
             }
-            // add subplebbitAddresses and clientUrls
+            // add communityAddresses and clientUrls
             for (const pagesState in pagesClientsUrls) {
                 if (!states[pagesState]) {
-                    states[pagesState] = { subplebbitAddresses: new Set(), clientUrls: new Set() };
+                    states[pagesState] = { communityAddresses: new Set(), clientUrls: new Set() };
                 }
-                states[pagesState].subplebbitAddresses.add(subplebbit.address);
+                states[pagesState].communityAddresses.add(community.address);
                 pagesClientsUrls[pagesState].forEach((clientUrl) => states[pagesState].clientUrls.add(clientUrl));
             }
         }
@@ -183,17 +183,17 @@ export function useSubplebbitsStates(options) {
         const _states = {};
         for (const state in states) {
             _states[state] = {
-                subplebbitAddresses: [...states[state].subplebbitAddresses],
+                communityAddresses: [...states[state].communityAddresses],
                 clientUrls: [...states[state].clientUrls],
             };
         }
-        log("useSubplebbitsStates", {
-            subplebbitAddresses,
+        log("useCommunitiesStates", {
+            communityAddresses,
             states: _states,
-            subplebbits,
+            communities,
         });
         return _states;
-    }, [subplebbits]);
+    }, [communities]);
     return useMemo(() => ({
         states,
         peers,

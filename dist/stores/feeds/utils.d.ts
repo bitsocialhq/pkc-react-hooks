@@ -1,31 +1,31 @@
-import { Comment, Feeds, FeedsOptions, Subplebbit, Subplebbits, Accounts, SubplebbitsPages, FeedsSubplebbitsPostCounts } from "../../types";
+import { Comment, Feeds, FeedsOptions, Community, Communities, Accounts, CommunitiesPages, FeedsCommunitiesPostCounts } from "../../types";
 /**
- * Calculate the feeds from all the loaded subplebbit pages, filter and sort them
+ * Calculate the feeds from all the loaded community pages, filter and sort them
  */
-export declare const getFilteredSortedFeeds: (feedsOptions: FeedsOptions, subplebbits: Subplebbits, subplebbitsPages: SubplebbitsPages, accounts: Accounts, freshestComments?: {
+export declare const getFilteredSortedFeeds: (feedsOptions: FeedsOptions, communities: Communities, communitiesPages: CommunitiesPages, accounts: Accounts, freshestComments?: {
     [commentCid: string]: Comment;
 }) => Feeds;
 export declare const getLoadedFeeds: (feedsOptions: FeedsOptions, filteredSortedFeeds: Feeds, loadedFeeds: Feeds, bufferedFeeds: Feeds, accounts: Accounts) => Promise<Feeds>;
 export declare const addAccountsComments: (feedsOptions: FeedsOptions, loadedFeeds: Feeds) => boolean;
 export declare const getBufferedFeedsWithoutLoadedFeeds: (bufferedFeeds: Feeds, loadedFeeds: Feeds) => Feeds;
 export declare const getUpdatedFeeds: (feedsOptions: FeedsOptions, filteredSortedFeeds: Feeds, updatedFeeds: Feeds, loadedFeeds: Feeds, accounts: Accounts) => Promise<Feeds>;
-export declare const getFeedsSubplebbitAddressesWithNewerPosts: (filteredSortedFeeds: Feeds, loadedFeeds: Feeds, previousFeedsSubplebbitAddressesWithNewerPosts: {
+export declare const getFeedsCommunityAddressesWithNewerPosts: (filteredSortedFeeds: Feeds, loadedFeeds: Feeds, previousFeedsCommunityAddressesWithNewerPosts: {
     [feedName: string]: string[];
 }) => {
     [feedName: string]: string[];
 };
-export declare const getFeedsSubplebbitsPostCounts: (feedsOptions: FeedsOptions, feeds: Feeds) => FeedsSubplebbitsPostCounts;
+export declare const getFeedsCommunitiesPostCounts: (feedsOptions: FeedsOptions, feeds: Feeds) => FeedsCommunitiesPostCounts;
 /**
  * Get which feeds have more posts, i.e. have not reached the final page of all subs
  */
-export declare const getFeedsHaveMore: (feedsOptions: FeedsOptions, bufferedFeeds: Feeds, subplebbits: Subplebbits, subplebbitsPages: SubplebbitsPages, accounts: Accounts) => {
+export declare const getFeedsHaveMore: (feedsOptions: FeedsOptions, bufferedFeeds: Feeds, communities: Communities, communitiesPages: CommunitiesPages, accounts: Accounts) => {
     [feedName: string]: boolean;
 };
-export declare const getFeedsSubplebbits: (feedsOptions: FeedsOptions, subplebbits: Subplebbits) => Map<string, Subplebbit>;
-export declare const feedsSubplebbitsChanged: (previousFeedsSubplebbits: Map<string, Subplebbit>, feedsSubplebbits: Map<string, Subplebbit>) => boolean;
-export declare const getFeedsSubplebbitsFirstPageCids: (feedsSubplebbits: Map<string, Subplebbit>) => string[];
-export declare const getFeedsSubplebbitsPostsPagesFirstUpdatedAts: (feedsSubplebbits: Map<string, Subplebbit>) => string;
-export declare const getFeedsSubplebbitsLoadedCount: (feedsSubplebbits: Map<string, Subplebbit>) => number;
+export declare const getFeedsCommunities: (feedsOptions: FeedsOptions, communities: Communities) => Map<string, Community>;
+export declare const feedsCommunitiesChanged: (previousFeedsCommunities: Map<string, Community>, feedsCommunities: Map<string, Community>) => boolean;
+export declare const getFeedsCommunitiesFirstPageCids: (feedsCommunities: Map<string, Community>) => string[];
+export declare const getFeedsCommunitiesPostsPagesFirstUpdatedAts: (feedsCommunities: Map<string, Community>) => string;
+export declare const getFeedsCommunitiesLoadedCount: (feedsCommunities: Map<string, Community>) => number;
 export declare const getAccountsBlockedAddresses: (accounts: Accounts) => string[];
 export declare const accountsBlockedAddressesChanged: (previousAccountsBlockedAddresses: {
     [address: string]: boolean;

@@ -51,20 +51,20 @@ const publishChallengeAnswersNotReady = (challengeAnswers) => __awaiter(void 0, 
 export function useSubscribe(options) {
     var _a;
     assert(!options || typeof options === "object", `useSubscribe options argument '${options}' not an object`);
-    const { subplebbitAddress, accountName, onError } = options || {};
+    const { communityAddress, accountName, onError } = options || {};
     const account = useAccount({ accountName });
     const accountsActions = useAccountsStore((state) => state.accountsActions);
     const [errors, setErrors] = useState([]);
     let state = "initializing";
     let subscribed;
-    // before the account and subplebbitAddress is defined, nothing can happen
-    if (account && subplebbitAddress) {
+    // before the account and communityAddress is defined, nothing can happen
+    if (account && communityAddress) {
         state = "ready";
-        subscribed = Boolean((_a = account.subscriptions) === null || _a === void 0 ? void 0 : _a.includes(subplebbitAddress));
+        subscribed = Boolean((_a = account.subscriptions) === null || _a === void 0 ? void 0 : _a.includes(communityAddress));
     }
     const subscribe = () => __awaiter(this, void 0, void 0, function* () {
         try {
-            yield accountsActions.subscribe(subplebbitAddress, accountName);
+            yield accountsActions.subscribe(communityAddress, accountName);
         }
         catch (e) {
             setErrors((errors) => [...errors, e]);
@@ -73,7 +73,7 @@ export function useSubscribe(options) {
     });
     const unsubscribe = () => __awaiter(this, void 0, void 0, function* () {
         try {
-            yield accountsActions.unsubscribe(subplebbitAddress, accountName);
+            yield accountsActions.unsubscribe(communityAddress, accountName);
         }
         catch (e) {
             setErrors((errors) => [...errors, e]);
@@ -87,7 +87,7 @@ export function useSubscribe(options) {
         state,
         error: errors[errors.length - 1],
         errors,
-    }), [state, subscribed, errors, subplebbitAddress, accountName]);
+    }), [state, subscribed, errors, communityAddress, accountName]);
 }
 export function useBlock(options) {
     assert(!options || typeof options === "object", `useBlock options argument '${options}' not an object`);
@@ -445,9 +445,9 @@ export function usePublishCommentModeration(options) {
         publishChallengeAnswers,
     ]);
 }
-export function usePublishSubplebbitEdit(options) {
-    assert(!options || typeof options === "object", `usePublishSubplebbitEdit options argument '${options}' not an object`);
-    const _a = options || {}, { accountName, subplebbitAddress } = _a, publishSubplebbitEditOptions = __rest(_a, ["accountName", "subplebbitAddress"]);
+export function usePublishCommunityEdit(options) {
+    assert(!options || typeof options === "object", `usePublishCommunityEdit options argument '${options}' not an object`);
+    const _a = options || {}, { accountName, communityAddress } = _a, publishCommunityEditOptions = __rest(_a, ["accountName", "communityAddress"]);
     const accountsActions = useAccountsStore((state) => state.accountsActions);
     const accountId = useAccountId(accountName);
     const [errors, setErrors] = useState([]);
@@ -457,39 +457,39 @@ export function usePublishSubplebbitEdit(options) {
     const [publishChallengeAnswers, setPublishChallengeAnswers] = useState();
     let initialState = "initializing";
     // before the accountId and options is defined, nothing can happen
-    if (accountId && subplebbitAddress) {
+    if (accountId && communityAddress) {
         initialState = "ready";
     }
     // define onError if not defined
-    const originalOnError = publishSubplebbitEditOptions.onError;
+    const originalOnError = publishCommunityEditOptions.onError;
     const onError = (error) => __awaiter(this, void 0, void 0, function* () {
         setErrors((errors) => [...errors, error]);
         originalOnError === null || originalOnError === void 0 ? void 0 : originalOnError(error);
     });
-    publishSubplebbitEditOptions.onError = onError;
+    publishCommunityEditOptions.onError = onError;
     // define onChallenge if not defined
-    const originalOnChallenge = publishSubplebbitEditOptions.onChallenge;
-    const onChallenge = (challenge, subplebbitEdit) => __awaiter(this, void 0, void 0, function* () {
+    const originalOnChallenge = publishCommunityEditOptions.onChallenge;
+    const onChallenge = (challenge, communityEdit) => __awaiter(this, void 0, void 0, function* () {
         // cannot set a function directly with setState
-        setPublishChallengeAnswers(() => subplebbitEdit === null || subplebbitEdit === void 0 ? void 0 : subplebbitEdit.publishChallengeAnswers.bind(subplebbitEdit));
+        setPublishChallengeAnswers(() => communityEdit === null || communityEdit === void 0 ? void 0 : communityEdit.publishChallengeAnswers.bind(communityEdit));
         setChallenge(challenge);
-        originalOnChallenge === null || originalOnChallenge === void 0 ? void 0 : originalOnChallenge(challenge, subplebbitEdit);
+        originalOnChallenge === null || originalOnChallenge === void 0 ? void 0 : originalOnChallenge(challenge, communityEdit);
     });
-    publishSubplebbitEditOptions.onChallenge = onChallenge;
+    publishCommunityEditOptions.onChallenge = onChallenge;
     // define onChallengeVerification if not defined
-    const originalOnChallengeVerification = publishSubplebbitEditOptions.onChallengeVerification;
-    const onChallengeVerification = (challengeVerification, subplebbitEdit) => __awaiter(this, void 0, void 0, function* () {
+    const originalOnChallengeVerification = publishCommunityEditOptions.onChallengeVerification;
+    const onChallengeVerification = (challengeVerification, communityEdit) => __awaiter(this, void 0, void 0, function* () {
         setChallengeVerification(challengeVerification);
-        originalOnChallengeVerification === null || originalOnChallengeVerification === void 0 ? void 0 : originalOnChallengeVerification(challengeVerification, subplebbitEdit);
+        originalOnChallengeVerification === null || originalOnChallengeVerification === void 0 ? void 0 : originalOnChallengeVerification(challengeVerification, communityEdit);
     });
-    publishSubplebbitEditOptions.onChallengeVerification = onChallengeVerification;
+    publishCommunityEditOptions.onChallengeVerification = onChallengeVerification;
     // change state on publishing state change
-    publishSubplebbitEditOptions.onPublishingStateChange = (publishingState) => {
+    publishCommunityEditOptions.onPublishingStateChange = (publishingState) => {
         setPublishingState(publishingState);
     };
-    const publishSubplebbitEdit = () => __awaiter(this, void 0, void 0, function* () {
+    const publishCommunityEdit = () => __awaiter(this, void 0, void 0, function* () {
         try {
-            yield accountsActions.publishSubplebbitEdit(subplebbitAddress, publishSubplebbitEditOptions, accountName);
+            yield accountsActions.publishCommunityEdit(communityAddress, publishCommunityEditOptions, accountName);
         }
         catch (e) {
             setErrors((errors) => [...errors, e]);
@@ -499,7 +499,7 @@ export function usePublishSubplebbitEdit(options) {
     return useMemo(() => ({
         challenge,
         challengeVerification,
-        publishSubplebbitEdit,
+        publishCommunityEdit,
         publishChallengeAnswers: publishChallengeAnswers || publishChallengeAnswersNotReady,
         state: publishingState || initialState,
         error: errors[errors.length - 1],
@@ -515,24 +515,24 @@ export function usePublishSubplebbitEdit(options) {
         publishChallengeAnswers,
     ]);
 }
-export function useCreateSubplebbit(options) {
-    assert(!options || typeof options === "object", `useCreateSubplebbit options argument '${options}' not an object`);
-    const _a = options || {}, { accountName, onError } = _a, createSubplebbitOptions = __rest(_a, ["accountName", "onError"]);
+export function useCreateCommunity(options) {
+    assert(!options || typeof options === "object", `useCreateCommunity options argument '${options}' not an object`);
+    const _a = options || {}, { accountName, onError } = _a, createCommunityOptions = __rest(_a, ["accountName", "onError"]);
     const accountId = useAccountId(accountName);
     const accountsActions = useAccountsStore((state) => state.accountsActions);
     const [errors, setErrors] = useState([]);
     const [state, setState] = useState();
-    const [createdSubplebbit, setCreatedSubplebbit] = useState();
+    const [createdCommunity, setCreatedCommunity] = useState();
     let initialState = "initializing";
     // before the accountId and options is defined, nothing can happen
     if (accountId && options) {
         initialState = "ready";
     }
-    const createSubplebbit = () => __awaiter(this, void 0, void 0, function* () {
+    const createCommunity = () => __awaiter(this, void 0, void 0, function* () {
         try {
             setState("creating");
-            const createdSubplebbit = yield accountsActions.createSubplebbit(createSubplebbitOptions, accountName);
-            setCreatedSubplebbit(createdSubplebbit);
+            const createdCommunity = yield accountsActions.createCommunity(createCommunityOptions, accountName);
+            setCreatedCommunity(createdCommunity);
             setState("succeeded");
         }
         catch (e) {
@@ -542,10 +542,10 @@ export function useCreateSubplebbit(options) {
         }
     });
     return useMemo(() => ({
-        createdSubplebbit,
-        createSubplebbit,
+        createdCommunity,
+        createCommunity,
         state: state || initialState,
         error: errors[errors.length - 1],
         errors,
-    }), [state, errors, createdSubplebbit, options, accountName]);
+    }), [state, errors, createdCommunity, options, accountName]);
 }

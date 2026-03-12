@@ -1,6 +1,6 @@
 import { UseBufferedFeedsOptions, UseBufferedFeedsResult, UseFeedOptions, UseFeedResult } from "../../types";
 /**
- * @param subplebbitAddresses - The addresses of the subplebbits, e.g. ['memes.eth', '12D3KooW...']
+ * @param communityAddresses - The addresses of the communities, e.g. ['memes.eth', '12D3KooW...']
  * @param sortType - The sorting algo for the feed: 'hot' | 'new' | 'active' | 'topHour' | 'topDay' | 'topWeek' | 'topMonth' | 'topYear' | 'topAll' | 'controversialHour' | 'controversialDay' | 'controversialWeek' | 'controversialMonth' | 'controversialYear' | 'controversialAll'
  * @param acountName - The nickname of the account, e.g. 'Account 1'. If no accountName is provided, use
  * the active account.

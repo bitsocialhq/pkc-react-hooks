@@ -18,7 +18,7 @@ import { useComment } from "../comments";
 import { useAuthorCommentsName, usePlebbitAddress } from "./utils";
 import useAuthorsCommentsStore from "../../stores/authors-comments";
 import PlebbitJs from "../../lib/plebbit-js";
-import { normalizeEthAliasDomain } from "../../lib/subplebbit-address";
+import { normalizeEthAliasDomain } from "../../lib/community-address";
 import QuickLRU from "quick-lru";
 export { setAuthorAvatarsWhitelistedTokenAddresses } from "./author-avatars";
 const cacheResolveAuthorAddressPromise = (address, promise) => {

@@ -12,30 +12,30 @@ import Logger from "@plebbit/plebbit-logger";
 const log = Logger("bitsocial-react-hooks:accounts:stores");
 import commentsStore from "../comments";
 import repliesPagesStore from "../replies-pages";
-import subplebbitsPagesStore from "../subplebbits-pages";
+import communitiesPagesStore from "../communities-pages";
 import PlebbitJs from "../../lib/plebbit-js";
-const getAuthorAddressRolesFromSubplebbits = (authorAddress, subplebbits) => {
+const getAuthorAddressRolesFromCommunities = (authorAddress, communities) => {
     var _a, _b;
     const roles = {};
-    for (const subplebbitAddress in subplebbits) {
-        const role = (_b = (_a = subplebbits[subplebbitAddress]) === null || _a === void 0 ? void 0 : _a.roles) === null || _b === void 0 ? void 0 : _b[authorAddress];
+    for (const communityAddress in communities) {
+        const role = (_b = (_a = communities[communityAddress]) === null || _a === void 0 ? void 0 : _a.roles) === null || _b === void 0 ? void 0 : _b[authorAddress];
         if (role) {
-            roles[subplebbitAddress] = role;
+            roles[communityAddress] = role;
         }
     }
     return roles;
 };
-export const getAccountSubplebbits = (account, subplebbits) => {
+export const getAccountCommunities = (account, communities) => {
     var _a, _b, _c;
-    assert(((_a = account === null || account === void 0 ? void 0 : account.author) === null || _a === void 0 ? void 0 : _a.address) && typeof ((_b = account === null || account === void 0 ? void 0 : account.author) === null || _b === void 0 ? void 0 : _b.address) === "string", `accountsStore utils getAccountSubplebbits invalid account.author.address '${(_c = account === null || account === void 0 ? void 0 : account.author) === null || _c === void 0 ? void 0 : _c.address}'`);
-    assert(subplebbits && typeof subplebbits === "object", `accountsStore utils getAccountSubplebbits invalid subplebbits '${subplebbits}'`);
-    const roles = getAuthorAddressRolesFromSubplebbits(account.author.address, subplebbits);
-    const accountSubplebbits = Object.assign({}, account.subplebbits);
-    for (const subplebbitAddress in roles) {
-        accountSubplebbits[subplebbitAddress] = Object.assign({}, accountSubplebbits[subplebbitAddress]);
-        accountSubplebbits[subplebbitAddress].role = roles[subplebbitAddress];
+    assert(((_a = account === null || account === void 0 ? void 0 : account.author) === null || _a === void 0 ? void 0 : _a.address) && typeof ((_b = account === null || account === void 0 ? void 0 : account.author) === null || _b === void 0 ? void 0 : _b.address) === "string", `accountsStore utils getAccountCommunities invalid account.author.address '${(_c = account === null || account === void 0 ? void 0 : account.author) === null || _c === void 0 ? void 0 : _c.address}'`);
+    assert(communities && typeof communities === "object", `accountsStore utils getAccountCommunities invalid communities '${communities}'`);
+    const roles = getAuthorAddressRolesFromCommunities(account.author.address, communities);
+    const accountCommunities = Object.assign({}, account.communities);
+    for (const communityAddress in roles) {
+        accountCommunities[communityAddress] = Object.assign({}, accountCommunities[communityAddress]);
+        accountCommunities[communityAddress].role = roles[communityAddress];
     }
-    return accountSubplebbits;
+    return accountCommunities;
 };
 export const getCommentCidsToAccountsComments = (accountsComments) => {
     const commentCidsToAccountsComments = {};
@@ -194,7 +194,7 @@ export const getAccountCommentDepth = (comment) => {
     if (typeof parentCommentDepth === "number") {
         return parentCommentDepth + 1;
     }
-    parentCommentDepth = (_c = subplebbitsPagesStore.getState().comments[comment.parentCid]) === null || _c === void 0 ? void 0 : _c.depth;
+    parentCommentDepth = (_c = communitiesPagesStore.getState().comments[comment.parentCid]) === null || _c === void 0 ? void 0 : _c.depth;
     if (typeof parentCommentDepth === "number") {
         return parentCommentDepth + 1;
     }
@@ -204,8 +204,8 @@ export const getAccountCommentDepth = (comment) => {
 export const addShortAddressesToAccountComment = (comment) => {
     comment = Object.assign({}, comment);
     try {
-        comment.shortSubplebbitAddress = PlebbitJs.Plebbit.getShortAddress({
-            address: comment.subplebbitAddress,
+        comment.shortCommunityAddress = PlebbitJs.Plebbit.getShortAddress({
+            address: comment.communityAddress,
         });
     }
     catch (e) { }
@@ -219,7 +219,7 @@ export const addShortAddressesToAccountComment = (comment) => {
     return comment;
 };
 const utils = {
-    getAccountSubplebbits,
+    getAccountCommunities,
     getCommentCidsToAccountsComments,
     fetchCommentLinkDimensions,
     getInitAccountCommentsToUpdate,

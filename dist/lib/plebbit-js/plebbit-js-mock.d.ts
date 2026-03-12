@@ -10,11 +10,11 @@ export declare class Plebbit extends EventEmitter {
         privateKey: string;
         address: string;
     }>;
-    createSubplebbit(createSubplebbitOptions: any): Promise<Subplebbit>;
-    getSubplebbit(options: {
+    createCommunity(createCommunityOptions: any): Promise<Community>;
+    getCommunity(options: {
         address: string;
     }): Promise<any>;
-    get subplebbits(): string[];
+    get communities(): string[];
     createComment(createCommentOptions: any): Promise<Comment>;
     getComment(options: {
         cid: string;
@@ -23,12 +23,12 @@ export declare class Plebbit extends EventEmitter {
     createVote(): Promise<Vote>;
     createCommentEdit(createCommentEditOptions: any): Promise<CommentEdit>;
     createCommentModeration(createCommentModerationOptions: any): Promise<CommentModeration>;
-    createSubplebbitEdit(createSubplebbitEditOptions: any): Promise<SubplebbitEdit>;
+    createCommunityEdit(createCommunityEditOptions: any): Promise<CommunityEdit>;
     fetchCid(options: {
         cid: string;
     }): Promise<string>;
-    pubsubSubscribe(subplebbitAddress: string): Promise<void>;
-    pubsubUnsubscribe(subplebbitAddress: string): Promise<void>;
+    pubsubSubscribe(communityAddress: string): Promise<void>;
+    pubsubUnsubscribe(communityAddress: string): Promise<void>;
     clients: {
         plebbitRpcClients: {
             "http://localhost:9138": PlebbitRpcClient;
@@ -45,7 +45,7 @@ declare class PlebbitRpcClient extends EventEmitter {
 export declare class Pages {
     pageCids: any;
     pages: any;
-    subplebbit: any;
+    community: any;
     comment: any;
     constructor(pagesOptions?: any);
     getPage(options: {
@@ -54,7 +54,7 @@ export declare class Pages {
     validatePage(page: any): Promise<void>;
     pageToGet(pageCid: string): any;
 }
-export declare class Subplebbit extends EventEmitter {
+export declare class Community extends EventEmitter {
     updateCalledTimes: number;
     updating: boolean;
     firstUpdate: boolean;
@@ -67,14 +67,14 @@ export declare class Subplebbit extends EventEmitter {
     statsCid: string | undefined;
     state: string;
     updatingState: string;
-    constructor(createSubplebbitOptions?: any);
+    constructor(createCommunityOptions?: any);
     update(): Promise<void>;
     delete(): Promise<void>;
     simulateUpdateEvent(): void;
     simulateFirstUpdateEvent(): Promise<void>;
     get roles(): {};
     rolesToGet(): {};
-    edit(editSubplebbitOptions: any): Promise<void>;
+    edit(editCommunityOptions: any): Promise<void>;
 }
 declare class Publication extends EventEmitter {
     timestamp: number | undefined;
@@ -100,7 +100,7 @@ export declare class Comment extends Publication {
     parentCid: string | undefined;
     replies: any;
     updatedAt: number | undefined;
-    subplebbitAddress: string | undefined;
+    communityAddress: string | undefined;
     state: string;
     updatingState: string;
     publishingState: string;
@@ -115,7 +115,7 @@ export declare class CommentEdit extends Publication {
 }
 export declare class CommentModeration extends Publication {
 }
-export declare class SubplebbitEdit extends Publication {
+export declare class CommunityEdit extends Publication {
 }
 declare const createPlebbit: any;
 export default createPlebbit;

@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import accountsStore, { listeners } from "./accounts-store";
-import subplebbitsStore from "../subplebbits";
+import communitiesStore from "../communities";
 import accountsDatabase from "./accounts-database";
 import accountGenerator from "./account-generator";
 import Logger from "@plebbit/plebbit-logger";
@@ -18,7 +18,8 @@ import chain from "../../lib/chain";
 import assert from "assert";
 const log = Logger("bitsocial-react-hooks:accounts:stores");
 import * as accountsActionsInternal from "./accounts-actions-internal";
-import { getAccountSubplebbits, getCommentCidsToAccountsComments, fetchCommentLinkDimensions, getAccountCommentDepth, addShortAddressesToAccountComment, } from "./utils";
+import { backfillPublicationCommunityAddress, createPlebbitCommunityEdit, getPlebbitCommunityAddresses, normalizeCommunityEditOptionsForPlebbit, normalizePublicationOptionsForStore, normalizePublicationOptionsForPlebbit, } from "../../lib/plebbit-compat";
+import { getAccountCommunities, getCommentCidsToAccountsComments, fetchCommentLinkDimensions, getAccountCommentDepth, addShortAddressesToAccountComment, } from "./utils";
 import utils from "../../lib/utils";
 // Active publish-session tracking for pending comments (Task 3)
 const activePublishSessions = new Map();
@@ -165,11 +166,11 @@ export const setAccount = (account) => __awaiter(void 0, void 0, void 0, functio
     const { accounts } = accountsStore.getState();
     validator.validateAccountsActionsSetAccountArguments(account);
     assert(accounts === null || accounts === void 0 ? void 0 : accounts[account.id], `cannot set account with account.id '${account.id}' id does not exist in database`);
-    // if author.address has changed, add new subplebbit roles of author.address found in subplebbits store
+    // if author.address has changed, add new community roles of author.address found in communities store
     // TODO: add test to check if roles get added
     if (account.author.address !== accounts[account.id].author.address) {
-        const subplebbits = getAccountSubplebbits(account, subplebbitsStore.getState().subplebbits);
-        account = Object.assign(Object.assign({}, account), { subplebbits });
+        const communities = getAccountCommunities(account, communitiesStore.getState().communities);
+        account = Object.assign(Object.assign({}, account), { communities });
         // wallet.signature changes if author.address changes
         if ((_a = account.author.wallets) === null || _a === void 0 ? void 0 : _a.eth) {
             const plebbitSignerWalletWithNewAuthorAddress = yield chain.getEthWalletFromPlebbitPrivateKey(account.signer.privateKey, account.author.address);
@@ -221,9 +222,9 @@ export const importAccount = (serializedAccount) => __awaiter(void 0, void 0, vo
     }
     catch (e) { }
     assert((imported === null || imported === void 0 ? void 0 : imported.account) && ((_a = imported === null || imported === void 0 ? void 0 : imported.account) === null || _a === void 0 ? void 0 : _a.id) && ((_b = imported === null || imported === void 0 ? void 0 : imported.account) === null || _b === void 0 ? void 0 : _b.name), `accountsActions.importAccount failed JSON.stringify json serializedAccount '${serializedAccount}'`);
-    // add subplebbit roles already in subplebbits store to imported account
+    // add community roles already in communities store to imported account
     // TODO: add test to check if roles get added
-    const subplebbits = getAccountSubplebbits(imported.account, subplebbitsStore.getState().subplebbits);
+    const communities = getAccountCommunities(imported.account, communitiesStore.getState().communities);
     // if imported.account.name already exists, add ' 2', don't overwrite
     if (accountNamesToAccountIds[imported.account.name]) {
         imported.account.name += " 2";
@@ -232,7 +233,7 @@ export const importAccount = (serializedAccount) => __awaiter(void 0, void 0, vo
     const generatedAccount = yield accountGenerator.generateDefaultAccount();
     // use generatedAccount to init properties like .plebbit and .id on a new account
     // overwrite account.id to avoid duplicate ids
-    const newAccount = Object.assign(Object.assign(Object.assign({}, generatedAccount), imported.account), { subplebbits, id: generatedAccount.id });
+    const newAccount = Object.assign(Object.assign(Object.assign({}, generatedAccount), imported.account), { communities, id: generatedAccount.id });
     // add account to database
     yield accountsDatabase.addAccount(newAccount);
     // add account comments, votes, edits to database
@@ -298,9 +299,9 @@ export const exportAccount = (accountName) => __awaiter(void 0, void 0, void 0, 
     log("accountsActions.exportAccount", { exportedAccountJson });
     return exportedAccountJson;
 });
-export const subscribe = (subplebbitAddress, accountName) => __awaiter(void 0, void 0, void 0, function* () {
+export const subscribe = (communityAddress, accountName) => __awaiter(void 0, void 0, void 0, function* () {
     const { accounts, accountNamesToAccountIds, activeAccountId } = accountsStore.getState();
-    assert(subplebbitAddress && typeof subplebbitAddress === "string", `accountsActions.subscribe invalid subplebbitAddress '${subplebbitAddress}'`);
+    assert(communityAddress && typeof communityAddress === "string", `accountsActions.subscribe invalid communityAddress '${communityAddress}'`);
     assert(accounts && accountNamesToAccountIds && activeAccountId, `can't use accountsStore.accountActions before initialized`);
     let account = accounts[activeAccountId];
     if (accountName) {
@@ -309,20 +310,20 @@ export const subscribe = (subplebbitAddress, accountName) => __awaiter(void 0, v
     }
     assert(account === null || account === void 0 ? void 0 : account.id, `accountsActions.subscribe account.id '${account === null || account === void 0 ? void 0 : account.id}' doesn't exist, activeAccountId '${activeAccountId}' accountName '${accountName}'`);
     let subscriptions = account.subscriptions || [];
-    if (subscriptions.includes(subplebbitAddress)) {
-        throw Error(`account '${account.id}' already subscribed to '${subplebbitAddress}'`);
+    if (subscriptions.includes(communityAddress)) {
+        throw Error(`account '${account.id}' already subscribed to '${communityAddress}'`);
     }
-    subscriptions = [...subscriptions, subplebbitAddress];
+    subscriptions = [...subscriptions, communityAddress];
     const updatedAccount = Object.assign(Object.assign({}, account), { subscriptions });
     // update account in db async for instant feedback speed
     accountsDatabase.addAccount(updatedAccount);
     const updatedAccounts = Object.assign(Object.assign({}, accounts), { [updatedAccount.id]: updatedAccount });
-    log("accountsActions.subscribe", { account: updatedAccount, accountName, subplebbitAddress });
+    log("accountsActions.subscribe", { account: updatedAccount, accountName, communityAddress });
     accountsStore.setState({ accounts: updatedAccounts });
 });
-export const unsubscribe = (subplebbitAddress, accountName) => __awaiter(void 0, void 0, void 0, function* () {
+export const unsubscribe = (communityAddress, accountName) => __awaiter(void 0, void 0, void 0, function* () {
     const { accounts, accountNamesToAccountIds, activeAccountId } = accountsStore.getState();
-    assert(subplebbitAddress && typeof subplebbitAddress === "string", `accountsActions.unsubscribe invalid subplebbitAddress '${subplebbitAddress}'`);
+    assert(communityAddress && typeof communityAddress === "string", `accountsActions.unsubscribe invalid communityAddress '${communityAddress}'`);
     assert(accounts && accountNamesToAccountIds && activeAccountId, `can't use accountsStore.accountActions before initialized`);
     let account = accounts[activeAccountId];
     if (accountName) {
@@ -331,16 +332,16 @@ export const unsubscribe = (subplebbitAddress, accountName) => __awaiter(void 0,
     }
     assert(account === null || account === void 0 ? void 0 : account.id, `accountsActions.unsubscribe account.id '${account === null || account === void 0 ? void 0 : account.id}' doesn't exist, activeAccountId '${activeAccountId}' accountName '${accountName}'`);
     let subscriptions = account.subscriptions || [];
-    if (!subscriptions.includes(subplebbitAddress)) {
-        throw Error(`account '${account.id}' already unsubscribed from '${subplebbitAddress}'`);
+    if (!subscriptions.includes(communityAddress)) {
+        throw Error(`account '${account.id}' already unsubscribed from '${communityAddress}'`);
     }
-    // remove subplebbitAddress
-    subscriptions = subscriptions.filter((address) => address !== subplebbitAddress);
+    // remove communityAddress
+    subscriptions = subscriptions.filter((address) => address !== communityAddress);
     const updatedAccount = Object.assign(Object.assign({}, account), { subscriptions });
     // update account in db async for instant feedback speed
     accountsDatabase.addAccount(updatedAccount);
     const updatedAccounts = Object.assign(Object.assign({}, accounts), { [updatedAccount.id]: updatedAccount });
-    log("accountsActions.unsubscribe", { account: updatedAccount, accountName, subplebbitAddress });
+    log("accountsActions.unsubscribe", { account: updatedAccount, accountName, communityAddress });
     accountsStore.setState({ accounts: updatedAccounts });
 });
 export const blockAddress = (address, accountName) => __awaiter(void 0, void 0, void 0, function* () {
@@ -455,12 +456,13 @@ export const publishComment = (publishCommentOptions, accountName) => __awaiter(
     if (previousCommentCid) {
         author.previousCommentCid = previousCommentCid;
     }
-    let createCommentOptions = Object.assign({ timestamp: Math.floor(Date.now() / 1000), author, signer: account.signer }, publishCommentOptions);
+    let createCommentOptions = normalizePublicationOptionsForPlebbit(account.plebbit, Object.assign({ timestamp: Math.floor(Date.now() / 1000), author, signer: account.signer }, publishCommentOptions));
     delete createCommentOptions.onChallenge;
     delete createCommentOptions.onChallengeVerification;
     delete createCommentOptions.onError;
     delete createCommentOptions.onPublishingStateChange;
     delete createCommentOptions._onPendingCommentIndex;
+    const storedCreateCommentOptions = normalizePublicationOptionsForStore(createCommentOptions);
     // make sure the options dont throw
     yield account.plebbit.createComment(createCommentOptions);
     // try to get comment depth needed for custom depth flat account replies
@@ -486,7 +488,7 @@ export const publishComment = (publishCommentOptions, accountName) => __awaiter(
             return { accountsComments: Object.assign(Object.assign({}, accountsComments), { [account.id]: accountComments }) };
         });
     });
-    let createdAccountComment = Object.assign(Object.assign({}, createCommentOptions), { depth, index: accountCommentIndex, accountId: account.id });
+    let createdAccountComment = Object.assign(Object.assign({}, storedCreateCommentOptions), { depth, index: accountCommentIndex, accountId: account.id });
     createdAccountComment = addShortAddressesToAccountComment(createdAccountComment);
     yield saveCreatedAccountComment(createdAccountComment);
     (_c = publishCommentOptions._onPendingCommentIndex) === null || _c === void 0 ? void 0 : _c.call(publishCommentOptions, accountCommentIndex, createdAccountComment);
@@ -500,7 +502,7 @@ export const publishComment = (publishCommentOptions, accountName) => __awaiter(
             createdAccountComment = Object.assign(Object.assign({}, createdAccountComment), commentLinkDimensions);
             yield saveCreatedAccountComment(createdAccountComment);
         }
-        comment = yield account.plebbit.createComment(createCommentOptions);
+        comment = backfillPublicationCommunityAddress(yield account.plebbit.createComment(createCommentOptions), createCommentOptions);
         publishAndRetryFailedChallengeVerification();
         log("accountsActions.publishComment", { createCommentOptions });
     }))();
@@ -523,7 +525,7 @@ export const publishComment = (publishCommentOptions, accountName) => __awaiter(
                     createCommentOptions = Object.assign(Object.assign({}, createCommentOptions), { timestamp });
                     createdAccountComment = Object.assign(Object.assign({}, createdAccountComment), { timestamp });
                     yield saveCreatedAccountComment(createdAccountComment);
-                    comment = yield account.plebbit.createComment(createCommentOptions);
+                    comment = backfillPublicationCommunityAddress(yield account.plebbit.createComment(createCommentOptions), createCommentOptions);
                     lastChallenge = undefined;
                     publishAndRetryFailedChallengeVerification();
                 }
@@ -536,7 +538,7 @@ export const publishComment = (publishCommentOptions, accountName) => __awaiter(
                         if (!sessionInfo || abandonedPublishKeys.has(sessionInfo.sessionKey))
                             return;
                         cleanupPublishSessionOnTerminal(account.id, sessionInfo.keyIndex);
-                        const commentWithCid = comment;
+                        const commentWithCid = addShortAddressesToAccountComment(normalizePublicationOptionsForStore(comment));
                         yield accountsDatabase.addAccountComment(account.id, commentWithCid, currentIndex);
                         accountsStore.setState(({ accountsComments, commentCidsToAccountsComments }) => {
                             var _a;
@@ -552,7 +554,7 @@ export const publishComment = (publishCommentOptions, accountName) => __awaiter(
                             };
                         });
                         // clone the comment or it bugs publishing callbacks
-                        const updatingComment = yield account.plebbit.createComment(Object.assign({}, comment));
+                        const updatingComment = yield account.plebbit.createComment(normalizePublicationOptionsForPlebbit(account.plebbit, Object.assign({}, comment)));
                         accountsActionsInternal
                             .startUpdatingAccountCommentOnCommentUpdateEvents(updatingComment, account, currentIndex)
                             .catch((error) => log.error("accountsActions.publishComment startUpdatingAccountCommentOnCommentUpdateEvents error", { comment, account, accountCommentIndex, error }));
@@ -656,12 +658,13 @@ export const publishVote = (publishVoteOptions, accountName) => __awaiter(void 0
         accountName,
         account,
     });
-    let createVoteOptions = Object.assign({ timestamp: Math.floor(Date.now() / 1000), author: account.author, signer: account.signer }, publishVoteOptions);
+    let createVoteOptions = normalizePublicationOptionsForPlebbit(account.plebbit, Object.assign({ timestamp: Math.floor(Date.now() / 1000), author: account.author, signer: account.signer }, publishVoteOptions));
     delete createVoteOptions.onChallenge;
     delete createVoteOptions.onChallengeVerification;
     delete createVoteOptions.onError;
     delete createVoteOptions.onPublishingStateChange;
-    let vote = yield account.plebbit.createVote(createVoteOptions);
+    const storedCreateVoteOptions = normalizePublicationOptionsForStore(createVoteOptions);
+    let vote = backfillPublicationCommunityAddress(yield account.plebbit.createVote(createVoteOptions), createVoteOptions);
     let lastChallenge;
     const publishAndRetryFailedChallengeVerification = () => __awaiter(void 0, void 0, void 0, function* () {
         var _a;
@@ -674,7 +677,7 @@ export const publishVote = (publishVoteOptions, accountName) => __awaiter(void 0
             if (!challengeVerification.challengeSuccess && lastChallenge) {
                 // publish again automatically on fail
                 createVoteOptions = Object.assign(Object.assign({}, createVoteOptions), { timestamp: Math.floor(Date.now() / 1000) });
-                vote = yield account.plebbit.createVote(createVoteOptions);
+                vote = backfillPublicationCommunityAddress(yield account.plebbit.createVote(createVoteOptions), createVoteOptions);
                 lastChallenge = undefined;
                 publishAndRetryFailedChallengeVerification();
             }
@@ -693,10 +696,10 @@ export const publishVote = (publishVoteOptions, accountName) => __awaiter(void 0
         }
     });
     publishAndRetryFailedChallengeVerification();
-    yield accountsDatabase.addAccountVote(account.id, createVoteOptions);
+    yield accountsDatabase.addAccountVote(account.id, storedCreateVoteOptions);
     log("accountsActions.publishVote", { createVoteOptions });
     accountsStore.setState(({ accountsVotes }) => ({
-        accountsVotes: Object.assign(Object.assign({}, accountsVotes), { [account.id]: Object.assign(Object.assign({}, accountsVotes[account.id]), { [createVoteOptions.commentCid]: Object.assign(Object.assign({}, createVoteOptions), { signer: undefined, author: undefined }) }) }),
+        accountsVotes: Object.assign(Object.assign({}, accountsVotes), { [account.id]: Object.assign(Object.assign({}, accountsVotes[account.id]), { [storedCreateVoteOptions.commentCid]: Object.assign(Object.assign({}, storedCreateVoteOptions), { signer: undefined, author: undefined }) }) }),
     }));
 });
 export const publishCommentEdit = (publishCommentEditOptions, accountName) => __awaiter(void 0, void 0, void 0, function* () {
@@ -712,12 +715,13 @@ export const publishCommentEdit = (publishCommentEditOptions, accountName) => __
         accountName,
         account,
     });
-    let createCommentEditOptions = Object.assign({ timestamp: Math.floor(Date.now() / 1000), author: account.author, signer: account.signer }, publishCommentEditOptions);
+    let createCommentEditOptions = normalizePublicationOptionsForPlebbit(account.plebbit, Object.assign({ timestamp: Math.floor(Date.now() / 1000), author: account.author, signer: account.signer }, publishCommentEditOptions));
     delete createCommentEditOptions.onChallenge;
     delete createCommentEditOptions.onChallengeVerification;
     delete createCommentEditOptions.onError;
     delete createCommentEditOptions.onPublishingStateChange;
-    let commentEdit = yield account.plebbit.createCommentEdit(createCommentEditOptions);
+    const storedCreateCommentEditOptions = normalizePublicationOptionsForStore(createCommentEditOptions);
+    let commentEdit = backfillPublicationCommunityAddress(yield account.plebbit.createCommentEdit(createCommentEditOptions), createCommentEditOptions);
     let lastChallenge;
     const publishAndRetryFailedChallengeVerification = () => __awaiter(void 0, void 0, void 0, function* () {
         var _a;
@@ -730,7 +734,7 @@ export const publishCommentEdit = (publishCommentEditOptions, accountName) => __
             if (!challengeVerification.challengeSuccess && lastChallenge) {
                 // publish again automatically on fail
                 createCommentEditOptions = Object.assign(Object.assign({}, createCommentEditOptions), { timestamp: Math.floor(Date.now() / 1000) });
-                commentEdit = yield account.plebbit.createCommentEdit(createCommentEditOptions);
+                commentEdit = backfillPublicationCommunityAddress(yield account.plebbit.createCommentEdit(createCommentEditOptions), createCommentEditOptions);
                 lastChallenge = undefined;
                 publishAndRetryFailedChallengeVerification();
             }
@@ -749,15 +753,15 @@ export const publishCommentEdit = (publishCommentEditOptions, accountName) => __
         }
     });
     publishAndRetryFailedChallengeVerification();
-    yield accountsDatabase.addAccountEdit(account.id, createCommentEditOptions);
+    yield accountsDatabase.addAccountEdit(account.id, storedCreateCommentEditOptions);
     log("accountsActions.publishCommentEdit", { createCommentEditOptions });
     accountsStore.setState(({ accountsEdits }) => {
         // remove signer and author because not needed and they expose private key
-        const commentEdit = Object.assign(Object.assign({}, createCommentEditOptions), { signer: undefined, author: undefined });
-        let commentEdits = accountsEdits[account.id][createCommentEditOptions.commentCid] || [];
+        const commentEdit = Object.assign(Object.assign({}, storedCreateCommentEditOptions), { signer: undefined, author: undefined });
+        let commentEdits = accountsEdits[account.id][storedCreateCommentEditOptions.commentCid] || [];
         commentEdits = [...commentEdits, commentEdit];
         return {
-            accountsEdits: Object.assign(Object.assign({}, accountsEdits), { [account.id]: Object.assign(Object.assign({}, accountsEdits[account.id]), { [createCommentEditOptions.commentCid]: commentEdits }) }),
+            accountsEdits: Object.assign(Object.assign({}, accountsEdits), { [account.id]: Object.assign(Object.assign({}, accountsEdits[account.id]), { [storedCreateCommentEditOptions.commentCid]: commentEdits }) }),
         };
     });
 });
@@ -774,12 +778,13 @@ export const publishCommentModeration = (publishCommentModerationOptions, accoun
         accountName,
         account,
     });
-    let createCommentModerationOptions = Object.assign({ timestamp: Math.floor(Date.now() / 1000), author: account.author, signer: account.signer }, publishCommentModerationOptions);
+    let createCommentModerationOptions = normalizePublicationOptionsForPlebbit(account.plebbit, Object.assign({ timestamp: Math.floor(Date.now() / 1000), author: account.author, signer: account.signer }, publishCommentModerationOptions));
     delete createCommentModerationOptions.onChallenge;
     delete createCommentModerationOptions.onChallengeVerification;
     delete createCommentModerationOptions.onError;
     delete createCommentModerationOptions.onPublishingStateChange;
-    let commentModeration = yield account.plebbit.createCommentModeration(createCommentModerationOptions);
+    const storedCreateCommentModerationOptions = normalizePublicationOptionsForStore(createCommentModerationOptions);
+    let commentModeration = backfillPublicationCommunityAddress(yield account.plebbit.createCommentModeration(createCommentModerationOptions), createCommentModerationOptions);
     let lastChallenge;
     const publishAndRetryFailedChallengeVerification = () => __awaiter(void 0, void 0, void 0, function* () {
         var _a;
@@ -792,7 +797,7 @@ export const publishCommentModeration = (publishCommentModerationOptions, accoun
             if (!challengeVerification.challengeSuccess && lastChallenge) {
                 // publish again automatically on fail
                 createCommentModerationOptions = Object.assign(Object.assign({}, createCommentModerationOptions), { timestamp: Math.floor(Date.now() / 1000) });
-                commentModeration = yield account.plebbit.createCommentModeration(createCommentModerationOptions);
+                commentModeration = backfillPublicationCommunityAddress(yield account.plebbit.createCommentModeration(createCommentModerationOptions), createCommentModerationOptions);
                 lastChallenge = undefined;
                 publishAndRetryFailedChallengeVerification();
             }
@@ -811,19 +816,19 @@ export const publishCommentModeration = (publishCommentModerationOptions, accoun
         }
     });
     publishAndRetryFailedChallengeVerification();
-    yield accountsDatabase.addAccountEdit(account.id, createCommentModerationOptions);
+    yield accountsDatabase.addAccountEdit(account.id, storedCreateCommentModerationOptions);
     log("accountsActions.publishCommentModeration", { createCommentModerationOptions });
     accountsStore.setState(({ accountsEdits }) => {
         // remove signer and author because not needed and they expose private key
-        const commentModeration = Object.assign(Object.assign({}, createCommentModerationOptions), { signer: undefined, author: undefined });
-        let commentModerations = accountsEdits[account.id][createCommentModerationOptions.commentCid] || [];
+        const commentModeration = Object.assign(Object.assign({}, storedCreateCommentModerationOptions), { signer: undefined, author: undefined });
+        let commentModerations = accountsEdits[account.id][storedCreateCommentModerationOptions.commentCid] || [];
         commentModerations = [...commentModerations, commentModeration];
         return {
-            accountsEdits: Object.assign(Object.assign({}, accountsEdits), { [account.id]: Object.assign(Object.assign({}, accountsEdits[account.id]), { [createCommentModerationOptions.commentCid]: commentModerations }) }),
+            accountsEdits: Object.assign(Object.assign({}, accountsEdits), { [account.id]: Object.assign(Object.assign({}, accountsEdits[account.id]), { [storedCreateCommentModerationOptions.commentCid]: commentModerations }) }),
         };
     });
 });
-export const publishSubplebbitEdit = (subplebbitAddress, publishSubplebbitEditOptions, accountName) => __awaiter(void 0, void 0, void 0, function* () {
+export const publishCommunityEdit = (communityAddress, publishCommunityEditOptions, accountName) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const { accounts, accountNamesToAccountIds, activeAccountId } = accountsStore.getState();
     assert(accounts && accountNamesToAccountIds && activeAccountId, `can't use accountsStore.accountActions before initialized`);
@@ -832,73 +837,74 @@ export const publishSubplebbitEdit = (subplebbitAddress, publishSubplebbitEditOp
         const accountId = accountNamesToAccountIds[accountName];
         account = accounts[accountId];
     }
-    validator.validateAccountsActionsPublishSubplebbitEditArguments({
-        subplebbitAddress,
-        publishSubplebbitEditOptions,
+    validator.validateAccountsActionsPublishCommunityEditArguments({
+        communityAddress,
+        publishCommunityEditOptions,
         accountName,
         account,
     });
-    const subplebbitEditOptions = Object.assign({}, publishSubplebbitEditOptions);
-    delete subplebbitEditOptions.onChallenge;
-    delete subplebbitEditOptions.onChallengeVerification;
-    delete subplebbitEditOptions.onError;
-    delete subplebbitEditOptions.onPublishingStateChange;
-    // account is the owner of the subplebbit and can edit it locally, no need to publish
-    const localSubplebbitAddresses = account.plebbit.subplebbits;
-    if (localSubplebbitAddresses.includes(subplebbitAddress)) {
-        yield subplebbitsStore
+    const communityEditOptions = Object.assign({}, publishCommunityEditOptions);
+    delete communityEditOptions.onChallenge;
+    delete communityEditOptions.onChallengeVerification;
+    delete communityEditOptions.onError;
+    delete communityEditOptions.onPublishingStateChange;
+    // account is the owner of the community and can edit it locally, no need to publish
+    const localCommunityAddresses = getPlebbitCommunityAddresses(account.plebbit);
+    if (localCommunityAddresses.includes(communityAddress)) {
+        yield communitiesStore
             .getState()
-            .editSubplebbit(subplebbitAddress, subplebbitEditOptions, account);
-        // create fake success challenge verification for consistent behavior with remote subplebbit edit
-        publishSubplebbitEditOptions.onChallengeVerification({ challengeSuccess: true });
-        (_a = publishSubplebbitEditOptions.onPublishingStateChange) === null || _a === void 0 ? void 0 : _a.call(publishSubplebbitEditOptions, "succeeded");
+            .editCommunity(communityAddress, communityEditOptions, account);
+        // create fake success challenge verification for consistent behavior with remote community edit
+        publishCommunityEditOptions.onChallengeVerification({ challengeSuccess: true });
+        (_a = publishCommunityEditOptions.onPublishingStateChange) === null || _a === void 0 ? void 0 : _a.call(publishCommunityEditOptions, "succeeded");
         return;
     }
-    assert(!publishSubplebbitEditOptions.address ||
-        publishSubplebbitEditOptions.address === subplebbitAddress, `accountsActions.publishSubplebbitEdit can't edit address of a remote subplebbit`);
-    let createSubplebbitEditOptions = {
+    assert(!publishCommunityEditOptions.address ||
+        publishCommunityEditOptions.address === communityAddress, `accountsActions.publishCommunityEdit can't edit address of a remote community`);
+    let createCommunityEditOptions = normalizeCommunityEditOptionsForPlebbit(account.plebbit, {
         timestamp: Math.floor(Date.now() / 1000),
         author: account.author,
         signer: account.signer,
-        // not possible to edit subplebbit.address over pubsub, only locally
-        subplebbitAddress,
-        subplebbitEdit: subplebbitEditOptions,
-    };
-    let subplebbitEdit = yield account.plebbit.createSubplebbitEdit(createSubplebbitEditOptions);
+        // not possible to edit community.address over pubsub, only locally
+        communityAddress,
+        communityEdit: communityEditOptions,
+        subplebbitEdit: communityEditOptions,
+    });
+    let communityEdit = backfillPublicationCommunityAddress(yield createPlebbitCommunityEdit(account.plebbit, createCommunityEditOptions), createCommunityEditOptions);
     let lastChallenge;
     const publishAndRetryFailedChallengeVerification = () => __awaiter(void 0, void 0, void 0, function* () {
         var _a;
-        subplebbitEdit.once("challenge", (challenge) => __awaiter(void 0, void 0, void 0, function* () {
+        communityEdit.once("challenge", (challenge) => __awaiter(void 0, void 0, void 0, function* () {
             lastChallenge = challenge;
-            publishSubplebbitEditOptions.onChallenge(challenge, subplebbitEdit);
+            publishCommunityEditOptions.onChallenge(challenge, communityEdit);
         }));
-        subplebbitEdit.once("challengeverification", (challengeVerification) => __awaiter(void 0, void 0, void 0, function* () {
-            publishSubplebbitEditOptions.onChallengeVerification(challengeVerification, subplebbitEdit);
+        communityEdit.once("challengeverification", (challengeVerification) => __awaiter(void 0, void 0, void 0, function* () {
+            publishCommunityEditOptions.onChallengeVerification(challengeVerification, communityEdit);
             if (!challengeVerification.challengeSuccess && lastChallenge) {
                 // publish again automatically on fail
-                createSubplebbitEditOptions = Object.assign(Object.assign({}, createSubplebbitEditOptions), { timestamp: Math.floor(Date.now() / 1000) });
-                subplebbitEdit = yield account.plebbit.createSubplebbitEdit(createSubplebbitEditOptions);
+                createCommunityEditOptions = Object.assign(Object.assign({}, createCommunityEditOptions), { timestamp: Math.floor(Date.now() / 1000) });
+                communityEdit = backfillPublicationCommunityAddress(yield createPlebbitCommunityEdit(account.plebbit, createCommunityEditOptions), createCommunityEditOptions);
                 lastChallenge = undefined;
                 publishAndRetryFailedChallengeVerification();
             }
         }));
-        subplebbitEdit.on("error", (error) => { var _a; return (_a = publishSubplebbitEditOptions.onError) === null || _a === void 0 ? void 0 : _a.call(publishSubplebbitEditOptions, error, subplebbitEdit); });
+        communityEdit.on("error", (error) => { var _a; return (_a = publishCommunityEditOptions.onError) === null || _a === void 0 ? void 0 : _a.call(publishCommunityEditOptions, error, communityEdit); });
         // TODO: add publishingState to account edits
-        subplebbitEdit.on("publishingstatechange", (publishingState) => { var _a; return (_a = publishSubplebbitEditOptions.onPublishingStateChange) === null || _a === void 0 ? void 0 : _a.call(publishSubplebbitEditOptions, publishingState); });
-        listeners.push(subplebbitEdit);
+        communityEdit.on("publishingstatechange", (publishingState) => { var _a; return (_a = publishCommunityEditOptions.onPublishingStateChange) === null || _a === void 0 ? void 0 : _a.call(publishCommunityEditOptions, publishingState); });
+        listeners.push(communityEdit);
         try {
             // publish will resolve after the challenge request
             // if it fails before, like failing to resolve ENS, we can emit the error
-            yield subplebbitEdit.publish();
+            yield communityEdit.publish();
         }
         catch (error) {
-            (_a = publishSubplebbitEditOptions.onError) === null || _a === void 0 ? void 0 : _a.call(publishSubplebbitEditOptions, error, subplebbitEdit);
+            (_a = publishCommunityEditOptions.onError) === null || _a === void 0 ? void 0 : _a.call(publishCommunityEditOptions, error, communityEdit);
         }
     });
     publishAndRetryFailedChallengeVerification();
-    log("accountsActions.publishSubplebbitEdit", { createSubplebbitEditOptions });
+    log("accountsActions.publishCommunityEdit", { createCommunityEditOptions });
 });
-export const createSubplebbit = (createSubplebbitOptions, accountName) => __awaiter(void 0, void 0, void 0, function* () {
+export const createCommunity = (createCommunityOptions, accountName) => __awaiter(void 0, void 0, void 0, function* () {
     const { accounts, accountNamesToAccountIds, activeAccountId } = accountsStore.getState();
     assert(accounts && accountNamesToAccountIds && activeAccountId, `can't use accountsStore.accountsActions before initialized`);
     let account = accounts[activeAccountId];
@@ -906,13 +912,13 @@ export const createSubplebbit = (createSubplebbitOptions, accountName) => __awai
         const accountId = accountNamesToAccountIds[accountName];
         account = accounts[accountId];
     }
-    const subplebbit = yield subplebbitsStore
+    const community = yield communitiesStore
         .getState()
-        .createSubplebbit(createSubplebbitOptions, account);
-    log("accountsActions.createSubplebbit", { createSubplebbitOptions, subplebbit });
-    return subplebbit;
+        .createCommunity(createCommunityOptions, account);
+    log("accountsActions.createCommunity", { createCommunityOptions, community });
+    return community;
 });
-export const deleteSubplebbit = (subplebbitAddress, accountName) => __awaiter(void 0, void 0, void 0, function* () {
+export const deleteCommunity = (communityAddress, accountName) => __awaiter(void 0, void 0, void 0, function* () {
     const { accounts, accountNamesToAccountIds, activeAccountId } = accountsStore.getState();
     assert(accounts && accountNamesToAccountIds && activeAccountId, `can't use accountsStore.accountsActions before initialized`);
     let account = accounts[activeAccountId];
@@ -920,6 +926,6 @@ export const deleteSubplebbit = (subplebbitAddress, accountName) => __awaiter(vo
         const accountId = accountNamesToAccountIds[accountName];
         account = accounts[accountId];
     }
-    yield subplebbitsStore.getState().deleteSubplebbit(subplebbitAddress, account);
-    log("accountsActions.deleteSubplebbit", { subplebbitAddress });
+    yield communitiesStore.getState().deleteCommunity(communityAddress, account);
+    log("accountsActions.deleteCommunity", { communityAddress });
 });

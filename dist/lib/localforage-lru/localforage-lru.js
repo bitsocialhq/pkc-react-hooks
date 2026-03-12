@@ -7,9 +7,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import localForage from 'localforage';
+import localForage from "localforage";
 function createLocalForageInstance(localForageLruOptions) {
-    if (typeof (localForageLruOptions === null || localForageLruOptions === void 0 ? void 0 : localForageLruOptions.size) !== 'number') {
+    if (typeof (localForageLruOptions === null || localForageLruOptions === void 0 ? void 0 : localForageLruOptions.size) !== "number") {
         throw Error(`LocalForageLru.createInstance localForageLruOptions.size '${localForageLruOptions === null || localForageLruOptions === void 0 ? void 0 : localForageLruOptions.size}' not a number`);
     }
     const localForageOptions = Object.assign({}, localForageLruOptions);
@@ -17,10 +17,14 @@ function createLocalForageInstance(localForageLruOptions) {
     let database1, database2, databaseSize, initialized = false;
     const initializationPromize = new Promise((resolve) => __awaiter(this, void 0, void 0, function* () {
         const localForage1 = localForage.createInstance(Object.assign(Object.assign({}, localForageOptions), { name: localForageLruOptions.name }));
-        const localForage2 = localForage.createInstance(Object.assign(Object.assign({}, localForageOptions), { name: localForageLruOptions.name + '2' }));
-        const [localForage1Size, localForage2Size] = yield Promise.all([localForage1.length(), localForage2.length()]);
+        const localForage2 = localForage.createInstance(Object.assign(Object.assign({}, localForageOptions), { name: localForageLruOptions.name + "2" }));
+        const [localForage1Size, localForage2Size] = yield Promise.all([
+            localForage1.length(),
+            localForage2.length(),
+        ]);
         // largest db is always active db, unless is max size, because max sized db is always inactive
-        if ((localForage1Size >= localForage2Size && localForage1Size !== localForageLruOptions.size) || localForage2Size === localForageLruOptions.size) {
+        if ((localForage1Size >= localForage2Size && localForage1Size !== localForageLruOptions.size) ||
+            localForage2Size === localForageLruOptions.size) {
             database2 = localForage2;
             database1 = localForage1;
             databaseSize = localForage1Size;
@@ -56,7 +60,12 @@ function createLocalForageInstance(localForageLruOptions) {
                         yield database1.setItem(key, value);
                     }
                     catch (error) {
-                        console.error('localforageLru.setItem setItem error', { error, errorMessage: error === null || error === void 0 ? void 0 : error.message, key, value });
+                        console.error("localforageLru.setItem setItem error", {
+                            error,
+                            errorMessage: error === null || error === void 0 ? void 0 : error.message,
+                            key,
+                            value,
+                        });
                         throw error;
                     }
                 }
@@ -79,7 +88,7 @@ function createLocalForageInstance(localForageLruOptions) {
         },
         key: function (keyIndex) {
             return __awaiter(this, void 0, void 0, function* () {
-                throw Error('not implemented');
+                throw Error("not implemented");
             });
         },
         // don't use for init react state, use entries() instead
@@ -112,7 +121,7 @@ function createLocalForageInstance(localForageLruOptions) {
         },
         length: function () {
             return __awaiter(this, void 0, void 0, function* () {
-                throw Error('not implemented');
+                throw Error("not implemented");
             });
         },
     };
@@ -123,9 +132,14 @@ function createLocalForageInstance(localForageLruOptions) {
                 yield database1.setItem(key, value);
             }
             catch (error) {
-                console.error('localforageLru updateDatabases setItem error', { error, errorMessage: error === null || error === void 0 ? void 0 : error.message, key, value });
+                console.error("localforageLru updateDatabases setItem error", {
+                    error,
+                    errorMessage: error === null || error === void 0 ? void 0 : error.message,
+                    key,
+                    value,
+                });
                 // ignore this error, don't know why it happens
-                if ((_b = (_a = error === null || error === void 0 ? void 0 : error.message) === null || _a === void 0 ? void 0 : _a.includes) === null || _b === void 0 ? void 0 : _b.call(_a, 'unit storage quota has been exceeded')) {
+                if ((_b = (_a = error === null || error === void 0 ? void 0 : error.message) === null || _a === void 0 ? void 0 : _a.includes) === null || _b === void 0 ? void 0 : _b.call(_a, "unit storage quota has been exceeded")) {
                     return;
                 }
                 throw error;
@@ -152,7 +166,7 @@ function createLocalForageInstance(localForageLruOptions) {
 }
 export const instances = {};
 const createInstance = (localForageLruOptions) => {
-    if (typeof (localForageLruOptions === null || localForageLruOptions === void 0 ? void 0 : localForageLruOptions.name) !== 'string') {
+    if (typeof (localForageLruOptions === null || localForageLruOptions === void 0 ? void 0 : localForageLruOptions.name) !== "string") {
         throw Error(`LocalForageLru.createInstance localForageLruOptions.name '${localForageLruOptions === null || localForageLruOptions === void 0 ? void 0 : localForageLruOptions.name}' not a string`);
     }
     if (instances[localForageLruOptions.name]) {

@@ -91,7 +91,7 @@ const repliesStore = createStore((setState, getState) => ({
             assert(feedOptions.commentCid && typeof feedOptions.commentCid === "string", `repliesStore.addFeedToStoreOrUpdateComment feedOptions.commentCid '${feedOptions.commentCid}' invalid`);
             assert(feedOptions.sortType && typeof feedOptions.sortType === "string", `repliesStore.addFeedToStoreOrUpdateComment feedOptions.sortType '${feedOptions.sortType}' invalid`);
             const account = accountsStore.getState().accounts[feedOptions.accountId];
-            assert(typeof ((_a = account === null || account === void 0 ? void 0 : account.plebbit) === null || _a === void 0 ? void 0 : _a.getSubplebbit) === "function", `repliesStore.addFeedToStoreOrUpdateComment feedOptions.accountId '${feedOptions.accountId}' invalid`);
+            assert(typeof ((_a = account === null || account === void 0 ? void 0 : account.plebbit) === null || _a === void 0 ? void 0 : _a.createComment) === "function", `repliesStore.addFeedToStoreOrUpdateComment feedOptions.accountId '${feedOptions.accountId}' invalid`);
             assert(!feedOptions.repliesPerPage || typeof feedOptions.repliesPerPage === "number", `repliesStore.addFeedToStoreOrUpdateComment feedOptions.repliesPerPage '${feedOptions.repliesPerPage}' invalid`);
             assert(!feedOptions.filter || typeof ((_b = feedOptions.filter) === null || _b === void 0 ? void 0 : _b.filter) === "function", `repliesStore.addFeedToStoreOrUpdateComment feedOptions.filter.filter '${(_c = feedOptions.filter) === null || _c === void 0 ? void 0 : _c.filter}' invalid`);
             assert(!feedOptions.filter || typeof ((_d = feedOptions.filter) === null || _d === void 0 ? void 0 : _d.key) === "string", `repliesStore.addFeedToStoreOrUpdateComment feedOptions.filter.key '${(_e = feedOptions.filter) === null || _e === void 0 ? void 0 : _e.key}' invalid`);
@@ -287,7 +287,7 @@ const addRepliesPagesOnLowBufferedFeedsReplyCounts = (repliesStoreState) => {
         const feedReplyCount = bufferedFeedsReplyCounts[feedName];
         let sortType = feedsOptions[feedName].sortType;
         const commentCid = feedsOptions[feedName].commentCid;
-        // TODO: maybe skip if comment subplebbit address, comment cid or comment author is blocked?
+        // TODO: maybe skip if comment community address, comment cid or comment author is blocked?
         // comment hasn't loaded yet
         if (!comments[commentCid]) {
             continue;

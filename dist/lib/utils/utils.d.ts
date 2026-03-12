@@ -1,8 +1,8 @@
 import { Comment } from "../../types";
 export declare const flattenCommentsPages: (pageInstanceOrPagesInstance: any) => any[];
-export declare const subplebbitPostsCacheExpired: (subplebbit: any) => boolean;
-export declare const removeInvalidComments: (comments: Comment[], { validateReplies, blockSubplebbit }: any, plebbit: any) => Promise<Comment[]>;
-export declare const commentIsValid: (comment: Comment, { validateReplies, blockSubplebbit }: any | undefined, plebbit: any) => Promise<boolean>;
+export declare const communityPostsCacheExpired: (community: any) => boolean;
+export declare const removeInvalidComments: (comments: Comment[], { validateReplies, blockCommunity }: any, plebbit: any) => Promise<Comment[]>;
+export declare const commentIsValid: (comment: Comment, { validateReplies, blockCommunity }: any | undefined, plebbit: any) => Promise<boolean>;
 declare const utils: {
     merge: (...args: any) => any;
     clone: (obj: any) => any;
@@ -14,9 +14,9 @@ declare const utils: {
     retryInfinityMaxTimeout: number;
     clientsOnStateChange: (clients: any, onStateChange: Function) => void;
     pageClientsOnStateChange: (clients: any, onStateChange: Function) => void;
-    subplebbitPostsCacheExpired: (subplebbit: any) => boolean;
-    commentIsValid: (comment: Comment, { validateReplies, blockSubplebbit }: any | undefined, plebbit: any) => Promise<boolean>;
-    removeInvalidComments: (comments: Comment[], { validateReplies, blockSubplebbit }: any, plebbit: any) => Promise<Comment[]>;
-    repliesAreValid: (comment: Comment, { validateReplies, blockSubplebbit }: any | undefined, plebbit: any) => Promise<boolean>;
+    communityPostsCacheExpired: (community: any) => boolean;
+    commentIsValid: (comment: Comment, { validateReplies, blockCommunity }: any | undefined, plebbit: any) => Promise<boolean>;
+    removeInvalidComments: (comments: Comment[], { validateReplies, blockCommunity }: any, plebbit: any) => Promise<Comment[]>;
+    repliesAreValid: (comment: Comment, { validateReplies, blockCommunity }: any | undefined, plebbit: any) => Promise<boolean>;
 };
 export default utils;

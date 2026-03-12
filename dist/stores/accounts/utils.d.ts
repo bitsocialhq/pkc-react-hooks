@@ -1,5 +1,5 @@
-import { Account, Subplebbits, AccountComment, AccountsComments, CommentCidsToAccountsComments, Comment } from "../../types";
-export declare const getAccountSubplebbits: (account: Account, subplebbits: Subplebbits) => any;
+import { Account, Communities, AccountComment, AccountsComments, CommentCidsToAccountsComments, Comment } from "../../types";
+export declare const getAccountCommunities: (account: Account, communities: Communities) => any;
 export declare const getCommentCidsToAccountsComments: (accountsComments: AccountsComments) => CommentCidsToAccountsComments;
 interface CommentLinkDimensions {
     linkWidth?: number;
@@ -14,7 +14,7 @@ export declare const getInitAccountCommentsToUpdate: (accountsComments: Accounts
 export declare const getAccountCommentDepth: (comment: Comment) => number | undefined;
 export declare const addShortAddressesToAccountComment: (comment: Comment) => Comment;
 declare const utils: {
-    getAccountSubplebbits: (account: Account, subplebbits: Subplebbits) => any;
+    getAccountCommunities: (account: Account, communities: Communities) => any;
     getCommentCidsToAccountsComments: (accountsComments: AccountsComments) => CommentCidsToAccountsComments;
     fetchCommentLinkDimensions: (link: string) => Promise<CommentLinkDimensions>;
     getInitAccountCommentsToUpdate: (accountsComments: AccountsComments) => {

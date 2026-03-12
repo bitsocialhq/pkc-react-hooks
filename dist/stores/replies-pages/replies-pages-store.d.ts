@@ -12,7 +12,7 @@ declare const repliesPagesStore: import("zustand").UseBoundStore<import("zustand
  * Util function to get all pages in the store for a
  * specific comment+sortType using `RepliesPage.nextCid`
  */
-export declare const getRepliesPages: (comment: Comment, sortType: string, repliesPages: RepliesPages) => import("../../types").SubplebbitPage[];
+export declare const getRepliesPages: (comment: Comment, sortType: string, repliesPages: RepliesPages) => import("../../types").CommunityPage[];
 export declare const getRepliesFirstPageCid: (comment: Comment, sortType: string) => any;
 export declare const resetRepliesPagesStore: () => Promise<void>;
 export declare const resetRepliesPagesDatabaseAndStore: () => Promise<void>;

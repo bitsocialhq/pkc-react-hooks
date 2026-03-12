@@ -92,7 +92,7 @@ const getReplyNotificationsFromAccountCommentsReplies = (accountCommentsReplies,
     const replyNotifications = [];
     for (const replyCid in accountCommentsReplies) {
         const reply = accountCommentsReplies[replyCid];
-        if ((accountBlockedAddresses === null || accountBlockedAddresses === void 0 ? void 0 : accountBlockedAddresses[reply.subplebbitAddress]) ||
+        if ((accountBlockedAddresses === null || accountBlockedAddresses === void 0 ? void 0 : accountBlockedAddresses[reply.communityAddress]) ||
             (accountBlockedAddresses === null || accountBlockedAddresses === void 0 ? void 0 : accountBlockedAddresses[(_a = reply.author) === null || _a === void 0 ? void 0 : _a.address])) {
             continue;
         }

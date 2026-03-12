@@ -1,4 +1,4 @@
-import type { Account, UseAccountSubplebbitsOptions, UseAccountSubplebbitsResult, UseAccountVoteOptions, UseAccountVoteResult, UseAccountVotesOptions, UseAccountVotesResult, UseAccountCommentsOptions, UseAccountCommentsResult, UseAccountCommentOptions, UseAccountCommentResult, UseNotificationsOptions, UseNotificationsResult, UseAccountEditsOptions, UseAccountEditsResult, UseEditedCommentOptions, UseEditedCommentResult, UseAccountOptions, UseAccountResult, UsePubsubSubscribeOptions, UsePubsubSubscribeResult } from "../../types";
+import type { Account, UseAccountCommunitiesOptions, UseAccountCommunitiesResult, UseAccountVoteOptions, UseAccountVoteResult, UseAccountVotesOptions, UseAccountVotesResult, UseAccountCommentsOptions, UseAccountCommentsResult, UseAccountCommentOptions, UseAccountCommentResult, UseNotificationsOptions, UseNotificationsResult, UseAccountEditsOptions, UseAccountEditsResult, UseEditedCommentOptions, UseEditedCommentResult, UseAccountOptions, UseAccountResult, UsePubsubSubscribeOptions, UsePubsubSubscribeResult } from "../../types";
 /**
  * @param accountName - The nickname of the account, e.g. 'Account 1'. If no accountName is provided, return
  * the active account id.
@@ -19,9 +19,9 @@ export declare function useAccounts(): {
     errors: never[];
 };
 /**
- * Returns all subplebbits where the account is a creator or moderator
+ * Returns all communities where the account is a creator or moderator
  */
-export declare function useAccountSubplebbits(options?: UseAccountSubplebbitsOptions): UseAccountSubplebbitsResult;
+export declare function useAccountCommunities(options?: UseAccountCommunitiesOptions): UseAccountCommunitiesResult;
 /**
  * Returns an account's notifications in an array. Unread notifications have a field markedAsRead: false.
  *
@@ -35,8 +35,8 @@ export declare function useAccountComments(options?: UseAccountCommentsOptions):
  */
 export declare function useAccountComment(options?: UseAccountCommentOptions): UseAccountCommentResult;
 /**
- * Returns the own user's votes stored locally, even those not yet published by the subplebbit owner.
- * Check UseAccountCommentsOptions type in types.tsx to filter them, e.g. filter = {subplebbitAddresses: ['memes.eth']}.
+ * Returns the own user's votes stored locally, even those not yet published by the community owner.
+ * Check UseAccountCommentsOptions type in types.tsx to filter them, e.g. filter = {communityAddresses: ['memes.eth']}.
  */
 export declare function useAccountVotes(options?: UseAccountVotesOptions): UseAccountVotesResult;
 /**
@@ -44,7 +44,7 @@ export declare function useAccountVotes(options?: UseAccountVotesOptions): UseAc
  */
 export declare function useAccountVote(options?: UseAccountVoteOptions): UseAccountVoteResult;
 /**
- * Returns all the comment and subplebbit edits published by an account.
+ * Returns all the comment and community edits published by an account.
  */
 export declare function useAccountEdits(options?: UseAccountEditsOptions): UseAccountEditsResult;
 /**
@@ -57,6 +57,6 @@ export declare function useEditedComment(options?: UseEditedCommentOptions): Use
  * by subscribing to the pubsub right away.
  *
  * @param accountName - The nickname of the account, e.g. 'Account 1'.
- * @param subplebbitAddress - The subplebbit address to subscribe to, e.g. 'news.eth'.
+ * @param communityAddress - The community address to subscribe to, e.g. 'news.eth'.
  */
 export declare function usePubsubSubscribe(options?: UsePubsubSubscribeOptions): UsePubsubSubscribeResult;

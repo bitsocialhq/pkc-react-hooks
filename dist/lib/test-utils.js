@@ -21,10 +21,10 @@ var __rest = (this && this.__rest) || function (s, e) {
 import { render, act as tlAct } from "@testing-library/react";
 import React from "react";
 import { resetCommentsStore, resetCommentsDatabaseAndStore } from "../stores/comments";
-import { resetSubplebbitsStore, resetSubplebbitsDatabaseAndStore } from "../stores/subplebbits";
+import { resetCommunitiesStore, resetCommunitiesDatabaseAndStore } from "../stores/communities";
 import { resetAccountsStore, resetAccountsDatabaseAndStore } from "../stores/accounts";
 import { resetFeedsStore, resetFeedsDatabaseAndStore } from "../stores/feeds";
-import { resetSubplebbitsPagesStore, resetSubplebbitsPagesDatabaseAndStore, } from "../stores/subplebbits-pages";
+import { resetCommunitiesPagesStore, resetCommunitiesPagesDatabaseAndStore, } from "../stores/communities-pages";
 import { resetAuthorsCommentsStore, resetAuthorsCommentsDatabaseAndStore, } from "../stores/authors-comments";
 import { resetRepliesStore, resetRepliesDatabaseAndStore } from "../stores/replies";
 import { resetRepliesPagesStore, resetRepliesPagesDatabaseAndStore } from "../stores/replies-pages";
@@ -145,9 +145,9 @@ const resetStores = () => __awaiter(void 0, void 0, void 0, function* () {
     yield resetRepliesPagesStore();
     yield resetRepliesStore();
     yield resetAuthorsCommentsStore();
-    yield resetSubplebbitsPagesStore();
+    yield resetCommunitiesPagesStore();
     yield resetFeedsStore();
-    yield resetSubplebbitsStore();
+    yield resetCommunitiesStore();
     yield resetCommentsStore();
     // always accounts last because it has async initialization
     yield resetAccountsStore();
@@ -156,9 +156,9 @@ const resetDatabasesAndStores = () => __awaiter(void 0, void 0, void 0, function
     yield resetRepliesPagesDatabaseAndStore();
     yield resetRepliesDatabaseAndStore();
     yield resetAuthorsCommentsDatabaseAndStore();
-    yield resetSubplebbitsPagesDatabaseAndStore();
+    yield resetCommunitiesPagesDatabaseAndStore();
     yield resetFeedsDatabaseAndStore();
-    yield resetSubplebbitsDatabaseAndStore();
+    yield resetCommunitiesDatabaseAndStore();
     yield resetCommentsDatabaseAndStore();
     // always accounts last because it has async initialization
     yield resetAccountsDatabaseAndStore();

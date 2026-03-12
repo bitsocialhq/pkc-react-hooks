@@ -18,6 +18,7 @@ import utils from "../../lib/utils";
 import createStore from "zustand";
 import accountsStore from "../accounts";
 import repliesPagesStore from "../replies-pages";
+import { normalizeCommentCommunityAddress } from "../../lib/plebbit-compat";
 let plebbitGetCommentPending = {};
 // reset all event listeners in between tests
 export const listeners = [];
@@ -26,6 +27,7 @@ const commentsStore = createStore((setState, getState) => ({
     errors: {},
     addCommentToStore(commentCid, account) {
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b, _c, _d, _e;
             const { comments } = getState();
             // comment is in store already, do nothing
             let comment = comments[commentCid];
@@ -43,8 +45,10 @@ const commentsStore = createStore((setState, getState) => ({
             try {
                 if (!comment) {
                     comment = yield account.plebbit.createComment({ cid: commentCid });
+                    comment = normalizeCommentCommunityAddress(comment);
                     yield commentsDatabase.setItem(commentCid, utils.clone(comment));
                 }
+                comment = normalizeCommentCommunityAddress(comment);
                 log("commentsStore.addCommentToStore", { commentCid, comment, account });
                 setState((state) => ({
                     comments: Object.assign(Object.assign({}, state.comments), { [commentCid]: utils.clone(comment) }),
@@ -62,8 +66,8 @@ const commentsStore = createStore((setState, getState) => ({
                 plebbitGetCommentPending[commentCid + account.id] = false;
             }
             // the comment is still missing up to date mutable data like upvotes, edits, replies, etc
-            comment === null || comment === void 0 ? void 0 : comment.on("update", (updatedComment) => __awaiter(this, void 0, void 0, function* () {
-                updatedComment = utils.clone(updatedComment);
+            (_a = comment === null || comment === void 0 ? void 0 : comment.on) === null || _a === void 0 ? void 0 : _a.call(comment, "update", (updatedComment) => __awaiter(this, void 0, void 0, function* () {
+                updatedComment = normalizeCommentCommunityAddress(utils.clone(updatedComment));
                 yield commentsDatabase.setItem(commentCid, updatedComment);
                 log("commentsStore comment update", { commentCid, updatedComment, account });
                 setState((state) => ({
@@ -72,12 +76,12 @@ const commentsStore = createStore((setState, getState) => ({
                 // add comment replies pages to repliesPagesStore so they can be used in useComment
                 repliesPagesStore.getState().addRepliesPageCommentsToStore(comment);
             }));
-            comment === null || comment === void 0 ? void 0 : comment.on("updatingstatechange", (updatingState) => {
+            (_b = comment === null || comment === void 0 ? void 0 : comment.on) === null || _b === void 0 ? void 0 : _b.call(comment, "updatingstatechange", (updatingState) => {
                 setState((state) => ({
                     comments: Object.assign(Object.assign({}, state.comments), { [commentCid]: Object.assign(Object.assign({}, state.comments[commentCid]), { updatingState }) }),
                 }));
             });
-            comment === null || comment === void 0 ? void 0 : comment.on("error", (error) => {
+            (_c = comment === null || comment === void 0 ? void 0 : comment.on) === null || _c === void 0 ? void 0 : _c.call(comment, "error", (error) => {
                 setState((state) => {
                     let commentErrors = state.errors[commentCid] || [];
                     commentErrors = [...commentErrors, error];
@@ -112,13 +116,13 @@ const commentsStore = createStore((setState, getState) => ({
             // if comment.timestamp isn't defined, it means the next update will contain the timestamp and author
             // which is used in addCidToAccountComment
             if (!(comment === null || comment === void 0 ? void 0 : comment.timestamp)) {
-                comment === null || comment === void 0 ? void 0 : comment.once("update", () => accountsStore
+                (_d = comment === null || comment === void 0 ? void 0 : comment.once) === null || _d === void 0 ? void 0 : _d.call(comment, "update", () => accountsStore
                     .getState()
                     .accountsActionsInternal.addCidToAccountComment(comment)
                     .catch((error) => log.error("accountsActionsInternal.addCidToAccountComment error", { comment, error })));
             }
             listeners.push(comment);
-            comment === null || comment === void 0 ? void 0 : comment.update().catch((error) => log.trace("comment.update error", { comment, error }));
+            (_e = comment === null || comment === void 0 ? void 0 : comment.update) === null || _e === void 0 ? void 0 : _e.call(comment).catch((error) => log.trace("comment.update error", { comment, error }));
         });
     },
 }));
@@ -128,7 +132,7 @@ const getCommentFromDatabase = (commentCid, account) => __awaiter(void 0, void 0
         return;
     }
     try {
-        const comment = yield account.plebbit.createComment(commentData);
+        const comment = normalizeCommentCommunityAddress(yield account.plebbit.createComment(commentData));
         return comment;
     }
     catch (e) {

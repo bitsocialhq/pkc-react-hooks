@@ -2,7 +2,7 @@ declare const validator: {
     validateAccountsActionsPublishCommentArguments: ({ publishCommentOptions, accountName, account, }: any) => void;
     validateAccountsActionsPublishCommentEditArguments: ({ publishCommentEditOptions, accountName, account, }: any) => void;
     validateAccountsActionsPublishCommentModerationArguments: ({ publishCommentModerationOptions, accountName, account, }: any) => void;
-    validateAccountsActionsPublishSubplebbitEditArguments: ({ subplebbitAddress, publishSubplebbitEditOptions, accountName, account, }: any) => void;
+    validateAccountsActionsPublishCommunityEditArguments: ({ communityAddress, publishCommunityEditOptions, accountName, account, }: any) => void;
     validateAccountsActionsPublishVoteArguments: ({ publishVoteOptions, accountName, account, }: any) => void;
     validateAccountsActionsExportAccountArguments: (accountName: any) => void;
     validateAccountsActionsSetAccountsOrderArguments: (newOrderedAccountNames: any, accountNames: any) => void;
@@ -13,10 +13,10 @@ declare const validator: {
     validateAccountsDatabaseAccountNames: (accountNames: any) => void;
     validateUseCommentArguments: (commentCid: any, account: any) => void;
     validateUseCommentsArguments: (commentCids: any, account: any) => void;
-    validateUseSubplebbitArguments: (subplebbitAddress: any, account: any) => void;
-    validateUseSubplebbitsArguments: (subplebbitAddresses: any, account: any) => void;
+    validateUseCommunityArguments: (communityAddress: any, account: any) => void;
+    validateUseCommunitiesArguments: (communityAddresses: any, account: any) => void;
     validateFeedSortType: (sortType: any) => void;
-    validateUseFeedArguments: (subplebbitAddresses?: any, sortType?: any, accountName?: any, postsPerPage?: any, filter?: any, newerThan?: any, accountComments?: any) => void;
+    validateUseFeedArguments: (communityAddresses?: any, sortType?: any, accountName?: any, postsPerPage?: any, filter?: any, newerThan?: any, accountComments?: any) => void;
     validateUseBufferedFeedsArguments: (feedsOptions?: any, accountName?: any) => void;
     validateRepliesSortType: (sortType: any) => void;
     validateUseRepliesArguments: (comment?: any, sortType?: any, accountName?: any, flat?: any, accountComments?: any, postsPerPage?: any, filter?: any) => void;

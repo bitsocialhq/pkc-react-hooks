@@ -7,12 +7,12 @@ export declare function handlePublishErrorWhenAbandoned(activeRequestIdRef: {
 }, requestId: number, error: Error, setErrors: Dispatch<SetStateAction<Error[]>>, onError?: (e: Error) => void): void;
 /** For usePublishVote catch. Exported for coverage. */
 export declare function handlePublishVoteError(error: Error, setErrors: Dispatch<SetStateAction<Error[]>>, onError?: (e: Error) => void): void;
-import type { UseSubscribeOptions, UseSubscribeResult, UsePublishCommentOptions, UsePublishCommentResult, UseBlockOptions, UseBlockResult, UseCreateSubplebbitOptions, UseCreateSubplebbitResult, UsePublishVoteOptions, UsePublishVoteResult, UsePublishCommentEditOptions, UsePublishCommentEditResult, UsePublishCommentModerationOptions, UsePublishCommentModerationResult, UsePublishSubplebbitEditOptions, UsePublishSubplebbitEditResult } from "../../types";
+import type { UseSubscribeOptions, UseSubscribeResult, UsePublishCommentOptions, UsePublishCommentResult, UseBlockOptions, UseBlockResult, UseCreateCommunityOptions, UseCreateCommunityResult, UsePublishVoteOptions, UsePublishVoteResult, UsePublishCommentEditOptions, UsePublishCommentEditResult, UsePublishCommentModerationOptions, UsePublishCommentModerationResult, UsePublishCommunityEditOptions, UsePublishCommunityEditResult } from "../../types";
 export declare function useSubscribe(options?: UseSubscribeOptions): UseSubscribeResult;
 export declare function useBlock(options?: UseBlockOptions): UseBlockResult;
 export declare function usePublishComment(options?: UsePublishCommentOptions): UsePublishCommentResult;
 export declare function usePublishVote(options?: UsePublishVoteOptions): UsePublishVoteResult;
 export declare function usePublishCommentEdit(options?: UsePublishCommentEditOptions): UsePublishCommentEditResult;
 export declare function usePublishCommentModeration(options?: UsePublishCommentModerationOptions): UsePublishCommentModerationResult;
-export declare function usePublishSubplebbitEdit(options?: UsePublishSubplebbitEditOptions): UsePublishSubplebbitEditResult;
-export declare function useCreateSubplebbit(options?: UseCreateSubplebbitOptions): UseCreateSubplebbitResult;
+export declare function usePublishCommunityEdit(options?: UsePublishCommunityEditOptions): UsePublishCommunityEditResult;
+export declare function useCreateCommunity(options?: UseCreateCommunityOptions): UseCreateCommunityResult;

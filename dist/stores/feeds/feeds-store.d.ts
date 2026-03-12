@@ -1,15 +1,15 @@
-import { Feeds, FeedsOptions, FeedsSubplebbitsPostCounts } from "../../types";
+import { Feeds, FeedsOptions, FeedsCommunitiesPostCounts } from "../../types";
 export declare const defaultPostsPerPage = 25;
 type FeedsState = {
     feedsOptions: FeedsOptions;
     bufferedFeeds: Feeds;
     loadedFeeds: Feeds;
     updatedFeeds: Feeds;
-    bufferedFeedsSubplebbitsPostCounts: FeedsSubplebbitsPostCounts;
+    bufferedFeedsCommunitiesPostCounts: FeedsCommunitiesPostCounts;
     feedsHaveMore: {
         [feedName: string]: boolean;
     };
-    feedsSubplebbitAddressesWithNewerPosts: {
+    feedsCommunityAddressesWithNewerPosts: {
         [feedName: string]: string[];
     };
     addFeedToStore: Function;

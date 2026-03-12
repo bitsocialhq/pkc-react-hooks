@@ -1,4 +1,4 @@
-import { AccountSubplebbit } from "../../types";
+import { AccountCommunity } from "../../types";
 export declare const overwritePlebbitOptions: {
     resolveAuthorAddresses: boolean;
     validatePages: boolean;
@@ -28,8 +28,8 @@ declare const accountGenerator: {
         subscriptions: never[];
         blockedAddresses: {};
         blockedCids: {};
-        subplebbits: {
-            [subplebbitAddress: string]: AccountSubplebbit;
+        communities: {
+            [communityAddress: string]: AccountCommunity;
         };
         mediaIpfsGatewayUrl: string;
     }>;

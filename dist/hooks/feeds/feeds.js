@@ -17,31 +17,31 @@ import useFeedsStore from "../../stores/feeds";
 import { addCommentModerationToComments } from "../../lib/utils/comment-moderation";
 import shallow from "zustand/shallow";
 /**
- * @param subplebbitAddresses - The addresses of the subplebbits, e.g. ['memes.eth', '12D3KooW...']
+ * @param communityAddresses - The addresses of the communities, e.g. ['memes.eth', '12D3KooW...']
  * @param sortType - The sorting algo for the feed: 'hot' | 'new' | 'active' | 'topHour' | 'topDay' | 'topWeek' | 'topMonth' | 'topYear' | 'topAll' | 'controversialHour' | 'controversialDay' | 'controversialWeek' | 'controversialMonth' | 'controversialYear' | 'controversialAll'
  * @param acountName - The nickname of the account, e.g. 'Account 1'. If no accountName is provided, use
  * the active account.
  */
 export function useFeed(options) {
     assert(!options || typeof options === "object", `useFeed options argument '${options}' not an object`);
-    let { subplebbitAddresses, sortType, accountName, postsPerPage, filter, newerThan, accountComments, modQueue, } = options || {};
+    let { communityAddresses, sortType, accountName, postsPerPage, filter, newerThan, accountComments, modQueue, } = options || {};
     sortType = getSortType(sortType, newerThan);
-    validator.validateUseFeedArguments(subplebbitAddresses, sortType, accountName, postsPerPage, filter, newerThan, accountComments);
+    validator.validateUseFeedArguments(communityAddresses, sortType, accountName, postsPerPage, filter, newerThan, accountComments);
     const account = useAccount({ accountName });
     const addFeedToStore = useFeedsStore((state) => state.addFeedToStore);
     const incrementFeedPageNumber = useFeedsStore((state) => state.incrementFeedPageNumber);
     const resetFeed = useFeedsStore((state) => state.resetFeed);
-    const uniqueSubplebbitAddresses = useUniqueSorted(subplebbitAddresses);
-    const feedName = useFeedName(account === null || account === void 0 ? void 0 : account.id, sortType, uniqueSubplebbitAddresses, postsPerPage, filter, newerThan, accountComments, modQueue);
+    const uniqueCommunityAddresses = useUniqueSorted(communityAddresses);
+    const feedName = useFeedName(account === null || account === void 0 ? void 0 : account.id, sortType, uniqueCommunityAddresses, postsPerPage, filter, newerThan, accountComments, modQueue);
     const [errors, setErrors] = useState([]);
-    const subplebbitAddressesWithNewerPosts = useFeedsStore((state) => state.feedsSubplebbitAddressesWithNewerPosts[feedName]);
+    const communityAddressesWithNewerPosts = useFeedsStore((state) => state.feedsCommunityAddressesWithNewerPosts[feedName]);
     // add feed to store
     useEffect(() => {
-        if (!(uniqueSubplebbitAddresses === null || uniqueSubplebbitAddresses === void 0 ? void 0 : uniqueSubplebbitAddresses.length) || !account) {
+        if (!(uniqueCommunityAddresses === null || uniqueCommunityAddresses === void 0 ? void 0 : uniqueCommunityAddresses.length) || !account) {
             return;
         }
         const isBufferedFeed = false;
-        addFeedToStore(feedName, uniqueSubplebbitAddresses, sortType, account, isBufferedFeed, postsPerPage, filter, newerThan, accountComments, modQueue).catch((error) => log.error("useFeed addFeedToStore error", { feedName, error }));
+        addFeedToStore(feedName, uniqueCommunityAddresses, sortType, account, isBufferedFeed, postsPerPage, filter, newerThan, accountComments, modQueue).catch((error) => log.error("useFeed addFeedToStore error", { feedName, error }));
     }, [feedName]);
     const feedKey = feedName !== null && feedName !== void 0 ? feedName : "";
     const feed = useFeedsStore((state) => state.loadedFeeds[feedKey]);
@@ -51,12 +51,12 @@ export function useFeed(options) {
     if (!feedName || typeof hasMore !== "boolean") {
         hasMore = true;
     }
-    if (!(subplebbitAddresses === null || subplebbitAddresses === void 0 ? void 0 : subplebbitAddresses.length)) {
+    if (!(communityAddresses === null || communityAddresses === void 0 ? void 0 : communityAddresses.length)) {
         hasMore = false;
     }
     const loadMore = () => __awaiter(this, void 0, void 0, function* () {
         try {
-            if (!uniqueSubplebbitAddresses || !account) {
+            if (!uniqueCommunityAddresses || !account) {
                 throw Error("useFeed cannot load more feed not initalized yet");
             }
             incrementFeedPageNumber(feedName);
@@ -69,7 +69,7 @@ export function useFeed(options) {
     });
     const reset = () => __awaiter(this, void 0, void 0, function* () {
         try {
-            if (!uniqueSubplebbitAddresses || !account) {
+            if (!uniqueCommunityAddresses || !account) {
                 throw Error("useFeed cannot reset feed not initalized yet");
             }
             yield resetFeed(feedName);
@@ -80,11 +80,11 @@ export function useFeed(options) {
             setErrors([...errors, e]);
         }
     });
-    if (account && (subplebbitAddresses === null || subplebbitAddresses === void 0 ? void 0 : subplebbitAddresses.length)) {
+    if (account && (communityAddresses === null || communityAddresses === void 0 ? void 0 : communityAddresses.length)) {
         log("useFeed", {
             feedLength: (feed === null || feed === void 0 ? void 0 : feed.length) || 0,
             hasMore,
-            subplebbitAddresses,
+            communityAddresses,
             sortType,
             account,
             feedsStoreOptions: useFeedsStore.getState().feedsOptions,
@@ -100,7 +100,7 @@ export function useFeed(options) {
         bufferedFeed: normalizedBufferedFeed,
         updatedFeed: normalizedUpdatedFeed,
         hasMore,
-        subplebbitAddressesWithNewerPosts: subplebbitAddressesWithNewerPosts || [],
+        communityAddressesWithNewerPosts: communityAddressesWithNewerPosts || [],
         loadMore,
         reset,
         state,
@@ -113,7 +113,7 @@ export function useFeed(options) {
         feedName,
         hasMore,
         errors,
-        subplebbitAddressesWithNewerPosts,
+        communityAddressesWithNewerPosts,
     ]);
 }
 /**
@@ -133,24 +133,24 @@ export function useBufferedFeeds(options) {
     const addFeedToStore = useFeedsStore((state) => state.addFeedToStore);
     // do a bunch of calculations to get feedsOptionsFlattened and feedNames
     const feedsOpts = feedsOptions;
-    const { subplebbitAddressesArrays, sortTypes, postsPerPages, filters, newerThans } = useMemo(() => {
+    const { communityAddressesArrays, sortTypes, postsPerPages, filters, newerThans } = useMemo(() => {
         var _a;
-        const subplebbitAddressesArrays = [];
+        const communityAddressesArrays = [];
         const sortTypes = [];
         const postsPerPages = [];
         const filters = [];
         const newerThans = [];
         for (const feedOptions of feedsOpts) {
-            subplebbitAddressesArrays.push((_a = feedOptions.subplebbitAddresses) !== null && _a !== void 0 ? _a : []);
+            communityAddressesArrays.push((_a = feedOptions.communityAddresses) !== null && _a !== void 0 ? _a : []);
             sortTypes.push(getSortType(feedOptions.sortType, feedOptions.newerThan));
             postsPerPages.push(feedOptions.postsPerPage);
             filters.push(feedOptions.filter);
             newerThans.push(feedOptions.newerThan);
         }
-        return { subplebbitAddressesArrays, sortTypes, postsPerPages, filters, newerThans };
+        return { communityAddressesArrays, sortTypes, postsPerPages, filters, newerThans };
     }, [feedsOpts]);
-    const uniqueSubplebbitAddressesArrays = useUniqueSortedArrays(subplebbitAddressesArrays);
-    const feedNames = useFeedNames(account === null || account === void 0 ? void 0 : account.id, sortTypes, uniqueSubplebbitAddressesArrays, postsPerPages, filters, newerThans);
+    const uniqueCommunityAddressesArrays = useUniqueSortedArrays(communityAddressesArrays);
+    const feedNames = useFeedNames(account === null || account === void 0 ? void 0 : account.id, sortTypes, uniqueCommunityAddressesArrays, postsPerPages, filters, newerThans);
     const bufferedFeeds = useFeedsStore((state) => {
         const bufferedFeeds = {};
         for (const feedName of feedNames) {
@@ -161,18 +161,18 @@ export function useBufferedFeeds(options) {
     // add feed to store
     useEffect(() => {
         var _a;
-        for (const [i] of uniqueSubplebbitAddressesArrays.entries()) {
+        for (const [i] of uniqueCommunityAddressesArrays.entries()) {
             const sortType = (_a = sortTypes[i]) !== null && _a !== void 0 ? _a : "hot";
-            const uniqueSubplebbitAddresses = uniqueSubplebbitAddressesArrays[i];
+            const uniqueCommunityAddresses = uniqueCommunityAddressesArrays[i];
             validator.validateFeedSortType(sortType);
             const feedName = feedNames[i];
-            if (!uniqueSubplebbitAddresses || !account) {
+            if (!uniqueCommunityAddresses || !account) {
                 return;
             }
             const fkey = feedName !== null && feedName !== void 0 ? feedName : "";
             if (!bufferedFeeds[fkey]) {
                 const isBufferedFeed = true;
-                addFeedToStore(feedName, uniqueSubplebbitAddresses, sortType, account, isBufferedFeed).catch((error) => log.error("useBufferedFeeds addFeedToStore error", { feedName, error }));
+                addFeedToStore(feedName, uniqueCommunityAddresses, sortType, account, isBufferedFeed).catch((error) => log.error("useBufferedFeeds addFeedToStore error", { feedName, error }));
             }
         }
     }, [feedNames]);
@@ -204,7 +204,7 @@ export function useBufferedFeeds(options) {
     }), [bufferedFeedsArray, feedsOptions]);
 }
 /**
- * Util to find unique and sorted subplebbit addresses for multiple feed options
+ * Util to find unique and sorted community addresses for multiple feed options
  */
 function useUniqueSortedArrays(stringsArrays) {
     return useMemo(() => {
@@ -224,7 +224,7 @@ function useUniqueSorted(stringsArray) {
         return [...new Set(stringsArray.sort())];
     }, [stringsArray]);
 }
-function useFeedName(accountId, sortType, uniqueSubplebbitAddresses, postsPerPage, filter, newerThan, accountComments, modQueue) {
+function useFeedName(accountId, sortType, uniqueCommunityAddresses, postsPerPage, filter, newerThan, accountComments, modQueue) {
     const filterKey = filter === null || filter === void 0 ? void 0 : filter.key;
     const accountCommentsNewerThan = accountComments === null || accountComments === void 0 ? void 0 : accountComments.newerThan;
     const accountCommentsAppend = accountComments === null || accountComments === void 0 ? void 0 : accountComments.append;
@@ -233,7 +233,7 @@ function useFeedName(accountId, sortType, uniqueSubplebbitAddresses, postsPerPag
             "-" +
             sortType +
             "-" +
-            uniqueSubplebbitAddresses +
+            uniqueCommunityAddresses +
             "-" +
             postsPerPage +
             "-" +
@@ -249,7 +249,7 @@ function useFeedName(accountId, sortType, uniqueSubplebbitAddresses, postsPerPag
     }, [
         accountId,
         sortType,
-        uniqueSubplebbitAddresses,
+        uniqueCommunityAddresses,
         postsPerPage,
         filterKey,
         newerThan,
@@ -258,7 +258,7 @@ function useFeedName(accountId, sortType, uniqueSubplebbitAddresses, postsPerPag
         modQueue === null || modQueue === void 0 ? void 0 : modQueue.toString(),
     ]);
 }
-function useFeedNames(accountId, sortTypes, uniqueSubplebbitAddressesArrays, postsPerPages, filters, newerThans) {
+function useFeedNames(accountId, sortTypes, uniqueCommunityAddressesArrays, postsPerPages, filters, newerThans) {
     return useMemo(() => {
         var _a, _b;
         const feedNames = [];
@@ -267,7 +267,7 @@ function useFeedNames(accountId, sortTypes, uniqueSubplebbitAddressesArrays, pos
                 "-" +
                 ((_a = sortTypes[i]) !== null && _a !== void 0 ? _a : "hot") +
                 "-" +
-                uniqueSubplebbitAddressesArrays[i] +
+                uniqueCommunityAddressesArrays[i] +
                 "-" +
                 postsPerPages[i] +
                 "-" +
@@ -276,7 +276,7 @@ function useFeedNames(accountId, sortTypes, uniqueSubplebbitAddressesArrays, pos
                 newerThans[i]);
         }
         return feedNames;
-    }, [accountId, sortTypes, uniqueSubplebbitAddressesArrays, postsPerPages, filters, newerThans]);
+    }, [accountId, sortTypes, uniqueCommunityAddressesArrays, postsPerPages, filters, newerThans]);
 }
 const NEWER_THAN_LIMITS = [
     [60 * 60 * 24, "Day"],

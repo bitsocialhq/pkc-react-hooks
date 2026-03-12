@@ -55,14 +55,16 @@ export interface UseNotificationsResult extends Result {
     notifications: Notification[];
     markAsRead(): Promise<void>;
 }
-export interface UseAccountSubplebbitsOptions extends Options {
+export interface UseAccountCommunitiesOptions extends Options {
     onlyIfCached?: boolean;
 }
-export interface UseAccountSubplebbitsResult extends Result {
-    accountSubplebbits: AccountSubplebbit[];
+export interface UseAccountCommunitiesResult extends Result {
+    accountCommunities: {
+        [communityAddress: string]: AccountCommunity & Partial<Community>;
+    };
 }
 export interface UsePubsubSubscribeOptions extends Options {
-    subplebbitAddress?: string;
+    communityAddress?: string;
 }
 export interface UsePubsubSubscribeResult extends Result {
 }
@@ -117,35 +119,35 @@ export interface UseEditedCommentResult extends Result {
         [failedEditPropertyName: string]: any;
     };
 }
-export interface UseSubplebbitOptions extends Options {
-    subplebbitAddress?: string;
+export interface UseCommunityOptions extends Options {
+    communityAddress?: string;
     onlyIfCached?: boolean;
 }
-export interface UseSubplebbitResult extends Result, Subplebbit {
+export interface UseCommunityResult extends Result, Community {
 }
-export interface UseSubplebbitsOptions extends Options {
-    subplebbitAddresses?: string[];
+export interface UseCommunitiesOptions extends Options {
+    communityAddresses?: string[];
     onlyIfCached?: boolean;
 }
-export interface UseSubplebbitsResult extends Result {
-    subplebbits: (Subplebbit | undefined)[];
+export interface UseCommunitiesResult extends Result {
+    communities: (Community | undefined)[];
 }
-export interface UseSubplebbitStatsOptions extends Options {
-    subplebbitAddress?: string;
+export interface UseCommunityStatsOptions extends Options {
+    communityAddress?: string;
     onlyIfCached?: boolean;
 }
-export interface UseSubplebbitStatsResult extends Result, SubplebbitStats {
+export interface UseCommunityStatsResult extends Result, CommunityStats {
 }
-export interface UseResolvedSubplebbitAddressOptions extends Options {
-    subplebbitAddress: string | undefined;
+export interface UseResolvedCommunityAddressOptions extends Options {
+    communityAddress: string | undefined;
     cache?: boolean;
 }
-export interface UseResolvedSubplebbitAddressResult extends Result {
+export interface UseResolvedCommunityAddressResult extends Result {
     resolvedAddress: string | undefined;
     chainProvider: ChainProvider | undefined;
 }
 export interface UseFeedOptions extends Options {
-    subplebbitAddresses: string[];
+    communityAddresses: string[];
     sortType?: string;
     postsPerPage?: number;
     newerThan?: number;
@@ -157,7 +159,7 @@ export interface UseFeedResult extends Result {
     feed: Comment[];
     hasMore: boolean;
     loadMore(): Promise<void>;
-    subplebbitAddressesWithNewerPosts: string[];
+    communityAddressesWithNewerPosts: string[];
     reset(): Promise<void>;
 }
 export interface UseBufferedFeedsOptions extends Options {
@@ -254,27 +256,27 @@ export interface UsePublishCommentModerationResult extends Result {
     publishCommentModeration(): Promise<void>;
     publishChallengeAnswers(challengeAnswers: string[]): Promise<void>;
 }
-export interface UsePublishSubplebbitEditOptions extends Options {
-    subplebbitAddress?: string;
+export interface UsePublishCommunityEditOptions extends Options {
+    communityAddress?: string;
     onChallenge?(challenge: Challenge, comment?: Comment): Promise<void>;
     onChallengeVerification?(challengeVerification: ChallengeVerification, comment?: Comment): Promise<void>;
     [publishOption: string]: any;
 }
-export interface UsePublishSubplebbitEditResult extends Result {
+export interface UsePublishCommunityEditResult extends Result {
     challenge: Challenge | undefined;
     challengeVerification: ChallengeVerification | undefined;
-    publishSubplebbitEdit(): Promise<void>;
+    publishCommunityEdit(): Promise<void>;
     publishChallengeAnswers(challengeAnswers: string[]): Promise<void>;
 }
-export interface UseCreateSubplebbitOptions extends Options {
-    [createSubplebbitOption: string]: any;
+export interface UseCreateCommunityOptions extends Options {
+    [createCommunityOption: string]: any;
 }
-export interface UseCreateSubplebbitResult extends Result {
-    createdSubplebbit: Subplebbit | undefined;
-    createSubplebbit(): Promise<void>;
+export interface UseCreateCommunityResult extends Result {
+    createdCommunity: Community | undefined;
+    createCommunity(): Promise<void>;
 }
 export interface UseSubscribeOptions extends Options {
-    subplebbitAddress?: string;
+    communityAddress?: string;
     multisubAddress?: string;
     authorAddress?: string;
 }
@@ -294,7 +296,7 @@ export interface UseBlockResult extends Result {
 }
 export interface UseClientsStatesOptions extends Options {
     comment?: Comment;
-    subplebbit?: Subplebbit;
+    community?: Community;
 }
 type ClientUrls = string[];
 type Peer = string;
@@ -306,13 +308,13 @@ export interface UseClientsStatesResult extends Result {
         [clientUrl: string]: Peer[];
     };
 }
-export interface UseSubplebbitsStatesOptions extends Options {
-    subplebbitAddresses?: string[];
+export interface UseCommunitiesStatesOptions extends Options {
+    communityAddresses?: string[];
 }
-export interface UseSubplebbitsStatesResult extends Result {
+export interface UseCommunitiesStatesResult extends Result {
     states: {
         [state: string]: {
-            subplebbitAddresses: string[];
+            communityAddresses: string[];
             clientUrls: string[];
         };
     };
@@ -352,7 +354,7 @@ export type PublishCommentEditOptions = {
 export type PublishCommentModerationOptions = {
     [key: string]: any;
 };
-export type PublishSubplebbitEditOptions = {
+export type PublishCommunityEditOptions = {
     [key: string]: any;
 };
 export type Challenge = {
@@ -364,7 +366,7 @@ export type ChallengeVerification = {
 export type CreateCommentOptions = {
     [key: string]: any;
 };
-export type CreateSubplebbitOptions = {
+export type CreateCommunityOptions = {
     [key: string]: any;
 };
 export type CreateVoteOptions = {
@@ -382,13 +384,13 @@ export type CommentEdit = {
 export type CommentModeration = {
     [key: string]: any;
 };
-export type SubplebbitEdit = {
+export type CommunityEdit = {
     [key: string]: any;
 };
-export type Subplebbit = {
+export type Community = {
     [key: string]: any;
 };
-export type SubplebbitStats = {
+export type CommunityStats = {
     [key: string]: any;
 };
 export type Notification = {
@@ -404,10 +406,10 @@ export type Wallet = {
     [key: string]: any;
 };
 /**
- * Subplebbits and comments store
+ * Communities and comments store
  */
-export type Subplebbits = {
-    [subplebbitAddress: string]: Subplebbit;
+export type Communities = {
+    [communityAddress: string]: Community;
 };
 export type Comments = {
     [commentCid: string]: Comment;
@@ -450,7 +452,7 @@ export type AccountsNotifications = {
 export type Role = {
     role: "owner" | "admin" | "moderator";
 };
-export type AccountSubplebbit = {
+export type AccountCommunity = {
     role: Role;
 };
 export type AccountsVotes = {
@@ -466,7 +468,7 @@ export type AccountsEdits = {
     [accountId: string]: AccountEdits;
 };
 export type AccountEdits = {
-    [commentCidOrSubplebbitAddress: string]: AccountEdit[];
+    [commentCidOrCommunityAddress: string]: AccountEdit[];
 };
 export type AccountEdit = {
     [publishOption: string]: any;
@@ -480,7 +482,7 @@ export type Feeds = {
     [feedName: string]: Feed;
 };
 export type FeedOptions = {
-    subplebbitAddresses: string[];
+    communityAddresses: string[];
     sortType: string;
     accountId: string;
     pageNumber: number;
@@ -497,18 +499,18 @@ export type FeedOptionsAccountComments = {
 export type FeedsOptions = {
     [feedName: string]: FeedOptions;
 };
-export type FeedSubplebbitsPostCounts = {
-    [subplebbitAddress: string]: number;
+export type FeedCommunitiesPostCounts = {
+    [communityAddress: string]: number;
 };
-export type FeedsSubplebbitsPostCounts = {
-    [feedName: string]: FeedSubplebbitsPostCounts;
+export type FeedsCommunitiesPostCounts = {
+    [feedName: string]: FeedCommunitiesPostCounts;
 };
-export type SubplebbitPage = {
+export type CommunityPage = {
     nextCid?: string;
     comments: Comment[];
 };
-export type SubplebbitsPages = {
-    [pageCid: string]: SubplebbitPage;
+export type CommunitiesPages = {
+    [pageCid: string]: CommunityPage;
 };
 export type CommentsFilter = {
     filter(comment: Comment): Boolean;
@@ -533,7 +535,7 @@ export type RepliesFeedOptions = {
 export type RepliesFeedsOptions = {
     [feedName: string]: RepliesFeedOptions;
 };
-export type RepliesPage = SubplebbitPage;
+export type RepliesPage = CommunityPage;
 export type RepliesPages = {
     [pageCid: string]: RepliesPage;
 };
