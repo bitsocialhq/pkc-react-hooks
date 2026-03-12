@@ -35,6 +35,7 @@ This repo is a temporary fork of [plebbit/plebbit-react-hooks](https://github.co
 | User-facing behavior/feature added or changed | Update `README.md` usage/docs in the same task before marking work complete |
 | Tests added or changed (`src/**/*.test.ts`, `test/`) | Run `yarn test` to verify |
 | New reviewable feature/fix/docs/chore started while on `master` | Create a short-lived `feature/*`, `fix/*`, `docs/*`, or `chore/*` branch from `master` before editing; use a separate worktree only for parallel tasks |
+| New unrelated task started while another task branch is already checked out or being worked on by another agent | Create a separate worktree from `master`, create a new short-lived task branch there, and keep each agent on its own worktree/branch/PR |
 | User wants a tracked issue/PR for work already done | Use the `make-closed-issue` skill to create the issue, push the task branch, and open a PR that closes it on merge |
 | Open PR needs feedback triage or merge readiness check | Use the `review-and-merge-pr` skill to inspect CI/reviewer feedback, fix valid findings, and merge only after verification |
 | Repo AI workflow files changed (`.codex/**`, `.cursor/**`) | Keep the Codex and Cursor copies aligned when they represent the same workflow; update `AGENTS.md` if the default agent policy changes |
@@ -95,6 +96,9 @@ src/
 - Open PRs from task branches into `master` so review bots and humans can inspect the actual change before merge.
 - Prefer short-lived task branches over a long-lived `develop` branch unless the user explicitly asks for a staging-branch workflow.
 - Use worktrees only when parallel tasks need isolated checkouts. One active task branch per worktree.
+- If a new task is unrelated to the currently checked out branch, do not stack it on that branch. Create a new worktree from `master` and create a separate short-lived task branch there.
+- Treat branch and worktree as different things: the branch is the change set; the worktree is the checkout where that branch is worked on.
+- For parallel unrelated tasks, give each task its own branch from `master`, its own worktree, and its own PR into `master`.
 - After a reviewed branch is merged, prefer deleting it to keep branch drift and merge conflicts low.
 
 ### Documentation Rules
