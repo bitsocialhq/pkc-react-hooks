@@ -1039,6 +1039,13 @@ class Publication extends EventEmitter {
             this.emit("challengeverification", challengeVerificationMessage, this);
         });
     }
+    stop() {
+        if (this.updating || this.updatingState !== "stopped") {
+            this.updating = false;
+            this.updatingState = "stopped";
+            this.emit("updatingstatechange", "stopped");
+        }
+    }
 }
 class Comment extends Publication {
     constructor(createCommentOptions) {
@@ -1094,10 +1101,13 @@ class Comment extends Publication {
             this.updatingState = "fetching-ipfs";
             this.emit("updatingstatechange", "fetching-ipfs");
             (() => __awaiter(this, void 0, void 0, function* () {
-                while (true) {
+                while (this.updating) {
                     yield simulateLoadingTime();
                     yield simulateLoadingTime();
                     yield simulateLoadingTime();
+                    if (!this.updating) {
+                        return;
+                    }
                     this.simulateUpdateEvent();
                 }
             }))();
@@ -1105,6 +1115,9 @@ class Comment extends Publication {
     }
     simulateUpdateEvent() {
         return __awaiter(this, void 0, void 0, function* () {
+            if (!this.updating) {
+                return;
+            }
             assert(this.cid, `invalid comment.cid '${this.cid}' can't simulateUpdateEvent`);
             if (this._getCommentOnFirstUpdate) {
                 return this.simulateGetCommentOnFirstUpdateEvent();
@@ -1122,9 +1135,15 @@ class Comment extends Publication {
     }
     simulateGetCommentOnFirstUpdateEvent() {
         return __awaiter(this, void 0, void 0, function* () {
+            if (!this.updating) {
+                return;
+            }
             this._getCommentOnFirstUpdate = false;
             // @ts-ignore
             const comment = yield new Plebbit().getComment({ cid: this.cid });
+            if (!this.updating) {
+                return;
+            }
             const props = JSON.parse(JSON.stringify(comment));
             for (const prop in props) {
                 if (prop.startsWith("_")) {

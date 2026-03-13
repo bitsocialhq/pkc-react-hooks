@@ -8,6 +8,9 @@ export type CommentsState = {
         [commentCid: string]: Error[];
     };
     addCommentToStore: Function;
+    startCommentAutoUpdate: Function;
+    stopCommentAutoUpdate: Function;
+    refreshComment: Function;
 };
 declare const commentsStore: import("zustand").UseBoundStore<import("zustand").StoreApi<CommentsState>>;
 export declare const resetCommentsStore: () => Promise<void>;

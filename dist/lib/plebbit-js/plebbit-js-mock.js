@@ -474,6 +474,13 @@ class Publication extends EventEmitter {
             this.emit("statechange", "stopped");
             this.emit("publishingstatechange", "stopped");
         }
+        if (this.updating || this.updatingState !== "stopped") {
+            this.state = "stopped";
+            this.updating = false;
+            this.updatingState = "stopped";
+            this.emit("statechange", "stopped");
+            this.emit("updatingstatechange", "stopped");
+        }
     }
 }
 export class Comment extends Publication {
@@ -508,8 +515,8 @@ export class Comment extends Publication {
     update() {
         return __awaiter(this, void 0, void 0, function* () {
             this.updateCalledTimes++;
-            if (this.updateCalledTimes > 2) {
-                throw Error("with the current hooks, comment.update() should be called maximum 2 times, this number might change if the hooks change and is only there to catch bugs, the real comment.update() can be called infinite times");
+            if (this.updateCalledTimes > 5) {
+                throw Error("with the current hooks, comment.update() should be called maximum 5 times, this number might change if the hooks change and is only there to catch bugs, the real comment.update() can be called infinite times");
             }
             // don't update twice
             if (this.updating) {
@@ -526,6 +533,9 @@ export class Comment extends Publication {
         });
     }
     simulateUpdateEvent() {
+        if (!this.updating) {
+            return;
+        }
         // if timestamp isn't defined, simulate fetching the comment ipfs
         if (!this.timestamp) {
             this.simulateFetchCommentIpfsUpdateEvent();
@@ -541,8 +551,14 @@ export class Comment extends Publication {
     }
     simulateFetchCommentIpfsUpdateEvent() {
         return __awaiter(this, void 0, void 0, function* () {
+            if (!this.updating) {
+                return;
+            }
             // use plebbit.getComment() so mocking Plebbit.prototype.getComment works
             const commentIpfs = yield new Plebbit().getComment({ cid: this.cid || "" });
+            if (!this.updating) {
+                return;
+            }
             this.content = commentIpfs.content;
             this.author = commentIpfs.author;
             this.timestamp = commentIpfs.timestamp;

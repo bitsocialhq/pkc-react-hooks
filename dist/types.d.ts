@@ -71,15 +71,19 @@ export interface UsePubsubSubscribeResult extends Result {
 export interface UseCommentOptions extends Options {
     commentCid?: string;
     onlyIfCached?: boolean;
+    autoUpdate?: boolean;
 }
 export interface UseCommentResult extends Result, Comment {
+    refresh(): Promise<void>;
 }
 export interface UseCommentsOptions extends Options {
     commentCids?: string[];
     onlyIfCached?: boolean;
+    autoUpdate?: boolean;
 }
 export interface UseCommentsResult extends Result {
     comments: (Comment | undefined)[];
+    refresh(): Promise<void>;
 }
 export interface UseValidateCommentOptions extends Options {
     comment?: Comment;
