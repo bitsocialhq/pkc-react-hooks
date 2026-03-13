@@ -39,6 +39,27 @@ const removeCommentListener = (comment, event, listener) => {
 };
 const getCommentAutoUpdateSubscribersCount = (commentCid) => Object.keys(commentAutoUpdateSubscribers[commentCid] || {}).length;
 const hasCommentAutoUpdateSubscribers = (commentCid) => getCommentAutoUpdateSubscribersCount(commentCid) > 0;
+const releaseLiveComment = (commentCid, comment) => {
+    const liveComment = comment || liveComments[commentCid];
+    if (liveComment) {
+        const listenerIndex = listeners.indexOf(liveComment);
+        if (listenerIndex !== -1) {
+            listeners.splice(listenerIndex, 1);
+        }
+    }
+    if (!comment || liveComments[commentCid] === liveComment) {
+        delete liveComments[commentCid];
+    }
+};
+const maybeReleaseStoppedLiveComment = (commentCid, comment) => {
+    if (!comment || hasCommentAutoUpdateSubscribers(commentCid)) {
+        return;
+    }
+    if (liveComments[commentCid] !== comment) {
+        return;
+    }
+    releaseLiveComment(commentCid, comment);
+};
 const commentsStore = createStore((setState, getState) => {
     const addCommentError = (commentCid, error) => {
         setState((state) => {
@@ -78,7 +99,9 @@ const commentsStore = createStore((setState, getState) => {
         if (hasCommentAutoUpdateSubscribers(commentCid)) {
             return;
         }
-        void stopLiveComment(commentCid, comment);
+        void stopLiveComment(commentCid, comment).finally(() => {
+            maybeReleaseStoppedLiveComment(commentCid, comment);
+        });
     };
     const initializeComment = (commentCid, comment, account) => {
         var _a, _b, _c, _d;
@@ -148,18 +171,21 @@ const commentsStore = createStore((setState, getState) => {
         if (liveCommentPromises[commentCid]) {
             return liveCommentPromises[commentCid];
         }
-        liveCommentPromises[commentCid] = (() => __awaiter(void 0, void 0, void 0, function* () {
+        const liveCommentPromise = (() => __awaiter(void 0, void 0, void 0, function* () {
             const initialComment = normalizeCommentCommunityAddress(utils.clone(commentData || { cid: commentCid })) ||
                 { cid: commentCid };
             const liveComment = normalizeCommentCommunityAddress(yield account.plebbit.createComment(initialComment));
             initializeComment(commentCid, liveComment, account);
             return liveComment;
         }))();
+        liveCommentPromises[commentCid] = liveCommentPromise;
         try {
-            return yield liveCommentPromises[commentCid];
+            return yield liveCommentPromise;
         }
         finally {
-            delete liveCommentPromises[commentCid];
+            if (liveCommentPromises[commentCid] === liveCommentPromise) {
+                delete liveCommentPromises[commentCid];
+            }
         }
     });
     const requestCommentUpdate = (commentCid, comment, options) => {
@@ -203,26 +229,16 @@ const commentsStore = createStore((setState, getState) => {
         addCommentToStore(commentCid, account) {
             return __awaiter(this, void 0, void 0, function* () {
                 const { comments } = getState();
+                const pendingKey = commentCid + account.id;
                 // comment is in store already, do nothing
                 let comment = comments[commentCid];
-                if (comment || plebbitGetCommentPending[commentCid + account.id]) {
+                if (comment || plebbitGetCommentPending[pendingKey]) {
                     return;
                 }
-                plebbitGetCommentPending[commentCid + account.id] = true;
-                // try to find comment in database
-                comment = yield getCommentFromDatabase(commentCid, account);
-                if (comment) {
-                    comment = normalizeCommentCommunityAddress(comment);
-                    setState((state) => ({
-                        comments: Object.assign(Object.assign({}, state.comments), { [commentCid]: utils.clone(comment) }),
-                    }));
-                    // add comment replies pages to repliesPagesStore so they can be used in useComment
-                    repliesPagesStore.getState().addRepliesPageCommentsToStore(comment);
-                    const liveComment = yield ensureLiveComment(commentCid, account, comment);
-                    requestCommentUpdate(commentCid, liveComment, { stopAfterNextUpdate: true });
-                }
-                // comment not in database, fetch from plebbit-js and do a single update cycle
+                plebbitGetCommentPending[pendingKey] = true;
                 try {
+                    // try to find comment in database
+                    comment = yield getCommentFromDatabase(commentCid, account);
                     if (!comment) {
                         comment = yield ensureLiveComment(commentCid, account, { cid: commentCid });
                         comment = normalizeCommentCommunityAddress(comment);
@@ -230,15 +246,24 @@ const commentsStore = createStore((setState, getState) => {
                         setState((state) => ({
                             comments: Object.assign(Object.assign({}, state.comments), { [commentCid]: utils.clone(comment) }),
                         }));
-                        requestCommentUpdate(commentCid, comment, { stopAfterNextUpdate: true });
                     }
+                    else {
+                        comment = normalizeCommentCommunityAddress(comment);
+                        setState((state) => ({
+                            comments: Object.assign(Object.assign({}, state.comments), { [commentCid]: utils.clone(comment) }),
+                        }));
+                        // add comment replies pages to repliesPagesStore so they can be used in useComment
+                        repliesPagesStore.getState().addRepliesPageCommentsToStore(comment);
+                        comment = yield ensureLiveComment(commentCid, account, comment);
+                    }
+                    requestCommentUpdate(commentCid, comment, { stopAfterNextUpdate: true });
                 }
                 catch (e) {
                     addCommentError(commentCid, e);
                     throw e;
                 }
                 finally {
-                    plebbitGetCommentPending[commentCid + account.id] = false;
+                    plebbitGetCommentPending[pendingKey] = false;
                 }
             });
         },
@@ -256,6 +281,11 @@ const commentsStore = createStore((setState, getState) => {
                         comments: Object.assign(Object.assign({}, state.comments), { [commentCid]: utils.clone(liveComment) }),
                     }));
                 }
+                if (!hasCommentAutoUpdateSubscribers(commentCid)) {
+                    yield stopLiveComment(commentCid, liveComment);
+                    maybeReleaseStoppedLiveComment(commentCid, liveComment);
+                    return;
+                }
                 requestCommentUpdate(commentCid, liveComment);
             });
         },
@@ -271,7 +301,9 @@ const commentsStore = createStore((setState, getState) => {
                     return;
                 }
                 delete stopCommentAfterNextUpdate[commentCid];
-                yield stopLiveComment(commentCid);
+                const liveComment = liveComments[commentCid];
+                yield stopLiveComment(commentCid, liveComment);
+                maybeReleaseStoppedLiveComment(commentCid, liveComment);
             });
         },
         refreshComment(commentCid, account) {

@@ -1041,8 +1041,10 @@ class Publication extends EventEmitter {
     }
     stop() {
         if (this.updating || this.updatingState !== "stopped") {
+            this.state = "stopped";
             this.updating = false;
             this.updatingState = "stopped";
+            this.emit("statechange", "stopped");
             this.emit("updatingstatechange", "stopped");
         }
     }
