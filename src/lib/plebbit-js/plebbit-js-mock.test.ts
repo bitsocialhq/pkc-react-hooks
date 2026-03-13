@@ -1,4 +1,5 @@
 import PlebbitJsMock from "./plebbit-js-mock";
+import PlebbitJsMockContent from "./plebbit-js-mock-content";
 
 describe("PlebbitJsMock", () => {
   test("Comment.state and Comment.updatingState", async () => {
@@ -174,5 +175,26 @@ describe("PlebbitJsMock", () => {
     await community.edit({ suggested: false, title: "" });
     expect(community.suggested).toBe(false);
     expect(community.title).toBe("");
+  });
+});
+
+describe("PlebbitJsMockContent", () => {
+  test("Publication.stop() emits/sets expected stopped updating state", async () => {
+    const plebbit = await PlebbitJsMockContent();
+    const comment = await plebbit.createComment({ cid: "mock-content-comment-cid" });
+
+    const onStatechange = vi.fn(() => comment.state);
+    const onUpdatingstatechange = vi.fn(() => comment.updatingState);
+
+    comment.on("statechange", onStatechange);
+    comment.on("updatingstatechange", onUpdatingstatechange);
+
+    await comment.update();
+    comment.stop();
+
+    expect(comment.state).toBe("stopped");
+    expect(comment.updatingState).toBe("stopped");
+    expect(onStatechange.mock.calls.some((call) => call[0] === "stopped")).toBe(true);
+    expect(onUpdatingstatechange.mock.calls.some((call) => call[0] === "stopped")).toBe(true);
   });
 });

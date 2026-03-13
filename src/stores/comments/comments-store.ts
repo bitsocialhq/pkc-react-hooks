@@ -50,6 +50,29 @@ const getCommentAutoUpdateSubscribersCount = (commentCid: string) =>
 const hasCommentAutoUpdateSubscribers = (commentCid: string) =>
   getCommentAutoUpdateSubscribersCount(commentCid) > 0;
 
+const releaseLiveComment = (commentCid: string, comment?: Comment) => {
+  const liveComment = comment || liveComments[commentCid];
+  if (liveComment) {
+    const listenerIndex = listeners.indexOf(liveComment);
+    if (listenerIndex !== -1) {
+      listeners.splice(listenerIndex, 1);
+    }
+  }
+  if (!comment || liveComments[commentCid] === liveComment) {
+    delete liveComments[commentCid];
+  }
+};
+
+const maybeReleaseStoppedLiveComment = (commentCid: string, comment?: Comment) => {
+  if (!comment || hasCommentAutoUpdateSubscribers(commentCid)) {
+    return;
+  }
+  if (liveComments[commentCid] !== comment) {
+    return;
+  }
+  releaseLiveComment(commentCid, comment);
+};
+
 const commentsStore = createStore<CommentsState>((setState: Function, getState: Function) => {
   const addCommentError = (commentCid: string, error: Error) => {
     setState((state: CommentsState) => {
@@ -93,7 +116,9 @@ const commentsStore = createStore<CommentsState>((setState: Function, getState: 
     if (hasCommentAutoUpdateSubscribers(commentCid)) {
       return;
     }
-    void stopLiveComment(commentCid, comment);
+    void stopLiveComment(commentCid, comment).finally(() => {
+      maybeReleaseStoppedLiveComment(commentCid, comment);
+    });
   };
 
   const initializeComment = (commentCid: string, comment: Comment, account: Account) => {
@@ -183,7 +208,7 @@ const commentsStore = createStore<CommentsState>((setState: Function, getState: 
       return liveCommentPromises[commentCid] as Promise<Comment>;
     }
 
-    liveCommentPromises[commentCid] = (async () => {
+    const liveCommentPromise = (async () => {
       const initialComment =
         normalizeCommentCommunityAddress(utils.clone(commentData || { cid: commentCid })) ||
         ({ cid: commentCid } as Comment);
@@ -193,11 +218,14 @@ const commentsStore = createStore<CommentsState>((setState: Function, getState: 
       initializeComment(commentCid, liveComment, account);
       return liveComment;
     })();
+    liveCommentPromises[commentCid] = liveCommentPromise;
 
     try {
-      return await liveCommentPromises[commentCid];
+      return await liveCommentPromise;
     } finally {
-      delete liveCommentPromises[commentCid];
+      if (liveCommentPromises[commentCid] === liveCommentPromise) {
+        delete liveCommentPromises[commentCid];
+      }
     }
   };
 
@@ -251,32 +279,19 @@ const commentsStore = createStore<CommentsState>((setState: Function, getState: 
 
     async addCommentToStore(commentCid: string, account: Account) {
       const { comments } = getState();
+      const pendingKey = commentCid + account.id;
 
       // comment is in store already, do nothing
       let comment: Comment | undefined = comments[commentCid];
-      if (comment || plebbitGetCommentPending[commentCid + account.id]) {
+      if (comment || plebbitGetCommentPending[pendingKey]) {
         return;
       }
-      plebbitGetCommentPending[commentCid + account.id] = true;
+      plebbitGetCommentPending[pendingKey] = true;
 
-      // try to find comment in database
-      comment = await getCommentFromDatabase(commentCid, account);
-
-      if (comment) {
-        comment = normalizeCommentCommunityAddress(comment);
-        setState((state: CommentsState) => ({
-          comments: { ...state.comments, [commentCid]: utils.clone(comment) },
-        }));
-
-        // add comment replies pages to repliesPagesStore so they can be used in useComment
-        repliesPagesStore.getState().addRepliesPageCommentsToStore(comment);
-
-        const liveComment = await ensureLiveComment(commentCid, account, comment);
-        requestCommentUpdate(commentCid, liveComment, { stopAfterNextUpdate: true });
-      }
-
-      // comment not in database, fetch from plebbit-js and do a single update cycle
       try {
+        // try to find comment in database
+        comment = await getCommentFromDatabase(commentCid, account);
+
         if (!comment) {
           comment = await ensureLiveComment(commentCid, account, { cid: commentCid });
           comment = normalizeCommentCommunityAddress(comment);
@@ -284,13 +299,24 @@ const commentsStore = createStore<CommentsState>((setState: Function, getState: 
           setState((state: CommentsState) => ({
             comments: { ...state.comments, [commentCid]: utils.clone(comment) },
           }));
-          requestCommentUpdate(commentCid, comment, { stopAfterNextUpdate: true });
+        } else {
+          comment = normalizeCommentCommunityAddress(comment);
+          setState((state: CommentsState) => ({
+            comments: { ...state.comments, [commentCid]: utils.clone(comment) },
+          }));
+
+          // add comment replies pages to repliesPagesStore so they can be used in useComment
+          repliesPagesStore.getState().addRepliesPageCommentsToStore(comment);
+
+          comment = await ensureLiveComment(commentCid, account, comment);
         }
+
+        requestCommentUpdate(commentCid, comment, { stopAfterNextUpdate: true });
       } catch (e: any) {
         addCommentError(commentCid, e);
         throw e;
       } finally {
-        plebbitGetCommentPending[commentCid + account.id] = false;
+        plebbitGetCommentPending[pendingKey] = false;
       }
     },
 
@@ -318,6 +344,12 @@ const commentsStore = createStore<CommentsState>((setState: Function, getState: 
         }));
       }
 
+      if (!hasCommentAutoUpdateSubscribers(commentCid)) {
+        await stopLiveComment(commentCid, liveComment);
+        maybeReleaseStoppedLiveComment(commentCid, liveComment);
+        return;
+      }
+
       requestCommentUpdate(commentCid, liveComment);
     },
 
@@ -334,7 +366,9 @@ const commentsStore = createStore<CommentsState>((setState: Function, getState: 
       }
 
       delete stopCommentAfterNextUpdate[commentCid];
-      await stopLiveComment(commentCid);
+      const liveComment = liveComments[commentCid];
+      await stopLiveComment(commentCid, liveComment);
+      maybeReleaseStoppedLiveComment(commentCid, liveComment);
     },
 
     async refreshComment(commentCid: string, account: Account) {
