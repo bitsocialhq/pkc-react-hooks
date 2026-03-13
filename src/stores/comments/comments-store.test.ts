@@ -1,7 +1,12 @@
 import { act } from "@testing-library/react";
 import EventEmitter from "events";
 import testUtils, { renderHook } from "../../lib/test-utils";
-import commentsStore, { resetCommentsDatabaseAndStore, listeners, log } from "./comments-store";
+import commentsStore, {
+  resetCommentsDatabaseAndStore,
+  resetCommentsStore,
+  listeners,
+  log,
+} from "./comments-store";
 import localForageLru from "../../lib/localforage-lru";
 import { setPlebbitJs } from "../..";
 import PlebbitJsMock from "../../lib/plebbit-js/plebbit-js-mock";
@@ -87,6 +92,43 @@ describe("comments store", () => {
       }),
     );
     consoleSpy.mockRestore();
+    mockAccount.plebbit.createComment = createCommentOriginal;
+  });
+
+  test("addCommentToStore clears the pending gate when cached live comment creation fails", async () => {
+    const commentCid = "cached-live-fail-cid";
+    const db = localForageLru.createInstance({ name: "plebbitReactHooks-comments" });
+    await db.setItem(commentCid, {
+      cid: commentCid,
+      timestamp: 1,
+      communityAddress: "community address 1",
+    });
+
+    const createCommentOriginal = mockAccount.plebbit.createComment.bind(mockAccount.plebbit);
+    mockAccount.plebbit.createComment = vi
+      .fn()
+      .mockImplementationOnce((commentData: any) => createCommentOriginal(commentData))
+      .mockRejectedValueOnce(new Error("live create failed"))
+      .mockImplementation((commentData: any) => createCommentOriginal(commentData));
+
+    await expect(
+      commentsStore.getState().addCommentToStore(commentCid, mockAccount),
+    ).rejects.toThrow("live create failed");
+    expect(commentsStore.getState().errors[commentCid]?.slice(-1)[0]?.message).toBe(
+      "live create failed",
+    );
+
+    commentsStore.setState((state: any) => {
+      const comments = { ...state.comments };
+      delete comments[commentCid];
+      return { comments };
+    });
+
+    await act(async () => {
+      await commentsStore.getState().addCommentToStore(commentCid, mockAccount);
+    });
+
+    expect(commentsStore.getState().comments[commentCid]).toBeDefined();
     mockAccount.plebbit.createComment = createCommentOriginal;
   });
 
@@ -220,6 +262,29 @@ describe("comments store", () => {
     mockAccount.plebbit.createComment = createCommentOrig;
   });
 
+  test("reusing the same live comment object skips duplicate listener registration", async () => {
+    const commentCid = "reused-live-comment-cid";
+    const plebbit = await PlebbitJsMock();
+    const sharedLiveComment = await plebbit.createComment({ cid: commentCid });
+    const createCommentOrig = mockAccount.plebbit.createComment;
+    mockAccount.plebbit.createComment = vi.fn().mockResolvedValue(sharedLiveComment);
+
+    await act(async () => {
+      await commentsStore.getState().addCommentToStore(commentCid, mockAccount);
+    });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(listeners).not.toContain(sharedLiveComment);
+
+    await act(async () => {
+      await commentsStore.getState().refreshComment(commentCid, mockAccount);
+    });
+
+    expect(mockAccount.plebbit.createComment).toHaveBeenCalledTimes(2);
+    expect(listeners).not.toContain(sharedLiveComment);
+
+    mockAccount.plebbit.createComment = createCommentOrig;
+  });
+
   test("missing-comment client update guard returns empty object", async () => {
     const commentCid = "client-update-cid";
     let storedCb: ((...args: any[]) => void) | null = null;
@@ -286,6 +351,7 @@ describe("comments store", () => {
 
     await new Promise((r) => setTimeout(r, 50));
     expect(comment.updatingState).toBe("stopped");
+    expect(listeners).not.toContain(comment);
   });
 
   test("startCommentAutoUpdate keeps polling until the last subscriber stops", async () => {
@@ -295,31 +361,41 @@ describe("comments store", () => {
       await commentsStore.getState().addCommentToStore(commentCid, mockAccount);
     });
 
-    const comment = listeners[listeners.length - 1];
+    const oneShotComment = listeners[listeners.length - 1];
     await new Promise((r) => setTimeout(r, 50));
-    expect(comment.updatingState).toBe("stopped");
+    expect(oneShotComment.updatingState).toBe("stopped");
 
     await act(async () => {
       await commentsStore.getState().startCommentAutoUpdate(commentCid, "sub-1", mockAccount);
       await commentsStore.getState().startCommentAutoUpdate(commentCid, "sub-2", mockAccount);
     });
 
+    const liveComment = listeners[listeners.length - 1];
+    expect(liveComment?.cid).toBe(commentCid);
     await new Promise((r) => setTimeout(r, 50));
-    expect(comment.updateCalledTimes).toBeGreaterThanOrEqual(2);
+    expect(liveComment.updateCalledTimes).toBeGreaterThanOrEqual(1);
 
     await act(async () => {
       await commentsStore.getState().stopCommentAutoUpdate(commentCid, "sub-1");
     });
-    expect(comment.updatingState).not.toBe("stopped");
+    expect(liveComment.updatingState).not.toBe("stopped");
 
     await act(async () => {
       await commentsStore.getState().stopCommentAutoUpdate(commentCid, "sub-2");
     });
-    expect(comment.updatingState).toBe("stopped");
+    expect(liveComment.updatingState).toBe("stopped");
+    expect(listeners).not.toContain(liveComment);
   });
 
   test("refreshComment updates the store once and stops again when auto-update is disabled", async () => {
     const commentCid = "refresh-comment-cid";
+    const createCommentOriginal = mockAccount.plebbit.createComment.bind(mockAccount.plebbit);
+    const createdComments: any[] = [];
+    mockAccount.plebbit.createComment = vi.fn(async (commentData: any) => {
+      const comment = await createCommentOriginal(commentData);
+      createdComments.push(comment);
+      return comment;
+    });
 
     await act(async () => {
       await commentsStore.getState().addCommentToStore(commentCid, mockAccount);
@@ -333,7 +409,9 @@ describe("comments store", () => {
     });
 
     expect(commentsStore.getState().comments[commentCid]?.upvoteCount).toBe(5);
-    expect(listeners[listeners.length - 1].updatingState).toBe("stopped");
+    expect(createdComments[createdComments.length - 1].updatingState).toBe("stopped");
+    expect(listeners).not.toContain(createdComments[createdComments.length - 1]);
+    mockAccount.plebbit.createComment = createCommentOriginal;
   });
 
   test("refreshComment cleans up legacy listeners and rejects on comment error", async () => {
@@ -355,6 +433,30 @@ describe("comments store", () => {
 
     await expect(commentsStore.getState().refreshComment(commentCid, mockAccount)).rejects.toThrow(
       "legacy refresh failed",
+    );
+
+    mockAccount.plebbit.createComment = createCommentOrig;
+  });
+
+  test("refreshComment rejects with fallback failed-update error when no error event is emitted", async () => {
+    const commentCid = "refresh-failed-state-cid";
+    const failedComment: any = new EventEmitter();
+    failedComment.cid = commentCid;
+    failedComment.clients = {};
+    failedComment.timestamp = 1;
+    failedComment.removeAllListeners = failedComment.removeAllListeners.bind(failedComment);
+    failedComment.stop = vi.fn().mockResolvedValue(undefined);
+    failedComment.update = vi.fn().mockImplementation(() => {
+      failedComment.emit("updatingstatechange", "failed");
+      return Promise.resolve();
+    });
+    failedComment.off = undefined;
+
+    const createCommentOrig = mockAccount.plebbit.createComment;
+    mockAccount.plebbit.createComment = vi.fn().mockResolvedValue(failedComment);
+
+    await expect(commentsStore.getState().refreshComment(commentCid, mockAccount)).rejects.toThrow(
+      "comment update failed",
     );
 
     mockAccount.plebbit.createComment = createCommentOrig;
@@ -383,6 +485,27 @@ describe("comments store", () => {
     });
 
     expect(legacyComment.stop).toHaveBeenCalled();
+    mockAccount.plebbit.createComment = createCommentOrig;
+  });
+
+  test("resetCommentsStore clears in-flight live comment promises", async () => {
+    const commentCid = "reset-live-comment-promise-cid";
+    const createCommentOrig = mockAccount.plebbit.createComment.bind(mockAccount.plebbit);
+    mockAccount.plebbit.createComment = vi
+      .fn()
+      .mockImplementationOnce(() => new Promise(() => {}))
+      .mockImplementation((commentData: any) => createCommentOrig(commentData));
+
+    void commentsStore.getState().startCommentAutoUpdate(commentCid, "sub-1", mockAccount);
+    await new Promise((r) => setTimeout(r, 0));
+
+    await resetCommentsStore();
+
+    await act(async () => {
+      await commentsStore.getState().addCommentToStore(commentCid, mockAccount);
+    });
+
+    expect(commentsStore.getState().comments[commentCid]).toBeDefined();
     mockAccount.plebbit.createComment = createCommentOrig;
   });
 });

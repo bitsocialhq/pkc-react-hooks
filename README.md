@@ -287,6 +287,10 @@ const { authorAddress, shortAuthorAddress } = useAuthorAddress({ comment });
 
 // use without affecting performance
 const { comments } = useComments({ commentCids, onlyIfCached: true });
+
+// disable background polling and refresh this list on demand
+const frozenComments = useComments({ commentCids, autoUpdate: false });
+await frozenComments.refresh();
 ```
 
 #### Get author avatar

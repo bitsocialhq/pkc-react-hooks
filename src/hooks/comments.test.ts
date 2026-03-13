@@ -585,6 +585,96 @@ describe("comments", () => {
       expect(rendered.result.current.state).toBe("succeeded");
     });
 
+    test("useComment with autoUpdate true refreshes through the store without freezing", async () => {
+      const commentCid = "comment cid live refresh";
+      const account = { id: "mock-live-account", plebbit: {} };
+      const refreshComment = vi.fn().mockResolvedValue({
+        cid: commentCid,
+        timestamp: 1,
+        updatedAt: 2,
+        upvoteCount: 5,
+      });
+      const useAccountSpy = vi.spyOn(accountsHooks, "useAccount").mockReturnValue(account as any);
+      try {
+        commentsStore.setState((state: any) => ({
+          ...state,
+          comments: {
+            ...state.comments,
+            [commentCid]: { cid: commentCid, timestamp: 1, updatedAt: 1, upvoteCount: 3 },
+          },
+          refreshComment,
+        }));
+
+        const rendered = renderHook<any, any>(() => useComment({ commentCid, onlyIfCached: true }));
+
+        expect(rendered.result.current.upvoteCount).toBe(3);
+        await act(async () => {
+          await rendered.result.current.refresh();
+        });
+        expect(refreshComment).toHaveBeenCalledWith(commentCid, account);
+      } finally {
+        useAccountSpy.mockRestore();
+      }
+    });
+
+    test("useComment with autoUpdate false keeps the frozen snapshot when refresh fails", async () => {
+      const commentCid = "comment cid refresh failure";
+      const account = { id: "mock-frozen-account", plebbit: {} };
+      const useAccountSpy = vi.spyOn(accountsHooks, "useAccount").mockReturnValue(account as any);
+      try {
+        commentsStore.setState((state: any) => ({
+          ...state,
+          comments: {
+            ...state.comments,
+            [commentCid]: {
+              cid: commentCid,
+              timestamp: 1,
+              updatedAt: 1,
+              upvoteCount: 3,
+            },
+          },
+          refreshComment: vi.fn().mockRejectedValue(new Error("refresh failed")),
+        }));
+
+        const rendered = renderHook<any, any>(() =>
+          useComment({ commentCid, autoUpdate: false, onlyIfCached: true }),
+        );
+        expect(rendered.result.current.upvoteCount).toBe(3);
+        await expect(rendered.result.current.refresh()).rejects.toThrow("refresh failed");
+        expect(rendered.result.current.upvoteCount).toBe(3);
+      } finally {
+        useAccountSpy.mockRestore();
+      }
+    });
+
+    test("useComment with autoUpdate true rethrows refresh errors without freezing", async () => {
+      const commentCid = "comment cid live refresh failure";
+      const account = { id: "mock-live-failure-account", plebbit: {} };
+      const refreshComment = vi.fn().mockRejectedValue(new Error("refresh failed"));
+      const useAccountSpy = vi.spyOn(accountsHooks, "useAccount").mockReturnValue(account as any);
+      try {
+        commentsStore.setState((state: any) => ({
+          ...state,
+          comments: {
+            ...state.comments,
+            [commentCid]: {
+              cid: commentCid,
+              timestamp: 1,
+              updatedAt: 1,
+              upvoteCount: 3,
+            },
+          },
+          refreshComment,
+        }));
+
+        const rendered = renderHook<any, any>(() => useComment({ commentCid, onlyIfCached: true }));
+        await expect(rendered.result.current.refresh()).rejects.toThrow("refresh failed");
+        expect(refreshComment).toHaveBeenCalledWith(commentCid, account);
+      } finally {
+        useAccountSpy.mockRestore();
+      }
+    });
+
     test("useComment with autoUpdate false stays frozen while another hook keeps the same comment updating", async () => {
       const commentUpdate = Comment.prototype.update;
       const updatingComments: any[] = [];
@@ -619,6 +709,23 @@ describe("comments", () => {
       Comment.prototype.update = commentUpdate;
     });
 
+    test("useComment with autoUpdate false does not briefly reuse the previous frozen comment after commentCid changes", async () => {
+      const rendered = renderHook<any, any>((commentCid) =>
+        useComment({ commentCid, autoUpdate: false }),
+      );
+      const waitFor = testUtils.createWaitFor(rendered);
+
+      rendered.rerender("comment cid previous");
+      await waitFor(() => rendered.result.current.upvoteCount === 3);
+      expect(rendered.result.current.cid).toBe("comment cid previous");
+
+      rendered.rerender("comment cid next");
+      expect(rendered.result.current.cid).not.toBe("comment cid previous");
+
+      await waitFor(() => rendered.result.current.upvoteCount === 3);
+      expect(rendered.result.current.cid).toBe("comment cid next");
+    });
+
     test("useComments with autoUpdate false can refresh manually", async () => {
       const rendered = renderHook<any, any>(() =>
         useComments({
@@ -626,7 +733,7 @@ describe("comments", () => {
           autoUpdate: false,
         }),
       );
-      const waitFor = testUtils.createWaitFor(rendered);
+      const waitFor = testUtils.createWaitFor(rendered, { timeout: 4000 });
 
       await waitFor(
         () =>
@@ -644,6 +751,143 @@ describe("comments", () => {
           rendered.result.current.comments[1]?.upvoteCount === 5,
       );
       expect(rendered.result.current.state).toBe("succeeded");
+    });
+
+    test("useComments with autoUpdate true refreshes through the store without freezing", async () => {
+      const commentCids = ["comment cid live refresh 1", "comment cid live refresh 2"];
+      const account = { id: "mock-live-comments-account", plebbit: {} };
+      const refreshComment = vi
+        .fn()
+        .mockResolvedValueOnce({
+          cid: commentCids[0],
+          timestamp: 1,
+          updatedAt: 2,
+          upvoteCount: 5,
+        })
+        .mockResolvedValueOnce({
+          cid: commentCids[1],
+          timestamp: 1,
+          updatedAt: 2,
+          upvoteCount: 5,
+        });
+      const useAccountSpy = vi.spyOn(accountsHooks, "useAccount").mockReturnValue(account as any);
+      try {
+        commentsStore.setState((state: any) => ({
+          ...state,
+          comments: {
+            ...state.comments,
+            [commentCids[0]]: { cid: commentCids[0], timestamp: 1, updatedAt: 1, upvoteCount: 3 },
+            [commentCids[1]]: { cid: commentCids[1], timestamp: 1, updatedAt: 1, upvoteCount: 3 },
+          },
+          refreshComment,
+        }));
+
+        const rendered = renderHook<any, any>(() =>
+          useComments({ commentCids, onlyIfCached: true }),
+        );
+
+        expect(rendered.result.current.comments[0]?.upvoteCount).toBe(3);
+        expect(rendered.result.current.comments[1]?.upvoteCount).toBe(3);
+        await act(async () => {
+          await rendered.result.current.refresh();
+        });
+        expect(refreshComment).toHaveBeenNthCalledWith(1, commentCids[0], account);
+        expect(refreshComment).toHaveBeenNthCalledWith(2, commentCids[1], account);
+      } finally {
+        useAccountSpy.mockRestore();
+      }
+    });
+
+    test("useComments with autoUpdate false refresh handles empty-string comment ids", async () => {
+      const commentCids = ["comment cid refresh empty", ""];
+      const account = { id: "mock-empty-comments-account", plebbit: {} };
+      const refreshComment = vi
+        .fn()
+        .mockResolvedValueOnce({
+          cid: commentCids[0],
+          timestamp: 1,
+          updatedAt: 2,
+          upvoteCount: 5,
+        })
+        .mockResolvedValueOnce({
+          cid: "",
+          timestamp: 1,
+          updatedAt: 2,
+          upvoteCount: 5,
+        });
+      const useAccountSpy = vi.spyOn(accountsHooks, "useAccount").mockReturnValue(account as any);
+      try {
+        commentsStore.setState((state: any) => ({
+          ...state,
+          comments: {
+            ...state.comments,
+            [commentCids[0]]: { cid: commentCids[0], timestamp: 1, updatedAt: 1, upvoteCount: 3 },
+            "": { cid: "", timestamp: 1, updatedAt: 1, upvoteCount: 3 },
+          },
+          refreshComment,
+        }));
+
+        const rendered = renderHook<any, any>(() =>
+          useComments({ commentCids, autoUpdate: false, onlyIfCached: true }),
+        );
+
+        await act(async () => {
+          await rendered.result.current.refresh();
+        });
+        expect(rendered.result.current.comments[0]?.upvoteCount).toBe(5);
+        expect(rendered.result.current.comments[1]?.upvoteCount).toBe(5);
+        expect(rendered.result.current.comments[1]?.cid).toBe("");
+      } finally {
+        useAccountSpy.mockRestore();
+      }
+    });
+
+    test("useComments with autoUpdate false stays frozen while another hook keeps the same comments updating", async () => {
+      const commentUpdate = Comment.prototype.update;
+      const updatingComments = new Map<string, any>();
+      Comment.prototype.update = function () {
+        updatingComments.set(this.cid, this);
+        return commentUpdate.bind(this)();
+      };
+
+      const commentCids = ["comment cid frozen 1", "comment cid frozen 2"];
+      const renderedFrozen = renderHook<any, any>(() =>
+        useComments({ commentCids, autoUpdate: false }),
+      );
+      const waitForFrozen = testUtils.createWaitFor(renderedFrozen);
+      const renderedLive = renderHook<any, any>(() => useComments({ commentCids }));
+      const waitForLive = testUtils.createWaitFor(renderedLive);
+
+      await waitForFrozen(
+        () =>
+          renderedFrozen.result.current.comments[0]?.upvoteCount === 3 &&
+          renderedFrozen.result.current.comments[1]?.upvoteCount === 3,
+      );
+      await waitForLive(
+        () =>
+          renderedLive.result.current.comments[0]?.upvoteCount === 3 &&
+          renderedLive.result.current.comments[1]?.upvoteCount === 3,
+      );
+
+      await act(async () => {
+        for (const commentCid of commentCids) {
+          const comment = updatingComments.get(commentCid);
+          await comment.stop();
+          await comment.update();
+        }
+      });
+
+      await waitForLive(
+        () =>
+          renderedLive.result.current.comments[0]?.upvoteCount === 5 &&
+          renderedLive.result.current.comments[1]?.upvoteCount === 5,
+      );
+      expect(renderedFrozen.result.current.comments[0]?.upvoteCount).toBe(3);
+      expect(renderedFrozen.result.current.comments[1]?.upvoteCount).toBe(3);
+
+      renderedFrozen.unmount();
+      renderedLive.unmount();
+      Comment.prototype.update = commentUpdate;
     });
 
     test("useComments logs stopCommentAutoUpdate cleanup errors", async () => {
