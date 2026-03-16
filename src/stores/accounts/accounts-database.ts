@@ -543,6 +543,11 @@ const addAccountEdit = async (accountId: string, createEditOptions: CreateCommen
   ]);
 };
 
+const doesStoredAccountEditMatch = (storedAccountEdit: any, targetStoredAccountEdit: any) =>
+  storedAccountEdit?.clientId && targetStoredAccountEdit?.clientId
+    ? storedAccountEdit.clientId === targetStoredAccountEdit.clientId
+    : isEqual(storedAccountEdit, targetStoredAccountEdit);
+
 const deleteAccountEdit = async (accountId: string, editToDelete: CreateCommentOptions) => {
   assert(
     editToDelete?.commentCid && typeof editToDelete?.commentCid === "string",
@@ -554,7 +559,7 @@ const deleteAccountEdit = async (accountId: string, editToDelete: CreateCommentO
 
   let deletedEdit = false;
   const nextItems = items.filter((item) => {
-    if (!deletedEdit && isEqual(item, editToDelete)) {
+    if (!deletedEdit && doesStoredAccountEditMatch(item, editToDelete)) {
       deletedEdit = true;
       return false;
     }

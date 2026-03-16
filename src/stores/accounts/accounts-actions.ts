@@ -40,6 +40,7 @@ import {
   addShortAddressesToAccountComment,
 } from "./utils";
 import isEqual from "lodash.isequal";
+import { v4 as uuid } from "uuid";
 import utils from "../../lib/utils";
 
 // Active publish-session tracking for pending comments (Task 3)
@@ -122,6 +123,11 @@ const cleanupPublishSessionOnTerminal = (accountId: string, index: number) => {
   abandonedPublishKeys.delete(key);
 };
 
+const doesStoredAccountEditMatch = (storedAccountEdit: any, targetStoredAccountEdit: any) =>
+  storedAccountEdit?.clientId && targetStoredAccountEdit?.clientId
+    ? storedAccountEdit.clientId === targetStoredAccountEdit.clientId
+    : isEqual(storedAccountEdit, targetStoredAccountEdit);
+
 const sanitizeStoredAccountEdit = (storedAccountEdit: any) => {
   const sanitizedStoredAccountEdit = { ...storedAccountEdit };
   delete sanitizedStoredAccountEdit.signer;
@@ -156,7 +162,7 @@ const removeStoredAccountEditFromState = (
   const commentEdits = accountEdits[storedAccountEdit.commentCid] || [];
   let deletedEdit = false;
   const nextCommentEdits = commentEdits.filter((commentEdit) => {
-    if (!deletedEdit && isEqual(commentEdit, storedAccountEdit)) {
+    if (!deletedEdit && doesStoredAccountEditMatch(commentEdit, storedAccountEdit)) {
       deletedEdit = true;
       return false;
     }
@@ -1078,8 +1084,10 @@ export const publishCommentEdit = async (
   delete createCommentEditOptions.onChallengeVerification;
   delete createCommentEditOptions.onError;
   delete createCommentEditOptions.onPublishingStateChange;
-  const storedCreateCommentEditOptions =
-    normalizePublicationOptionsForStore(createCommentEditOptions);
+  const storedCreateCommentEditOptions = {
+    ...normalizePublicationOptionsForStore(createCommentEditOptions),
+    clientId: uuid(),
+  };
   const storedCommentEdit = sanitizeStoredAccountEdit(storedCreateCommentEditOptions);
 
   let commentEdit = backfillPublicationCommunityAddress(
@@ -1136,8 +1144,8 @@ export const publishCommentEdit = async (
         }
       },
     );
-    commentEdit.on("error", (error: Error) => {
-      void rollbackStoredCommentEdit();
+    commentEdit.on("error", async (error: Error) => {
+      await rollbackStoredCommentEdit();
       publishCommentEditOptions.onError?.(error, commentEdit);
     });
     // TODO: add publishingState to account edits

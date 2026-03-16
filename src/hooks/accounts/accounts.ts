@@ -600,6 +600,7 @@ export function useEditedComment(options?: UseEditedCommentOptions): UseEditedCo
     const nonEditPropertyNames = new Set([
       "author",
       "signer",
+      "clientId",
       "commentCid",
       "communityAddress",
       "subplebbitAddress",

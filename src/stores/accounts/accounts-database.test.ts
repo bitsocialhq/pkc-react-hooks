@@ -891,6 +891,35 @@ describe("accounts-database", () => {
       expect(edits["same-cid"][0].content).toBe("edit2");
     });
 
+    test("deleteAccountEdit matches identical optimistic edits by clientId", async () => {
+      const acc = makeAccount({ id: "ge-client-id", name: "GEClientId" });
+      await accountsDatabase.addAccount(acc);
+      const baseEdit = {
+        commentCid: "same-cid",
+        communityAddress: "s",
+        deleted: true,
+        timestamp: 1,
+      };
+      await accountsDatabase.addAccountEdit(acc.id, {
+        ...baseEdit,
+        clientId: "existing-edit",
+      } as any);
+      await accountsDatabase.addAccountEdit(acc.id, {
+        ...baseEdit,
+        clientId: "failed-edit",
+      } as any);
+
+      const deleted = await accountsDatabase.deleteAccountEdit(acc.id, {
+        ...baseEdit,
+        clientId: "failed-edit",
+      } as any);
+
+      expect(deleted).toBe(true);
+      const edits = await accountsDatabase.getAccountEdits(acc.id);
+      expect(edits["same-cid"]).toHaveLength(1);
+      expect(edits["same-cid"][0].clientId).toBe("existing-edit");
+    });
+
     test("deleteAccountEdit is a no-op when the edit does not exist", async () => {
       const acc = makeAccount({ id: "ge-noop", name: "GENoop" });
       await accountsDatabase.addAccount(acc);
