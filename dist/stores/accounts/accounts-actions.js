@@ -20,6 +20,8 @@ const log = Logger("bitsocial-react-hooks:accounts:stores");
 import * as accountsActionsInternal from "./accounts-actions-internal";
 import { backfillPublicationCommunityAddress, createPlebbitCommunityEdit, getPlebbitCommunityAddresses, normalizeCommunityEditOptionsForPlebbit, normalizePublicationOptionsForStore, normalizePublicationOptionsForPlebbit, } from "../../lib/plebbit-compat";
 import { getAccountCommunities, getCommentCidsToAccountsComments, fetchCommentLinkDimensions, getAccountCommentDepth, addShortAddressesToAccountComment, } from "./utils";
+import isEqual from "lodash.isequal";
+import { v4 as uuid } from "uuid";
 import utils from "../../lib/utils";
 // Active publish-session tracking for pending comments (Task 3)
 const activePublishSessions = new Map();
@@ -86,6 +88,39 @@ const cleanupPublishSessionOnTerminal = (accountId, index) => {
     const key = getPublishSessionKey(accountId, index);
     activePublishSessions.delete(key);
     abandonedPublishKeys.delete(key);
+};
+const doesStoredAccountEditMatch = (storedAccountEdit, targetStoredAccountEdit) => (storedAccountEdit === null || storedAccountEdit === void 0 ? void 0 : storedAccountEdit.clientId) && (targetStoredAccountEdit === null || targetStoredAccountEdit === void 0 ? void 0 : targetStoredAccountEdit.clientId)
+    ? storedAccountEdit.clientId === targetStoredAccountEdit.clientId
+    : isEqual(storedAccountEdit, targetStoredAccountEdit);
+const sanitizeStoredAccountEdit = (storedAccountEdit) => {
+    const sanitizedStoredAccountEdit = Object.assign({}, storedAccountEdit);
+    delete sanitizedStoredAccountEdit.signer;
+    delete sanitizedStoredAccountEdit.author;
+    return sanitizedStoredAccountEdit;
+};
+const addStoredAccountEditToState = (accountsEdits, accountId, storedAccountEdit) => {
+    const accountEdits = accountsEdits[accountId] || {};
+    const commentEdits = accountEdits[storedAccountEdit.commentCid] || [];
+    return {
+        accountsEdits: Object.assign(Object.assign({}, accountsEdits), { [accountId]: Object.assign(Object.assign({}, accountEdits), { [storedAccountEdit.commentCid]: [...commentEdits, storedAccountEdit] }) }),
+    };
+};
+const removeStoredAccountEditFromState = (accountsEdits, accountId, storedAccountEdit) => {
+    const accountEdits = accountsEdits[accountId] || {};
+    const commentEdits = accountEdits[storedAccountEdit.commentCid] || [];
+    let deletedEdit = false;
+    const nextCommentEdits = commentEdits.filter((commentEdit) => {
+        if (!deletedEdit && doesStoredAccountEditMatch(commentEdit, storedAccountEdit)) {
+            deletedEdit = true;
+            return false;
+        }
+        return true;
+    });
+    const nextAccountEdits = nextCommentEdits.length > 0
+        ? Object.assign(Object.assign({}, accountEdits), { [storedAccountEdit.commentCid]: nextCommentEdits }) : Object.fromEntries(Object.entries(accountEdits).filter(([commentCid]) => commentCid !== storedAccountEdit.commentCid));
+    return {
+        accountsEdits: Object.assign(Object.assign({}, accountsEdits), { [accountId]: nextAccountEdits }),
+    };
 };
 const addNewAccountToDatabaseAndState = (newAccount) => __awaiter(void 0, void 0, void 0, function* () {
     // add to database first to init the account
@@ -720,9 +755,24 @@ export const publishCommentEdit = (publishCommentEditOptions, accountName) => __
     delete createCommentEditOptions.onChallengeVerification;
     delete createCommentEditOptions.onError;
     delete createCommentEditOptions.onPublishingStateChange;
-    const storedCreateCommentEditOptions = normalizePublicationOptionsForStore(createCommentEditOptions);
+    const storedCreateCommentEditOptions = Object.assign(Object.assign({}, normalizePublicationOptionsForStore(createCommentEditOptions)), { clientId: uuid() });
+    const storedCommentEdit = sanitizeStoredAccountEdit(storedCreateCommentEditOptions);
     let commentEdit = backfillPublicationCommunityAddress(yield account.plebbit.createCommentEdit(createCommentEditOptions), createCommentEditOptions);
     let lastChallenge;
+    let challengeSucceeded = false;
+    let rollbackPendingEditPromise;
+    const rollbackStoredCommentEdit = () => {
+        if (!rollbackPendingEditPromise && !challengeSucceeded) {
+            rollbackPendingEditPromise = Promise.all([
+                accountsDatabase.deleteAccountEdit(account.id, storedCommentEdit),
+                Promise.resolve(accountsStore.setState(({ accountsEdits }) => removeStoredAccountEditFromState(accountsEdits, account.id, storedCommentEdit))),
+            ]).then(() => { });
+        }
+        return rollbackPendingEditPromise;
+    };
+    yield accountsDatabase.addAccountEdit(account.id, storedCreateCommentEditOptions);
+    log("accountsActions.publishCommentEdit", { createCommentEditOptions });
+    accountsStore.setState(({ accountsEdits }) => addStoredAccountEditToState(accountsEdits, account.id, storedCommentEdit));
     const publishAndRetryFailedChallengeVerification = () => __awaiter(void 0, void 0, void 0, function* () {
         var _a;
         commentEdit.once("challenge", (challenge) => __awaiter(void 0, void 0, void 0, function* () {
@@ -731,6 +781,9 @@ export const publishCommentEdit = (publishCommentEditOptions, accountName) => __
         }));
         commentEdit.once("challengeverification", (challengeVerification) => __awaiter(void 0, void 0, void 0, function* () {
             publishCommentEditOptions.onChallengeVerification(challengeVerification, commentEdit);
+            if (challengeVerification.challengeSuccess) {
+                challengeSucceeded = true;
+            }
             if (!challengeVerification.challengeSuccess && lastChallenge) {
                 // publish again automatically on fail
                 createCommentEditOptions = Object.assign(Object.assign({}, createCommentEditOptions), { timestamp: Math.floor(Date.now() / 1000) });
@@ -739,7 +792,11 @@ export const publishCommentEdit = (publishCommentEditOptions, accountName) => __
                 publishAndRetryFailedChallengeVerification();
             }
         }));
-        commentEdit.on("error", (error) => { var _a; return (_a = publishCommentEditOptions.onError) === null || _a === void 0 ? void 0 : _a.call(publishCommentEditOptions, error, commentEdit); });
+        commentEdit.on("error", (error) => __awaiter(void 0, void 0, void 0, function* () {
+            var _a;
+            yield rollbackStoredCommentEdit();
+            (_a = publishCommentEditOptions.onError) === null || _a === void 0 ? void 0 : _a.call(publishCommentEditOptions, error, commentEdit);
+        }));
         // TODO: add publishingState to account edits
         commentEdit.on("publishingstatechange", (publishingState) => { var _a; return (_a = publishCommentEditOptions.onPublishingStateChange) === null || _a === void 0 ? void 0 : _a.call(publishCommentEditOptions, publishingState); });
         listeners.push(commentEdit);
@@ -749,21 +806,11 @@ export const publishCommentEdit = (publishCommentEditOptions, accountName) => __
             yield commentEdit.publish();
         }
         catch (error) {
+            yield rollbackStoredCommentEdit();
             (_a = publishCommentEditOptions.onError) === null || _a === void 0 ? void 0 : _a.call(publishCommentEditOptions, error, commentEdit);
         }
     });
     publishAndRetryFailedChallengeVerification();
-    yield accountsDatabase.addAccountEdit(account.id, storedCreateCommentEditOptions);
-    log("accountsActions.publishCommentEdit", { createCommentEditOptions });
-    accountsStore.setState(({ accountsEdits }) => {
-        // remove signer and author because not needed and they expose private key
-        const commentEdit = Object.assign(Object.assign({}, storedCreateCommentEditOptions), { signer: undefined, author: undefined });
-        let commentEdits = accountsEdits[account.id][storedCreateCommentEditOptions.commentCid] || [];
-        commentEdits = [...commentEdits, commentEdit];
-        return {
-            accountsEdits: Object.assign(Object.assign({}, accountsEdits), { [account.id]: Object.assign(Object.assign({}, accountsEdits[account.id]), { [storedCreateCommentEditOptions.commentCid]: commentEdits }) }),
-        };
-    });
 });
 export const publishCommentModeration = (publishCommentModerationOptions, accountName) => __awaiter(void 0, void 0, void 0, function* () {
     const { accounts, accountNamesToAccountIds, activeAccountId } = accountsStore.getState();

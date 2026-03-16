@@ -12,6 +12,7 @@ import validator from "../../lib/validator";
 import chain from "../../lib/chain";
 import assert from "assert";
 import localForage from "localforage";
+import isEqual from "lodash.isequal";
 import localForageLru from "../../lib/localforage-lru";
 import utils from "../../lib/utils";
 import { getDefaultPlebbitOptions, overwritePlebbitOptions } from "./account-generator";
@@ -440,6 +441,41 @@ const addAccountEdit = (accountId, createEditOptions) => __awaiter(void 0, void 
         accountEditsDatabase.setItem("length", length + 1),
     ]);
 });
+const doesStoredAccountEditMatch = (storedAccountEdit, targetStoredAccountEdit) => (storedAccountEdit === null || storedAccountEdit === void 0 ? void 0 : storedAccountEdit.clientId) && (targetStoredAccountEdit === null || targetStoredAccountEdit === void 0 ? void 0 : targetStoredAccountEdit.clientId)
+    ? storedAccountEdit.clientId === targetStoredAccountEdit.clientId
+    : isEqual(storedAccountEdit, targetStoredAccountEdit);
+const deleteAccountEdit = (accountId, editToDelete) => __awaiter(void 0, void 0, void 0, function* () {
+    assert((editToDelete === null || editToDelete === void 0 ? void 0 : editToDelete.commentCid) && typeof (editToDelete === null || editToDelete === void 0 ? void 0 : editToDelete.commentCid) === "string", `deleteAccountEdit editToDelete.commentCid '${editToDelete === null || editToDelete === void 0 ? void 0 : editToDelete.commentCid}' not a string`);
+    const accountEditsDatabase = getAccountEditsDatabase(accountId);
+    const length = (yield accountEditsDatabase.getItem("length")) || 0;
+    const items = yield getDatabaseAsArray(accountEditsDatabase);
+    let deletedEdit = false;
+    const nextItems = items.filter((item) => {
+        if (!deletedEdit && doesStoredAccountEditMatch(item, editToDelete)) {
+            deletedEdit = true;
+            return false;
+        }
+        return true;
+    });
+    const newLength = nextItems.length;
+    const nextCommentEdits = nextItems.filter((item) => (item === null || item === void 0 ? void 0 : item.commentCid) === editToDelete.commentCid);
+    const promises = [];
+    for (let i = 0; i < newLength; i++) {
+        promises.push(accountEditsDatabase.setItem(String(i), nextItems[i]));
+    }
+    if (length > newLength) {
+        promises.push(accountEditsDatabase.removeItem(String(length - 1)));
+        promises.push(accountEditsDatabase.setItem("length", newLength));
+    }
+    if (nextCommentEdits.length > 0) {
+        promises.push(accountEditsDatabase.setItem(editToDelete.commentCid, nextCommentEdits));
+    }
+    else {
+        promises.push(accountEditsDatabase.removeItem(editToDelete.commentCid));
+    }
+    yield Promise.all(promises);
+    return deletedEdit;
+});
 const getAccountEdits = (accountId) => __awaiter(void 0, void 0, void 0, function* () {
     const accountEditsDatabase = getAccountEditsDatabase(accountId);
     const length = (yield accountEditsDatabase.getItem("length")) || 0;
@@ -496,6 +532,7 @@ const database = {
     getAccountsEdits,
     getAccountEdits,
     addAccountEdit,
+    deleteAccountEdit,
     accountVersion,
     migrate,
 };

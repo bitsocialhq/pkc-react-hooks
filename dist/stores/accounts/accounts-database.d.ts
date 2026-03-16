@@ -20,6 +20,7 @@ declare const database: {
     getAccountsEdits: (accountIds: string[]) => Promise<any>;
     getAccountEdits: (accountId: string) => Promise<any>;
     addAccountEdit: (accountId: string, createEditOptions: CreateCommentOptions) => Promise<void>;
+    deleteAccountEdit: (accountId: string, editToDelete: CreateCommentOptions) => Promise<boolean>;
     accountVersion: number;
     migrate: () => Promise<void>;
 };

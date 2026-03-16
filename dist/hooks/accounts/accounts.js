@@ -405,6 +405,7 @@ export function useEditedComment(options) {
         const nonEditPropertyNames = new Set([
             "author",
             "signer",
+            "clientId",
             "commentCid",
             "communityAddress",
             "subplebbitAddress",
