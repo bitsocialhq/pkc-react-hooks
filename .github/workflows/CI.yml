@@ -9,6 +9,7 @@ on:
     paths:
       - 'test/**'
       - 'src/**'
+      - 'scripts/**'
       - 'config/**'
       - '.github/**'
       - 'package.json'
@@ -19,6 +20,7 @@ on:
     paths:
       - 'test/**'
       - 'src/**'
+      - 'scripts/**'
       - 'config/**'
       - '.github/**'
       - 'package.json'
@@ -41,12 +43,21 @@ jobs:
       - run: HUSKY=0 yarn install --frozen-lockfile --network-concurrency 1
       - run: yarn lint
       - run: yarn type-check
-      - name: Run unit tests
+      - name: Run unit tests with coverage
         id: run_unit_tests
-        run: yarn test --pool=forks
+        run: yarn test:coverage
       - name: Print failed unit tests
         if: ${{ failure() && steps.run_unit_tests.outcome == 'failure' }}
         run: node .github/workflows/print-vitest-failures.cjs
+      - name: Write coverage badge payload
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: node scripts/write-coverage-badge.mjs
+      - name: Upload coverage badge artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-badge
+          path: badges/coverage.json
       - run: yarn build
       - name: Upload dist artifact
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
@@ -113,11 +124,16 @@ jobs:
         with:
           name: dist
           path: dist/
-      - run: git add dist --force
+      - name: Download coverage badge artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-badge
+          path: badges/
+      - run: git add dist badges/coverage.json --force
       - run: git status
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          commit_message: 'chore(dist): CI build'
-          file_pattern: dist
+          commit_message: 'chore(ci): update dist and coverage badge'
+          file_pattern: 'dist badges/coverage.json'
           add_options: '--force'
           branch: ${{ github.ref_name }}

@@ -1,4 +1,5 @@
 [![CI](https://github.com/bitsocialnet/bitsocial-react-hooks/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/bitsocialnet/bitsocial-react-hooks/actions/workflows/CI.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/bitsocialnet/bitsocial-react-hooks/master/badges/coverage.json)](https://github.com/bitsocialnet/bitsocial-react-hooks/actions/workflows/CI.yml)
 [![License](https://img.shields.io/badge/license-GPL--2.0--only-red.svg)](https://github.com/bitsocialnet/bitsocial-react-hooks/blob/master/LICENSE)
 [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
 
