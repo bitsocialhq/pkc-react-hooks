@@ -886,6 +886,58 @@ describe("accounts-actions", () => {
       expect(persistedEdits["cid"]).toBeUndefined();
     });
 
+    test("publishCommentEdit rolls back optimistic edit on terminal challengeverification failure", async () => {
+      const account = Object.values(accountsStore.getState().accounts)[0];
+      const accountId = accountsStore.getState().activeAccountId!;
+      const origCreate = account.plebbit.createCommentEdit.bind(account.plebbit);
+      const createCommentEditSpy = vi
+        .spyOn(account.plebbit, "createCommentEdit")
+        .mockImplementation(async (opts: any) => {
+          const publication = await origCreate(opts);
+          vi.spyOn(publication, "simulateChallengeVerificationEvent").mockImplementation(() => {
+            publication.emit("challengeverification", {
+              type: "CHALLENGEVERIFICATION",
+              challengeRequestId: publication.challengeRequestId,
+              challengeAnswerId: publication.challengeAnswerId,
+              challengeSuccess: false,
+              challengeErrors: {
+                lit: "CommentEditPubsubPublication is attempting to edit a comment while not being the original author of the comment",
+              },
+            });
+          });
+          return publication;
+        });
+
+      const onChallengeVerification = vi.fn();
+      await act(async () => {
+        await accountsActions.publishCommentEdit({
+          communityAddress: "sub.eth",
+          commentCid: "cid",
+          deleted: true,
+          onChallenge: (challenge: any, publication: any) =>
+            publication.publishChallengeAnswers(["4"]),
+          onChallengeVerification,
+        });
+      });
+
+      await new Promise((r) => setTimeout(r, 250));
+
+      expect(onChallengeVerification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          challengeSuccess: false,
+          challengeErrors: expect.objectContaining({
+            lit: expect.stringContaining("not being the original author"),
+          }),
+        }),
+        expect.anything(),
+      );
+      expect(createCommentEditSpy).toHaveBeenCalledTimes(1);
+      expect(accountsStore.getState().accountsEdits[accountId]?.["cid"]).toBeUndefined();
+
+      const persistedEdits = await accountsDatabase.getAccountEdits(accountId);
+      expect(persistedEdits["cid"]).toBeUndefined();
+    });
+
     test("publishCommentEdit rollback preserves older identical edits for the same comment", async () => {
       const account = Object.values(accountsStore.getState().accounts)[0];
       const nowSpy = vi.spyOn(Date, "now").mockReturnValue(1000);
