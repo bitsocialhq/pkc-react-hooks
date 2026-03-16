@@ -57,3 +57,13 @@ If uncertain, ask the developer before adding an entry.
 - **Impact:** Verifier and triage scripts that expect `coverage/` at repo root fail with "missing summary" until path resolution supports both locations.
 - **Mitigation:** `scripts/verify-hooks-stores-coverage.mjs` checks both `coverage/coverage-summary.json` and `src/coverage/coverage-summary.json`, preferring repo-root when both exist. Triage helper supports both paths for `coverage-final.json`.
 - **Status:** confirmed
+
+### GitHub comments must never include raw local verification output or absolute paths
+
+- **Date:** 2026-03-16
+- **Observed by:** Codex
+- **Context:** posting PR review updates with `gh pr comment` during `review-and-merge-pr`
+- **What was surprising:** shell command substitution from backticks in a comment body can inject raw local command output, including absolute filesystem paths like the contributor's workspace path.
+- **Impact:** agents can leak local directory names and dump noisy verification logs into public GitHub comments.
+- **Mitigation:** when using `gh` to create comments/issues/PR bodies in this repo, always pass content via a single-quoted heredoc or body file and summarize verification results instead of pasting raw command output or absolute local paths.
+- **Status:** confirmed
