@@ -135,6 +135,20 @@ const sanitizeStoredAccountEdit = (storedAccountEdit: any) => {
   return sanitizedStoredAccountEdit;
 };
 
+const hasTerminalChallengeVerificationError = (challengeVerification: any) => {
+  const challengeErrors = challengeVerification?.challengeErrors;
+  const hasChallengeErrors = Array.isArray(challengeErrors)
+    ? challengeErrors.length > 0
+    : challengeErrors && typeof challengeErrors === "object"
+      ? Object.keys(challengeErrors).length > 0
+      : Boolean(challengeErrors);
+
+  return (
+    !challengeVerification?.challengeSuccess &&
+    (hasChallengeErrors || Boolean(challengeVerification?.reason))
+  );
+};
+
 const addStoredAccountEditToState = (
   accountsEdits: Record<string, Record<string, any[]>>,
   accountId: string,
@@ -1128,6 +1142,11 @@ export const publishCommentEdit = async (
         publishCommentEditOptions.onChallengeVerification(challengeVerification, commentEdit);
         if (challengeVerification.challengeSuccess) {
           challengeSucceeded = true;
+        }
+        if (hasTerminalChallengeVerificationError(challengeVerification)) {
+          lastChallenge = undefined;
+          await rollbackStoredCommentEdit();
+          return;
         }
         if (!challengeVerification.challengeSuccess && lastChallenge) {
           // publish again automatically on fail
