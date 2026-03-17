@@ -60,6 +60,7 @@ const addDefaultFeedOptions = (feedOptions: any) => {
   if (feedOptions.flat === undefined || feedOptions.flat === null) {
     feedOptions.flat = false;
   }
+  feedOptions.onlyIfCached = Boolean(feedOptions.onlyIfCached);
   if (feedOptions.accountComments === undefined || feedOptions.accountComments === null) {
     feedOptions.accountComments = defaultAccountComments;
   }
@@ -69,7 +70,7 @@ const addDefaultFeedOptions = (feedOptions: any) => {
 
 export const feedOptionsToFeedName = (feedOptions: Partial<RepliesFeedOptions>) => {
   feedOptions = addDefaultFeedOptions(feedOptions);
-  return `${feedOptions?.accountId}-${feedOptions?.commentCid}-${feedOptions?.postCid}-${feedOptions?.sortType}-${feedOptions?.flat}-${feedOptions?.accountComments?.newerThan}-${feedOptions?.accountComments?.append}-${feedOptions?.repliesPerPage}-${feedOptions?.filter?.key}-${feedOptions?.streamPage}`;
+  return `${feedOptions?.accountId}-${feedOptions?.commentCid}-${feedOptions?.postCid}-${feedOptions?.sortType}-${feedOptions?.flat}-${feedOptions?.onlyIfCached}-${feedOptions?.accountComments?.newerThan}-${feedOptions?.accountComments?.append}-${feedOptions?.repliesPerPage}-${feedOptions?.filter?.key}-${feedOptions?.streamPage}`;
 };
 
 // don't updateFeeds more than once per updateFeedsMinIntervalTime
@@ -427,6 +428,9 @@ const addRepliesPagesOnLowBufferedFeedsReplyCounts = (repliesStoreState: any) =>
 
   // bufferedFeedsReplyCounts have changed, check if any of them are low
   for (const feedName in bufferedFeedsReplyCounts) {
+    if (feedsOptions[feedName].onlyIfCached) {
+      continue;
+    }
     const account = accounts[feedsOptions[feedName].accountId];
     const feedReplyCount = bufferedFeedsReplyCounts[feedName];
     let sortType = feedsOptions[feedName].sortType;

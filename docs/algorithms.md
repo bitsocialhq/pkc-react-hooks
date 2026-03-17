@@ -70,6 +70,7 @@ Similar to feeds store, but with a some differences:
 - because nested feeds are added in bulk, not possible to set a custom feedStoreName, must use feedOptionsToFeedName
 - feeds store take a community addresses argument and add the community to communities store, adding all nested replies to comments store and subscribing to updates would not scale, so instead useReplies takes a comment argument, which is passed to addFeedToStoreOrUpdateComment
   - every time the comment changes, addFeedToStoreOrUpdateComment is called, which calls addFeedsToStore to add all new nested feeds simultaneously
+- useReplies({ onlyIfCached: true }) still builds the replies feed from the passed comment, but it only uses preloaded replies and reply pages that are already cached in memory; it does not fetch missing reply pages from `nextCid`
 - validating replies has a few 100ms delay, but this looks ugly in the ui, so show replies instantly with getRepliesFirstPageSkipValidation, and after validation remove invalid replies, can be turned off with validateOptimistically: false
 - nested replies don't automatically stream new replies until repliesPerPage is reached, because that would displace the ui, loadMore must be called manually is feedOptions.streamPage is false
 

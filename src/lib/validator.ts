@@ -564,6 +564,7 @@ const validateUseRepliesArguments = (
   comment?: any,
   sortType?: any,
   accountName?: any,
+  onlyIfCached?: any,
   flat?: any,
   accountComments?: any,
   postsPerPage?: any,
@@ -582,6 +583,12 @@ const validateUseRepliesArguments = (
     assert(
       typeof accountName === "string",
       `useReplies accountName argument '${accountName}' not a string`,
+    );
+  }
+  if (onlyIfCached !== undefined && onlyIfCached !== null) {
+    assert(
+      typeof onlyIfCached === "boolean",
+      `useReplies onlyIfCached argument '${onlyIfCached}' not a boolean`,
     );
   }
   if (postsPerPage !== undefined && postsPerPage !== null) {

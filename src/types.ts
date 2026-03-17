@@ -127,6 +127,7 @@ export interface UseValidateCommentResult extends Result {
 // useReplies(options): result
 export interface UseRepliesOptions extends Options {
   comment?: Comment;
+  onlyIfCached?: boolean;
   sortType?: string;
   repliesPerPage?: number;
   flat?: boolean;
@@ -138,8 +139,11 @@ export interface UseRepliesOptions extends Options {
 }
 export interface UseRepliesResult extends Result {
   replies: Comment[];
+  bufferedReplies: Comment[];
+  updatedReplies: Comment[];
   hasMore: boolean;
   loadMore(): Promise<void>;
+  reset(): Promise<void>;
 }
 
 // useEditedComment(options): result
@@ -644,6 +648,7 @@ export type RepliesFeedOptions = {
   accountId: string;
   pageNumber: number;
   repliesPerPage: number;
+  onlyIfCached?: boolean;
   flat?: boolean;
   accountComments?: FeedOptionsAccountComments;
   filter?: CommentsFilter;

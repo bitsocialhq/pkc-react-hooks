@@ -222,6 +222,50 @@ describe("replies", () => {
       expect(rendered.result.current.replies).toEqual([]);
     });
 
+    test("onlyIfCached uses preloaded replies without fetching missing pages", async () => {
+      const getPageSpy = vi.spyOn(Pages.prototype, "getPage");
+      try {
+        const comment = {
+          cid: "only-if-cached-cid",
+          postCid: "only-if-cached-cid",
+          updatedAt: 1,
+          timestamp: 1,
+          depth: 0,
+          communityAddress: "community address 1",
+          replies: { pages: {}, pageCids: {} },
+        };
+        comment.replies.pages.best = Pages.prototype.pageToGet.apply({ comment }, [
+          `${comment.cid} page cid best`,
+        ]);
+        comment.replies.pages.best.comments = comment.replies.pages.best.comments.slice(0, 35);
+        comment.replies.pages.best.nextCid = `${comment.cid} next page cid`;
+
+        rendered.rerender({ comment, onlyIfCached: true, validateOptimistically: false });
+        await waitFor(() => rendered.result.current.replies.length === repliesPerPage);
+
+        expect(rendered.result.current.replies.length).toBe(repliesPerPage);
+        expect(rendered.result.current.bufferedReplies.length).toBe(10);
+        expect(rendered.result.current.hasMore).toBe(true);
+
+        await new Promise((r) => setTimeout(r, 150));
+        expect(getPageSpy).not.toHaveBeenCalled();
+        expect(Object.keys(repliesPagesStore.getState().repliesPages)).toHaveLength(0);
+
+        await act(async () => {
+          await rendered.result.current.loadMore();
+        });
+        await waitFor(() => rendered.result.current.replies.length === 35);
+
+        expect(rendered.result.current.hasMore).toBe(false);
+
+        await new Promise((r) => setTimeout(r, 150));
+        expect(getPageSpy).not.toHaveBeenCalled();
+        expect(Object.keys(repliesPagesStore.getState().repliesPages)).toHaveLength(0);
+      } finally {
+        getPageSpy.mockRestore();
+      }
+    });
+
     test("addFeedToStoreOrUpdateComment catch logs error", async () => {
       const origAdd = repliesStore.getState().addFeedToStoreOrUpdateComment;
       const logSpy = vi.spyOn(console, "error").mockImplementation(() => {});

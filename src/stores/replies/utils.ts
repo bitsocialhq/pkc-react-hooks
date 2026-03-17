@@ -464,14 +464,14 @@ export const getFeedsHaveMore = (
       continue;
     }
 
-    let { commentCid, sortType, accountId } = feedsOptions[feedName];
+    let { commentCid, sortType, onlyIfCached } = feedsOptions[feedName];
 
     // TODO: maybe skip if comment cid is blocked?
 
     const comment = comments[commentCid];
     // if at least comment hasn't loaded yet, then the feed still has more
     if (!comment?.updatedAt) {
-      feedsHaveMore[feedName] = true;
+      feedsHaveMore[feedName] = !onlyIfCached;
       continue;
     }
 
@@ -488,12 +488,12 @@ export const getFeedsHaveMore = (
     const pages = getRepliesPages(comment, sortType, repliesPages);
     // if first page isn't loaded yet, then the feed still has more
     if (!pages.length) {
-      feedsHaveMore[feedName] = true;
+      feedsHaveMore[feedName] = !onlyIfCached;
       continue;
     }
     const lastPage = pages[pages.length - 1];
     if (lastPage.nextCid) {
-      feedsHaveMore[feedName] = true;
+      feedsHaveMore[feedName] = !onlyIfCached;
       continue;
     }
 
