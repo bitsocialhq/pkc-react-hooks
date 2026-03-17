@@ -19,6 +19,6 @@ declare const validator: {
     validateUseFeedArguments: (communityAddresses?: any, sortType?: any, accountName?: any, postsPerPage?: any, filter?: any, newerThan?: any, accountComments?: any) => void;
     validateUseBufferedFeedsArguments: (feedsOptions?: any, accountName?: any) => void;
     validateRepliesSortType: (sortType: any) => void;
-    validateUseRepliesArguments: (comment?: any, sortType?: any, accountName?: any, flat?: any, accountComments?: any, postsPerPage?: any, filter?: any) => void;
+    validateUseRepliesArguments: (comment?: any, sortType?: any, accountName?: any, onlyIfCached?: any, flat?: any, accountComments?: any, postsPerPage?: any, filter?: any) => void;
 };
 export default validator;

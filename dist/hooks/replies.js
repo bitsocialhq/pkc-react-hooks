@@ -23,12 +23,12 @@ export function useReplies(options) {
     var _a;
     assert(!options || typeof options === "object", `useReplies options argument '${options}' not an object`);
     const opts = options !== null && options !== void 0 ? options : {};
-    let { comment, sortType, accountName, flat, flatDepth, accountComments, repliesPerPage, filter, validateOptimistically, streamPage, } = opts;
+    let { comment, sortType, accountName, onlyIfCached, flat, flatDepth, accountComments, repliesPerPage, filter, validateOptimistically, streamPage, } = opts;
     sortType = sortType || "best";
     flatDepth = typeof flatDepth === "number" ? flatDepth : 0;
     validateOptimistically = validateOptimistically !== false;
     const invalidFlatDepth = flat && typeof (comment === null || comment === void 0 ? void 0 : comment.depth) === "number" && flatDepth !== comment.depth;
-    validator.validateUseRepliesArguments(comment, sortType, accountName, flat, accountComments, repliesPerPage, filter);
+    validator.validateUseRepliesArguments(comment, sortType, accountName, onlyIfCached, flat, accountComments, repliesPerPage, filter);
     const [errors, setErrors] = useState([]);
     // add replies to store
     const account = useAccount({ accountName });
@@ -38,6 +38,7 @@ export function useReplies(options) {
         postCid: comment === null || comment === void 0 ? void 0 : comment.postCid,
         sortType,
         accountId: account === null || account === void 0 ? void 0 : account.id,
+        onlyIfCached,
         repliesPerPage,
         flat,
         accountComments,
@@ -61,7 +62,11 @@ export function useReplies(options) {
     let bufferedReplies = useRepliesStore((state) => state.bufferedFeeds[repliesFeedName || ""]);
     let updatedReplies = useRepliesStore((state) => state.updatedFeeds[repliesFeedName || ""]);
     let hasMore = useRepliesStore((state) => state.feedsHaveMore[repliesFeedName || ""]);
-    hasMore = comment ? (repliesFeedName && typeof hasMore === "boolean" ? hasMore : true) : false;
+    hasMore = comment
+        ? repliesFeedName && typeof hasMore === "boolean"
+            ? hasMore
+            : !onlyIfCached
+        : false;
     const incrementFeedPageNumber = useRepliesStore((state) => state.incrementFeedPageNumber);
     let loadMore = () => __awaiter(this, void 0, void 0, function* () {
         try {
@@ -114,6 +119,7 @@ export function useReplies(options) {
             hasMore,
             comment,
             sortType,
+            onlyIfCached,
             flat,
             flatDepth,
             repliesStoreOptions: useRepliesStore.getState().feedsOptions,

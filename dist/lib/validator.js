@@ -237,12 +237,15 @@ const repliesSortTypes = new Set([
 const validateRepliesSortType = (sortType) => {
     assert(repliesSortTypes.has(sortType), `invalid replies sort type '${sortType}'`);
 };
-const validateUseRepliesArguments = (comment, sortType, accountName, flat, accountComments, postsPerPage, filter) => {
+const validateUseRepliesArguments = (comment, sortType, accountName, onlyIfCached, flat, accountComments, postsPerPage, filter) => {
     assert(!comment || typeof comment === "object", `useReplies comment argument '${comment}' not an object`);
     assert(!(comment === null || comment === void 0 ? void 0 : comment.cid) || typeof comment.cid === "string", `useReplies comment.cid argument '${comment === null || comment === void 0 ? void 0 : comment.cid}' not a string`);
     assert(repliesSortTypes.has(sortType), `useReplies sortType argument '${sortType}' invalid`);
     if (accountName) {
         assert(typeof accountName === "string", `useReplies accountName argument '${accountName}' not a string`);
+    }
+    if (onlyIfCached !== undefined && onlyIfCached !== null) {
+        assert(typeof onlyIfCached === "boolean", `useReplies onlyIfCached argument '${onlyIfCached}' not a boolean`);
     }
     if (postsPerPage !== undefined && postsPerPage !== null) {
         assert(typeof postsPerPage === "number", `useReplies postsPerPage argument '${postsPerPage}' not a number`);

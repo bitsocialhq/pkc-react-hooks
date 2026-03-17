@@ -27,6 +27,7 @@ const addDefaultFeedOptions = (feedOptions) => {
     if (feedOptions.flat === undefined || feedOptions.flat === null) {
         feedOptions.flat = false;
     }
+    feedOptions.onlyIfCached = feedOptions.onlyIfCached === true;
     if (feedOptions.accountComments === undefined || feedOptions.accountComments === null) {
         feedOptions.accountComments = defaultAccountComments;
     }
@@ -36,7 +37,7 @@ const addDefaultFeedOptions = (feedOptions) => {
 export const feedOptionsToFeedName = (feedOptions) => {
     var _a, _b, _c;
     feedOptions = addDefaultFeedOptions(feedOptions);
-    return `${feedOptions === null || feedOptions === void 0 ? void 0 : feedOptions.accountId}-${feedOptions === null || feedOptions === void 0 ? void 0 : feedOptions.commentCid}-${feedOptions === null || feedOptions === void 0 ? void 0 : feedOptions.postCid}-${feedOptions === null || feedOptions === void 0 ? void 0 : feedOptions.sortType}-${feedOptions === null || feedOptions === void 0 ? void 0 : feedOptions.flat}-${(_a = feedOptions === null || feedOptions === void 0 ? void 0 : feedOptions.accountComments) === null || _a === void 0 ? void 0 : _a.newerThan}-${(_b = feedOptions === null || feedOptions === void 0 ? void 0 : feedOptions.accountComments) === null || _b === void 0 ? void 0 : _b.append}-${feedOptions === null || feedOptions === void 0 ? void 0 : feedOptions.repliesPerPage}-${(_c = feedOptions === null || feedOptions === void 0 ? void 0 : feedOptions.filter) === null || _c === void 0 ? void 0 : _c.key}-${feedOptions === null || feedOptions === void 0 ? void 0 : feedOptions.streamPage}`;
+    return `${feedOptions === null || feedOptions === void 0 ? void 0 : feedOptions.accountId}-${feedOptions === null || feedOptions === void 0 ? void 0 : feedOptions.commentCid}-${feedOptions === null || feedOptions === void 0 ? void 0 : feedOptions.postCid}-${feedOptions === null || feedOptions === void 0 ? void 0 : feedOptions.sortType}-${feedOptions === null || feedOptions === void 0 ? void 0 : feedOptions.flat}-${feedOptions === null || feedOptions === void 0 ? void 0 : feedOptions.onlyIfCached}-${(_a = feedOptions === null || feedOptions === void 0 ? void 0 : feedOptions.accountComments) === null || _a === void 0 ? void 0 : _a.newerThan}-${(_b = feedOptions === null || feedOptions === void 0 ? void 0 : feedOptions.accountComments) === null || _b === void 0 ? void 0 : _b.append}-${feedOptions === null || feedOptions === void 0 ? void 0 : feedOptions.repliesPerPage}-${(_c = feedOptions === null || feedOptions === void 0 ? void 0 : feedOptions.filter) === null || _c === void 0 ? void 0 : _c.key}-${feedOptions === null || feedOptions === void 0 ? void 0 : feedOptions.streamPage}`;
 };
 // don't updateFeeds more than once per updateFeedsMinIntervalTime
 let updateFeedsPending = false;
@@ -283,6 +284,9 @@ const addRepliesPagesOnLowBufferedFeedsReplyCounts = (repliesStoreState) => {
     const { accounts } = accountsStore.getState();
     // bufferedFeedsReplyCounts have changed, check if any of them are low
     for (const feedName in bufferedFeedsReplyCounts) {
+        if (feedsOptions[feedName].onlyIfCached) {
+            continue;
+        }
         const account = accounts[feedsOptions[feedName].accountId];
         const feedReplyCount = bufferedFeedsReplyCounts[feedName];
         let sortType = feedsOptions[feedName].sortType;
