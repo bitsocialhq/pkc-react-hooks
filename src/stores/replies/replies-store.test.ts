@@ -260,6 +260,30 @@ describe("replies store", () => {
     expect(result).toBeUndefined();
   });
 
+  test("feedOptionsToFeedName only enables onlyIfCached for boolean true", () => {
+    const baseFeedOptions = {
+      sortType: "new",
+      commentCid: "cached-name-cid",
+      accountId: mockAccount.id,
+    };
+
+    const strictTrueName = feedOptionsToFeedName({
+      ...baseFeedOptions,
+      onlyIfCached: true,
+    });
+    const stringFalseName = feedOptionsToFeedName({
+      ...baseFeedOptions,
+      onlyIfCached: "false" as any,
+    });
+    const falseName = feedOptionsToFeedName({
+      ...baseFeedOptions,
+      onlyIfCached: false,
+    });
+
+    expect(strictTrueName).not.toBe(falseName);
+    expect(stringFalseName).toBe(falseName);
+  });
+
   test("addFeedsToStore deletes newFeedsOptions when feed already exists", async () => {
     const commentCid = "existing-feed-cid";
     const feedOptions = {

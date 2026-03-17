@@ -27,6 +27,7 @@ export function useReplies(options?: UseRepliesOptions): UseRepliesResult {
     comment,
     sortType,
     accountName,
+    onlyIfCached,
     flat,
     flatDepth,
     accountComments,
@@ -44,6 +45,7 @@ export function useReplies(options?: UseRepliesOptions): UseRepliesResult {
     comment,
     sortType,
     accountName,
+    onlyIfCached,
     flat,
     accountComments,
     repliesPerPage,
@@ -60,6 +62,7 @@ export function useReplies(options?: UseRepliesOptions): UseRepliesResult {
     postCid: comment?.postCid,
     sortType,
     accountId: account?.id,
+    onlyIfCached,
     repliesPerPage,
     flat,
     accountComments,
@@ -94,7 +97,11 @@ export function useReplies(options?: UseRepliesOptions): UseRepliesResult {
   let hasMore = useRepliesStore(
     (state: RepliesState) => state.feedsHaveMore[repliesFeedName || ""],
   );
-  hasMore = comment ? (repliesFeedName && typeof hasMore === "boolean" ? hasMore : true) : false;
+  hasMore = comment
+    ? repliesFeedName && typeof hasMore === "boolean"
+      ? hasMore
+      : !onlyIfCached
+    : false;
 
   const incrementFeedPageNumber = useRepliesStore(
     (state: RepliesState) => state.incrementFeedPageNumber,
@@ -152,6 +159,7 @@ export function useReplies(options?: UseRepliesOptions): UseRepliesResult {
       hasMore,
       comment,
       sortType,
+      onlyIfCached,
       flat,
       flatDepth,
       repliesStoreOptions: useRepliesStore.getState().feedsOptions,

@@ -112,7 +112,7 @@ useNotifications(): {notifications: Notification[], markAsRead: Function}
 
 ```
 useComment({commentCid: string, onlyIfCached?: boolean, autoUpdate?: boolean}): Comment & {refresh: Function}
-useReplies({comment: Comment, sortType?: string, flat?: boolean, repliesPerPage?: number, filter?: CommentsFilter, accountComments?: {newerThan: number, append?: boolean}}): {replies: Comment[], hasMore: boolean, loadMore: function, reset: function, updatedReplies: Comment[], bufferedReplies: Comment[]}
+useReplies({comment: Comment, onlyIfCached?: boolean, sortType?: string, flat?: boolean, repliesPerPage?: number, filter?: CommentsFilter, accountComments?: {newerThan: number, append?: boolean}}): {replies: Comment[], hasMore: boolean, loadMore: function, reset: function, updatedReplies: Comment[], bufferedReplies: Comment[]}
 useComments({commentCids: string[], onlyIfCached?: boolean, autoUpdate?: boolean}): {comments: Comment[], refresh: Function}
 useEditedComment({comment: Comment}): {editedComment: Comment | undefined}
 useValidateComment({comment: Comment, validateReplies?: boolean}): {valid: boolean}
@@ -263,6 +263,10 @@ await post.refresh();
 
 // post.replies are not validated, to show replies
 const { replies, hasMore, loadMore } = useReplies({ comment: post });
+
+// only use the comment's preloaded replies plus any reply pages already cached in memory
+// won't fetch missing reply pages; hasMore only reflects cached replies still available to load
+const cachedReplies = useReplies({ comment: post, onlyIfCached: true });
 
 // to show a preloaded reply without rerenders, validate manually
 const { valid } = useValidateComment({ comment: post.replies.pages.best.comments[0] });
@@ -1199,6 +1203,7 @@ const useRepliesOptions = {
   sortType: "best",
   flat: false,
   repliesPerPage: 20,
+  onlyIfCached: false,
   accountComments: { newerThan: Infinity, append: false },
 };
 
