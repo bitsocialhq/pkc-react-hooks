@@ -42,7 +42,7 @@ jobs:
         with:
           node-version: 22
       - run: corepack enable
-      - run: yarn install --immutable
+      - run: yarn install --immutable --mode=skip-build
       - run: yarn lint
       - run: yarn type-check
       - name: Run unit tests with coverage
