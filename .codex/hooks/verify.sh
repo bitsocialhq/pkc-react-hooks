@@ -44,13 +44,13 @@ echo "Running build and tests..."
 echo ""
 
 # Run build (catches compilation errors)
-echo "=== corepack yarn build ==="
-corepack yarn build 2>&1 || true
+echo "=== yarn build ==="
+yarn build 2>&1 || true
 echo ""
 
 # Run tests
-echo "=== corepack yarn test ==="
-corepack yarn test 2>&1 || true
+echo "=== yarn test ==="
+yarn test 2>&1 || true
 echo ""
 
 restore_dist_worktree

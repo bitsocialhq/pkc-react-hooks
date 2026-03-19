@@ -7,7 +7,7 @@ If your AI coding assistant supports lifecycle hooks, configure these for this r
 | Hook            | Command                         | Purpose                                        |
 | --------------- | ------------------------------- | ---------------------------------------------- |
 | `afterFileEdit` | `.cursor/hooks/format.sh`       | Auto-format files after AI edits (prettier)    |
-| `afterFileEdit` | `.cursor/hooks/yarn-install.sh` | Run Corepack-managed Yarn install when `package.json` changes |
+| `afterFileEdit` | `.cursor/hooks/yarn-install.sh` | Run Yarn install when `package.json` changes |
 | `stop`          | `.cursor/hooks/verify.sh`       | Build and test at end                          |
 
 ## Why
@@ -41,8 +41,8 @@ exit 0
 # Run build and tests when agent finishes
 
 cat > /dev/null  # consume stdin
-echo "=== corepack yarn build ===" && corepack yarn build
-echo "=== corepack yarn test ===" && corepack yarn test
+echo "=== yarn build ===" && yarn build
+echo "=== yarn test ===" && yarn test
 exit 0
 ```
 
@@ -50,7 +50,7 @@ exit 0
 
 ```bash
 #!/bin/bash
-# Run Corepack-managed Yarn install when package.json is changed
+# Run Yarn install when package.json is changed
 # Hook receives JSON via stdin with file_path
 
 input=$(cat)
@@ -62,8 +62,8 @@ fi
 
 if [ "$file_path" = "package.json" ]; then
   cd "$(dirname "$0")/../.." || exit 0
-  echo "package.json changed - running corepack yarn install to update yarn.lock..."
-  corepack yarn install
+  echo "package.json changed - running yarn install to update yarn.lock..."
+  yarn install
 fi
 
 exit 0
