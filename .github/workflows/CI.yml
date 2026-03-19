@@ -41,7 +41,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'yarn'
       - run: corepack enable
       - run: HUSKY=0 yarn install --immutable --network-concurrency 1
       - run: yarn lint
@@ -93,7 +92,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'yarn'
       - run: corepack enable
       - run: HUSKY=0 yarn install --immutable --network-concurrency 1
       - uses: actions/cache@v4
