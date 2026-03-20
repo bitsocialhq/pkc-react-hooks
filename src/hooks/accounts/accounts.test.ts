@@ -2027,7 +2027,7 @@ describe("accounts", () => {
       const rendered2 = renderHook<any, any>(() => {
         const recentCommunityComments = useAccountComments({
           communityAddress: "community address 1",
-          order: "desc",
+          sortType: "new",
           pageSize: 1,
         });
         const commentByCid = useAccountComments({ commentCid: "own-comment-cid" });
@@ -2104,7 +2104,7 @@ describe("accounts", () => {
       }));
 
       const rendered2 = renderHook<any, any>(() =>
-        useAccountComments({ newerThan: 150, order: "desc", page: 0, pageSize: 1 }),
+        useAccountComments({ newerThan: 150, sortType: "new", page: 0, pageSize: 1 }),
       );
 
       expect(rendered2.result.current.accountComments).toHaveLength(1);
@@ -2120,6 +2120,52 @@ describe("accounts", () => {
 
       expect(rendered2.result.current.allComments.accountComments.length).toBeGreaterThan(0);
       expect(rendered2.result.current.missingComment.accountComments).toEqual([]);
+    });
+
+    test("useAccountComments and useAccountVotes keep order alias compatibility", () => {
+      const now = Math.floor(Date.now() / 1000);
+      const accountId = accountsStore.getState().activeAccountId!;
+      accountsStore.setState((state: any) => ({
+        ...state,
+        accountsComments: {
+          ...state.accountsComments,
+          [accountId]: state.accountsComments[accountId].map(
+            (accountComment: any, index: number) => ({
+              ...accountComment,
+              timestamp: now - 300 + index * 100,
+            }),
+          ),
+        },
+        accountsVotes: {
+          ...state.accountsVotes,
+          [accountId]: {
+            "comment cid 1": {
+              ...state.accountsVotes[accountId]["comment cid 1"],
+              vote: 1,
+              timestamp: now,
+            },
+            "comment cid 2": {
+              ...state.accountsVotes[accountId]["comment cid 2"],
+              vote: -1,
+              timestamp: now - 100,
+            },
+            "comment cid 3": {
+              ...state.accountsVotes[accountId]["comment cid 3"],
+              vote: 1,
+              timestamp: now - 200,
+            },
+          },
+        },
+      }));
+
+      const rendered2 = renderHook<any, any>(() => {
+        const comments = useAccountComments({ order: "desc", page: 0, pageSize: 1 });
+        const votes = useAccountVotes({ order: "desc", page: 0, pageSize: 1 });
+        return { comments, votes };
+      });
+
+      expect(rendered2.result.current.comments.accountComments[0].timestamp).toBe(now - 100);
+      expect(rendered2.result.current.votes.accountVotes[0].commentCid).toBe("comment cid 3");
     });
 
     test("useAccountVotes supports additive filters and pagination", () => {
@@ -2157,7 +2203,7 @@ describe("accounts", () => {
           vote: 1,
           communityAddress: "community address 1",
           newerThan: 50,
-          order: "desc",
+          sortType: "new",
           page: 0,
           pageSize: 1,
         }),
@@ -2166,7 +2212,7 @@ describe("accounts", () => {
       expect(rendered2.result.current.accountVotes[0].commentCid).toBe("comment cid 1");
 
       const rendered3 = renderHook<any, any>(() =>
-        useAccountVotes({ order: "desc", page: 1, pageSize: 1 }),
+        useAccountVotes({ sortType: "new", page: 1, pageSize: 1 }),
       );
       expect(rendered3.result.current.accountVotes).toHaveLength(1);
       expect(rendered3.result.current.accountVotes[0].commentCid).toBe("comment cid 2");

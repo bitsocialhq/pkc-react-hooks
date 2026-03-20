@@ -22,9 +22,15 @@ import { getDefaultPlebbitOptions, overwritePlebbitOptions } from "./account-gen
 import { getAccountsEditsSummary, sanitizeStoredAccountComment } from "./utils";
 import Logger from "@plebbit/plebbit-logger";
 const log = Logger("bitsocial-react-hooks:accounts:stores");
-const accountsDatabase = localForage.createInstance({ name: "plebbitReactHooks-accounts" });
+// Storage keeps the legacy namespace so existing installs reuse the same IndexedDB data.
+const accountsDatabaseNamespace = "plebbitReactHooks";
+const getAccountsDatabaseName = (databaseName: string) =>
+  `${accountsDatabaseNamespace}-${databaseName}`;
+const getPerAccountDatabaseName = (databaseName: string, accountId: string) =>
+  `${getAccountsDatabaseName(databaseName)}-${accountId}`;
+const accountsDatabase = localForage.createInstance({ name: getAccountsDatabaseName("accounts") });
 const accountsMetadataDatabase = localForage.createInstance({
-  name: "plebbitReactHooks-accountsMetadata",
+  name: getAccountsDatabaseName("accountsMetadata"),
 });
 const storageVersionKey = "__storageVersion";
 const votesLatestIndexKey = "__commentCidToLatestIndex";
@@ -74,7 +80,7 @@ const migrate = async () => {
           name: `${databaseName}-${accountId}`,
         });
         const database = localForage.createInstance({
-          name: `plebbitReactHooks-${databaseName}-${accountId}`,
+          name: getPerAccountDatabaseName(databaseName, accountId),
         });
         for (const key of await previousDatabase.keys()) {
           promises.push(
@@ -349,7 +355,7 @@ const getAccountCommentsDatabase = (accountId: string) => {
   );
   if (!accountsCommentsDatabases[accountId]) {
     accountsCommentsDatabases[accountId] = localForage.createInstance({
-      name: `plebbitReactHooks-accountComments-${accountId}`,
+      name: getPerAccountDatabaseName("accountComments", accountId),
     });
   }
   return accountsCommentsDatabases[accountId];
@@ -442,7 +448,7 @@ const getAccountVotesDatabase = (accountId: string) => {
   );
   if (!accountsVotesDatabases[accountId]) {
     accountsVotesDatabases[accountId] = localForage.createInstance({
-      name: `plebbitReactHooks-accountVotes-${accountId}`,
+      name: getPerAccountDatabaseName("accountVotes", accountId),
     });
   }
   return accountsVotesDatabases[accountId];
@@ -536,7 +542,7 @@ const getAccountCommentsRepliesDatabase = (accountId: string) => {
   );
   if (!accountsCommentsRepliesDatabases[accountId]) {
     accountsCommentsRepliesDatabases[accountId] = localForageLru.createInstance({
-      name: `plebbitReactHooks-accountCommentsReplies-${accountId}`,
+      name: getPerAccountDatabaseName("accountCommentsReplies", accountId),
       size: 1000,
     });
   }
@@ -584,7 +590,7 @@ const getAccountEditsDatabase = (accountId: string) => {
   );
   if (!accountsEditsDatabases[accountId]) {
     accountsEditsDatabases[accountId] = localForage.createInstance({
-      name: `plebbitReactHooks-accountEdits-${accountId}`,
+      name: getPerAccountDatabaseName("accountEdits", accountId),
     });
   }
   return accountsEditsDatabases[accountId];
@@ -773,6 +779,8 @@ const database = {
   deleteAccountEdit,
   accountVersion,
   migrate,
+  getAccountsDatabaseName,
+  getPerAccountDatabaseName,
 };
 
 export default database;

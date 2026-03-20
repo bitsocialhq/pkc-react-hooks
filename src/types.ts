@@ -35,6 +35,8 @@ export interface UseAccountCommentsOptions extends Options {
   newerThan?: number;
   page?: number;
   pageSize?: number;
+  sortType?: "new" | "old";
+  /** @deprecated use sortType */
   order?: "asc" | "desc";
 }
 export interface UseAccountCommentsResult extends Result {
@@ -57,6 +59,8 @@ export interface UseAccountVotesOptions extends Options {
   newerThan?: number;
   page?: number;
   pageSize?: number;
+  sortType?: "new" | "old";
+  /** @deprecated use sortType */
   order?: "asc" | "desc";
 }
 export interface UseAccountVotesResult extends Result {

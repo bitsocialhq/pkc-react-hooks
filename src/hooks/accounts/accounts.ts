@@ -335,6 +335,16 @@ const getAccountCommentsStates = (accountComments: AccountComment[]) => {
 export const haveAccountCommentStatesChanged = (nextStates: string[], previousStates: string[]) =>
   nextStates.toString() !== previousStates.toString();
 
+const getAccountHistorySortType = (
+  sortType?: "new" | "old",
+  order?: "asc" | "desc",
+): "new" | "old" => {
+  if (sortType === "new" || sortType === "old") {
+    return sortType;
+  }
+  return order === "desc" ? "new" : "old";
+};
+
 export function useAccountComments(options?: UseAccountCommentsOptions): UseAccountCommentsResult {
   assert(
     !options || typeof options === "object",
@@ -350,7 +360,8 @@ export function useAccountComments(options?: UseAccountCommentsOptions): UseAcco
     newerThan,
     page,
     pageSize,
-    order = "asc",
+    sortType,
+    order,
   } = options || {};
   assert(
     !filter || typeof filter === "function",
@@ -365,6 +376,7 @@ export function useAccountComments(options?: UseAccountCommentsOptions): UseAcco
   );
   const accountComments = useAccountsStore((state) => state.accountsComments[accountId || ""]);
   const [accountCommentStates, setAccountCommentStates] = useState<string[]>([]);
+  const accountHistorySortType = getAccountHistorySortType(sortType, order);
 
   const filteredAccountComments = useMemo(() => {
     if (!accountComments) {
@@ -410,7 +422,7 @@ export function useAccountComments(options?: UseAccountCommentsOptions): UseAcco
     if (filter) {
       scopedAccountComments = scopedAccountComments.filter(filter);
     }
-    if (order === "desc") {
+    if (accountHistorySortType === "new") {
       scopedAccountComments = [...scopedAccountComments].reverse();
     }
     if (typeof pageSize === "number" && pageSize > 0) {
@@ -429,7 +441,7 @@ export function useAccountComments(options?: UseAccountCommentsOptions): UseAcco
     communityAddress,
     filter,
     newerThan,
-    order,
+    accountHistorySortType,
     page,
     pageSize,
     parentCid,
@@ -467,7 +479,7 @@ export function useAccountComments(options?: UseAccountCommentsOptions): UseAcco
       communityAddress,
       filter,
       newerThan,
-      order,
+      sortType: accountHistorySortType,
       page,
       pageSize,
       parentCid,
@@ -547,7 +559,8 @@ export function useAccountVotes(options?: UseAccountVotesOptions): UseAccountVot
     newerThan,
     page,
     pageSize,
-    order = "asc",
+    sortType,
+    order,
   } = opts;
   assert(
     !filter || typeof filter === "function",
@@ -555,6 +568,7 @@ export function useAccountVotes(options?: UseAccountVotesOptions): UseAccountVot
   );
   const accountId = useAccountId(accountName);
   const accountVotes = useAccountsStore((state) => state.accountsVotes[accountId || ""]);
+  const accountHistorySortType = getAccountHistorySortType(sortType, order);
 
   const filteredAccountVotesArray = useMemo(() => {
     let accountVotesArray: AccountVote[] = [];
@@ -587,8 +601,8 @@ export function useAccountVotes(options?: UseAccountVotesOptions): UseAccountVot
     if (filter) {
       accountVotesArray = accountVotesArray.filter(filter);
     }
-    if (order === "desc") {
-      accountVotesArray.reverse();
+    if (accountHistorySortType === "new") {
+      accountVotesArray = [...accountVotesArray].reverse();
     }
     if (typeof pageSize === "number" && pageSize > 0) {
       const pageNumber = Math.max(page || 0, 0);
@@ -596,7 +610,17 @@ export function useAccountVotes(options?: UseAccountVotesOptions): UseAccountVot
       accountVotesArray = accountVotesArray.slice(startIndex, startIndex + pageSize);
     }
     return accountVotesArray;
-  }, [accountVotes, commentCid, communityAddress, filter, newerThan, order, page, pageSize, vote]);
+  }, [
+    accountVotes,
+    accountHistorySortType,
+    commentCid,
+    communityAddress,
+    filter,
+    newerThan,
+    page,
+    pageSize,
+    vote,
+  ]);
 
   if (accountVotes && options) {
     log("useAccountVotes", {
@@ -607,7 +631,7 @@ export function useAccountVotes(options?: UseAccountVotesOptions): UseAccountVot
       communityAddress,
       filter,
       newerThan,
-      order,
+      sortType: accountHistorySortType,
       page,
       pageSize,
       vote,

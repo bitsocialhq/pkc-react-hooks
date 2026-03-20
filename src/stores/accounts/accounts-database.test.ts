@@ -4,6 +4,11 @@ import PlebbitJsMock from "../../lib/plebbit-js/plebbit-js-mock";
 import localForage from "localforage";
 import { getDefaultPlebbitOptions } from "./account-generator";
 
+const createPerAccountDatabase = (databaseName: string, accountId: string) =>
+  localForage.createInstance({
+    name: accountsDatabase.getPerAccountDatabaseName(databaseName, accountId),
+  });
+
 describe("accounts-database", () => {
   beforeAll(() => setPlebbitJs(PlebbitJsMock));
   afterAll(() => restorePlebbitJs());
@@ -96,9 +101,7 @@ describe("accounts-database", () => {
       await prevAccountComments.setItem("0", { cid: "mig-cid", content: "migrated" });
       await prevAccountComments.setItem("length", 1);
       await accountsDatabase.migrate();
-      const newDb = localForage.createInstance({
-        name: "plebbitReactHooks-accountComments-legacy-mig",
-      });
+      const newDb = createPerAccountDatabase("accountComments", "legacy-mig");
       const migratedComment = await newDb.getItem("0");
       expect(migratedComment).toEqual({ cid: "mig-cid", content: "migrated" });
     });
@@ -571,16 +574,12 @@ describe("accounts-database", () => {
       const acc = makeAccount({ id: "legacy-history", name: "LegacyHistory" });
       await accountsDatabase.addAccount(acc);
 
-      const votesDb = localForage.createInstance({
-        name: `plebbitReactHooks-accountVotes-${acc.id}`,
-      });
+      const votesDb = createPerAccountDatabase("accountVotes", acc.id);
       await votesDb.setItem("0", { commentCid: "vote-cid", vote: 1, timestamp: 1 });
       await votesDb.setItem("length", 1);
       await votesDb.setItem("vote-cid", { commentCid: "vote-cid", vote: 1, timestamp: 1 });
 
-      const editsDb = localForage.createInstance({
-        name: `plebbitReactHooks-accountEdits-${acc.id}`,
-      });
+      const editsDb = createPerAccountDatabase("accountEdits", acc.id);
       await editsDb.setItem("0", { commentCid: "edit-cid", spoiler: true, timestamp: 10 });
       await editsDb.setItem("length", 1);
       await editsDb.setItem("edit-cid", [{ commentCid: "edit-cid", spoiler: true, timestamp: 10 }]);
@@ -599,9 +598,7 @@ describe("accounts-database", () => {
     test("ignores malformed legacy votes without commentCid when rebuilding compact indexes", async () => {
       const acc = makeAccount({ id: "legacy-vote-no-cid", name: "LegacyVoteNoCid" });
       await accountsDatabase.addAccount(acc);
-      const votesDb = localForage.createInstance({
-        name: `plebbitReactHooks-accountVotes-${acc.id}`,
-      });
+      const votesDb = createPerAccountDatabase("accountVotes", acc.id);
       await votesDb.setItem("0", { vote: 1, timestamp: 1 });
       await votesDb.setItem("length", 1);
 
@@ -613,9 +610,7 @@ describe("accounts-database", () => {
     test("legacy edit entries without a target are ignored when rebuilding indexes", async () => {
       const acc = makeAccount({ id: "legacy-edit-no-target", name: "LegacyEditNoTarget" });
       await accountsDatabase.addAccount(acc);
-      const editsDb = localForage.createInstance({
-        name: `plebbitReactHooks-accountEdits-${acc.id}`,
-      });
+      const editsDb = createPerAccountDatabase("accountEdits", acc.id);
       await editsDb.setItem("0", { spoiler: true, timestamp: 10 });
       await editsDb.setItem("length", 1);
 
@@ -629,9 +624,7 @@ describe("accounts-database", () => {
     test("builds compact edit indexes for community and subplebbit targets", async () => {
       const acc = makeAccount({ id: "legacy-edit-targets", name: "LegacyEditTargets" });
       await accountsDatabase.addAccount(acc);
-      const editsDb = localForage.createInstance({
-        name: `plebbitReactHooks-accountEdits-${acc.id}`,
-      });
+      const editsDb = createPerAccountDatabase("accountEdits", acc.id);
       await editsDb.setItem("0", {
         communityAddress: "community.eth",
         title: "community",
