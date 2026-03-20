@@ -4,8 +4,12 @@ import {
   Communities,
   AccountComment,
   AccountsComments,
+  AccountsCommentsIndexes,
+  AccountCommentsIndex,
   CommentCidsToAccountsComments,
   Comment,
+  AccountEdit,
+  AccountEditsSummary,
 } from "../../types";
 import assert from "assert";
 import Logger from "@plebbit/plebbit-logger";
@@ -58,6 +62,134 @@ export const getCommentCidsToAccountsComments = (accountsComments: AccountsComme
     }
   }
   return commentCidsToAccountsComments;
+};
+
+const cloneWithoutFunctions = (value: any): any => {
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => cloneWithoutFunctions(entry))
+      .filter((entry) => entry !== undefined);
+  }
+  if (!value || typeof value !== "object") {
+    return typeof value === "function" ? undefined : value;
+  }
+
+  const clonedValue: Record<string, any> = {};
+  for (const key in value) {
+    if (typeof value[key] === "function") {
+      continue;
+    }
+    const clonedChild = cloneWithoutFunctions(value[key]);
+    if (clonedChild !== undefined) {
+      clonedValue[key] = clonedChild;
+    }
+  }
+  return clonedValue;
+};
+
+export const sanitizeStoredAccountComment = (comment: Comment) => {
+  const preprocessedComment = {
+    ...comment,
+    signer: undefined,
+    replies: comment?.replies
+      ? Object.fromEntries(
+          Object.entries(comment.replies).filter(([replyKey]) => replyKey !== "pages"),
+        )
+      : comment?.replies,
+  };
+  const sanitizedComment = cloneWithoutFunctions(preprocessedComment);
+  if (sanitizedComment?.replies?.pages) {
+    sanitizedComment.replies = { ...sanitizedComment.replies };
+    delete sanitizedComment.replies.pages;
+  }
+  if (sanitizedComment?.replies && Object.keys(sanitizedComment.replies).length === 0) {
+    delete sanitizedComment.replies;
+  }
+  return sanitizedComment;
+};
+
+export const getAccountCommentsIndex = (
+  accountComments: AccountComment[] | undefined,
+): AccountCommentsIndex => {
+  const index: AccountCommentsIndex = {
+    byCommunityAddress: {},
+    byParentCid: {},
+  };
+  for (const accountComment of accountComments || []) {
+    if (accountComment.communityAddress) {
+      if (!index.byCommunityAddress[accountComment.communityAddress]) {
+        index.byCommunityAddress[accountComment.communityAddress] = [];
+      }
+      index.byCommunityAddress[accountComment.communityAddress].push(accountComment.index);
+    }
+    if (accountComment.parentCid) {
+      if (!index.byParentCid[accountComment.parentCid]) {
+        index.byParentCid[accountComment.parentCid] = [];
+      }
+      index.byParentCid[accountComment.parentCid].push(accountComment.index);
+    }
+  }
+  return index;
+};
+
+export const getAccountsCommentsIndexes = (accountsComments: AccountsComments) => {
+  const indexes: AccountsCommentsIndexes = {};
+  for (const accountId in accountsComments) {
+    indexes[accountId] = getAccountCommentsIndex(accountsComments[accountId]);
+  }
+  return indexes;
+};
+
+const accountEditNonPropertyNames = new Set([
+  "author",
+  "signer",
+  "clientId",
+  "commentCid",
+  "communityAddress",
+  "subplebbitAddress",
+  "timestamp",
+]);
+
+const normalizeAccountEditForSummary = (accountEdit: AccountEdit) => {
+  const normalizedAccountEdit = { ...accountEdit };
+  if (normalizedAccountEdit.commentModeration) {
+    Object.assign(normalizedAccountEdit, normalizedAccountEdit.commentModeration);
+    delete normalizedAccountEdit.commentModeration;
+  }
+  return normalizedAccountEdit;
+};
+
+export const getAccountEditPropertySummary = (accountEdits: AccountEdit[] | undefined) => {
+  const accountEditPropertySummary: AccountEditsSummary[string] = {};
+  for (const accountEdit of accountEdits || []) {
+    const normalizedAccountEdit = normalizeAccountEditForSummary(accountEdit);
+    for (const propertyName in normalizedAccountEdit) {
+      if (
+        normalizedAccountEdit[propertyName] === undefined ||
+        accountEditNonPropertyNames.has(propertyName)
+      ) {
+        continue;
+      }
+      const previousTimestamp = accountEditPropertySummary[propertyName]?.timestamp || 0;
+      if ((normalizedAccountEdit.timestamp || 0) >= previousTimestamp) {
+        accountEditPropertySummary[propertyName] = {
+          timestamp: normalizedAccountEdit.timestamp,
+          value: normalizedAccountEdit[propertyName],
+        };
+      }
+    }
+  }
+  return accountEditPropertySummary;
+};
+
+export const getAccountsEditsSummary = (accountEdits: {
+  [commentCidOrCommunityAddress: string]: AccountEdit[];
+}) => {
+  const summary: AccountEditsSummary = {};
+  for (const target in accountEdits || {}) {
+    summary[target] = getAccountEditPropertySummary(accountEdits[target]);
+  }
+  return summary;
 };
 
 interface CommentLinkDimensions {
@@ -266,6 +398,11 @@ export const addShortAddressesToAccountComment = (comment: Comment) => {
 const utils = {
   getAccountCommunities,
   getCommentCidsToAccountsComments,
+  getAccountCommentsIndex,
+  getAccountsCommentsIndexes,
+  sanitizeStoredAccountComment,
+  getAccountEditPropertySummary,
+  getAccountsEditsSummary,
   fetchCommentLinkDimensions,
   getInitAccountCommentsToUpdate,
   getAccountCommentDepth,

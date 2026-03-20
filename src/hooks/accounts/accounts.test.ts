@@ -708,6 +708,12 @@ describe("accounts", () => {
         }
       });
 
+      test("haveAccountCommentStatesChanged detects stable and changed states", async () => {
+        const hooks = await import("./accounts");
+        expect(hooks.haveAccountCommentStatesChanged(["pending"], ["pending"])).toBe(false);
+        expect(hooks.haveAccountCommentStatesChanged(["failed"], ["pending"])).toBe(true);
+      });
+
       test(`deleteComment(index) removes pending comment, reindexes list, and persists after store reset`, async () => {
         const publishCommentOptions = {
           communityAddress,
@@ -1302,6 +1308,52 @@ describe("accounts", () => {
         expect(typeof rendered2.result.current.accountEdits[0].timestamp).toBe("number");
       });
 
+      test("useAccountEdits lazily hydrates cold edit history after store reset", async () => {
+        await waitFor(() => rendered.result.current.accountEdits.length === 1);
+        await testUtils.resetStores();
+
+        const rendered2 = renderHook<any, any>(() => useAccountEdits());
+        expect(rendered2.result.current.state).toBe("initializing");
+
+        await waitFor(() => rendered2.result.current.accountEdits.length === 1);
+        expect(rendered2.result.current.state).toBe("succeeded");
+        expect(rendered2.result.current.accountEdits[0].spoiler).toBe(true);
+      });
+
+      test("useAccountEdits logs and keeps initializing when lazy load rejects", async () => {
+        const store = await import("../../stores/accounts");
+        const accountId = store.default.getState().activeAccountId!;
+        const internal = store.default.getState().accountsActionsInternal;
+        const previousLoaded = store.default.getState().accountsEditsLoaded[accountId];
+        const mockedEnsure = vi.fn().mockRejectedValueOnce(new Error("lazy load failed"));
+        store.default.setState({
+          accountsEditsLoaded: {
+            ...store.default.getState().accountsEditsLoaded,
+            [accountId]: false,
+          },
+          accountsActionsInternal: {
+            ...internal,
+            ensureAccountEditsLoaded: mockedEnsure,
+          },
+        });
+
+        try {
+          const rendered2 = renderHook<any, any>(() => useAccountEdits());
+          const waitFor = testUtils.createWaitFor(rendered2);
+          expect(rendered2.result.current.state).toBe("initializing");
+          await waitFor(() => mockedEnsure.mock.calls.length === 1);
+          expect(mockedEnsure).toHaveBeenCalledWith(accountId);
+        } finally {
+          store.default.setState({
+            accountsActionsInternal: internal,
+            accountsEditsLoaded: {
+              ...store.default.getState().accountsEditsLoaded,
+              [accountId]: previousLoaded,
+            },
+          });
+        }
+      });
+
       test("useAccountEdits with filter", async () => {
         await waitFor(() => rendered.result.current.accountEdits.length === 1);
         const filter = (edit: any) => edit.spoiler === true;
@@ -1521,6 +1573,7 @@ describe("accounts", () => {
       await waitFor(() => rendered2.result.current.content === "content 1");
       expect(rendered2.result.current.content).toBe("content 1");
       expect(rendered2.result.current.index).toBe(0);
+      expect(rendered2.result.current.state).toBe("pending");
 
       rendered2.rerender({ commentIndex: 10 });
       await waitFor(() => rendered2.result.current.content === undefined);
@@ -1962,6 +2015,265 @@ describe("accounts", () => {
       expect(rendered.result.current.accountVotes.length).toBe(3);
       expect(rendered.result.current.accountComments[0].parentCid).toBe(undefined);
       expect(rendered.result.current.accountComments[1].parentCid).toBe(undefined);
+    });
+
+    test("useAccountComments supports indexed query helpers and useAccountComment supports commentCid", async () => {
+      const accountId = accountsStore.getState().activeAccountId!;
+      accountsStore.setState((state: any) => ({
+        ...state,
+        accountsComments: {
+          ...state.accountsComments,
+          [accountId]: state.accountsComments[accountId].map((accountComment: any, index: number) =>
+            index === 0 ? { ...accountComment, cid: "own-comment-cid" } : accountComment,
+          ),
+        },
+        commentCidsToAccountsComments: {
+          ...state.commentCidsToAccountsComments,
+          "own-comment-cid": { accountId, accountCommentIndex: 0 },
+        },
+      }));
+
+      const rendered2 = renderHook<any, any>(() => {
+        const recentCommunityComments = useAccountComments({
+          communityAddress: "community address 1",
+          sortType: "new",
+          pageSize: 1,
+        });
+        const commentByCid = useAccountComments({ commentCid: "own-comment-cid" });
+        const indexedComments = useAccountComments({ commentIndices: [1, 0] });
+        const parentReplies = useAccountComments({ parentCid: "parent comment cid 1" });
+        const accountCommentByCid = useAccountComment({ commentCid: "own-comment-cid" });
+        return {
+          recentCommunityComments,
+          commentByCid,
+          indexedComments,
+          parentReplies,
+          accountCommentByCid,
+        };
+      });
+
+      await waitFor(
+        () =>
+          rendered2.result.current.recentCommunityComments.accountComments.length === 1 &&
+          rendered2.result.current.commentByCid.accountComments.length === 1 &&
+          rendered2.result.current.parentReplies.accountComments.length === 1 &&
+          rendered2.result.current.indexedComments.accountComments.length === 2,
+      );
+
+      expect(rendered2.result.current.recentCommunityComments.accountComments[0].parentCid).toBe(
+        undefined,
+      );
+      expect(rendered2.result.current.commentByCid.accountComments[0].cid).toBe("own-comment-cid");
+      expect(rendered2.result.current.indexedComments.accountComments[0].index).toBe(1);
+      expect(rendered2.result.current.indexedComments.accountComments[1].index).toBe(0);
+      expect(rendered2.result.current.parentReplies.accountComments[0].parentCid).toBe(
+        "parent comment cid 1",
+      );
+      expect(rendered2.result.current.accountCommentByCid.cid).toBe("own-comment-cid");
+      expect(rendered2.result.current.accountCommentByCid.state).toBe("succeeded");
+    });
+
+    test("useAccountComments falls back to full scans when indexes are missing", () => {
+      const accountId = accountsStore.getState().activeAccountId!;
+      accountsStore.setState((state: any) => ({
+        ...state,
+        accountsCommentsIndexes: {
+          ...state.accountsCommentsIndexes,
+          [accountId]: { byCommunityAddress: {}, byParentCid: {} },
+        },
+      }));
+
+      const rendered2 = renderHook<any, any>(() => {
+        const communityComments = useAccountComments({ communityAddress: "community address 1" });
+        const parentReplies = useAccountComments({ parentCid: "parent comment cid 1" });
+        return { communityComments, parentReplies };
+      });
+
+      expect(rendered2.result.current.communityComments.accountComments[0].communityAddress).toBe(
+        "community address 1",
+      );
+      expect(rendered2.result.current.parentReplies.accountComments[0].parentCid).toBe(
+        "parent comment cid 1",
+      );
+    });
+
+    test("useAccountComments newerThan and pagination options narrow results", () => {
+      const now = Math.floor(Date.now() / 1000);
+      const accountId = accountsStore.getState().activeAccountId!;
+      accountsStore.setState((state: any) => ({
+        ...state,
+        accountsComments: {
+          ...state.accountsComments,
+          [accountId]: state.accountsComments[accountId].map(
+            (accountComment: any, index: number) => ({
+              ...accountComment,
+              timestamp: now - 300 + index * 100,
+            }),
+          ),
+        },
+      }));
+
+      const rendered2 = renderHook<any, any>(() =>
+        useAccountComments({ newerThan: 150, sortType: "new", page: 0, pageSize: 1 }),
+      );
+
+      expect(rendered2.result.current.accountComments).toHaveLength(1);
+      expect(rendered2.result.current.accountComments[0].timestamp).toBe(now - 100);
+    });
+
+    test("useAccountComments newerThan Infinity and missing commentCid keep compatibility", () => {
+      const rendered2 = renderHook<any, any>(() => {
+        const allComments = useAccountComments({ newerThan: Infinity });
+        const missingComment = useAccountComments({ commentCid: "missing-own-comment-cid" });
+        return { allComments, missingComment };
+      });
+
+      expect(rendered2.result.current.allComments.accountComments.length).toBeGreaterThan(0);
+      expect(rendered2.result.current.missingComment.accountComments).toEqual([]);
+    });
+
+    test("useAccountComments and useAccountVotes keep order alias compatibility", () => {
+      const now = Math.floor(Date.now() / 1000);
+      const accountId = accountsStore.getState().activeAccountId!;
+      accountsStore.setState((state: any) => ({
+        ...state,
+        accountsComments: {
+          ...state.accountsComments,
+          [accountId]: state.accountsComments[accountId].map(
+            (accountComment: any, index: number) => ({
+              ...accountComment,
+              timestamp: now - 300 + index * 100,
+            }),
+          ),
+        },
+        accountsVotes: {
+          ...state.accountsVotes,
+          [accountId]: {
+            "comment cid 1": {
+              ...state.accountsVotes[accountId]["comment cid 1"],
+              vote: 1,
+              timestamp: now,
+            },
+            "comment cid 2": {
+              ...state.accountsVotes[accountId]["comment cid 2"],
+              vote: -1,
+              timestamp: now - 100,
+            },
+            "comment cid 3": {
+              ...state.accountsVotes[accountId]["comment cid 3"],
+              vote: 1,
+              timestamp: now - 200,
+            },
+          },
+        },
+      }));
+
+      const rendered2 = renderHook<any, any>(() => {
+        const comments = useAccountComments({ order: "desc", page: 0, pageSize: 1 });
+        const votes = useAccountVotes({ order: "desc", page: 0, pageSize: 1 });
+        return { comments, votes };
+      });
+
+      expect(rendered2.result.current.comments.accountComments[0].timestamp).toBe(now - 100);
+      expect(rendered2.result.current.votes.accountVotes[0].commentCid).toBe("comment cid 1");
+    });
+
+    test("useAccountVotes supports additive filters and pagination", () => {
+      const now = Math.floor(Date.now() / 1000);
+      const accountId = accountsStore.getState().activeAccountId!;
+      accountsStore.setState((state: any) => ({
+        ...state,
+        accountsVotes: {
+          ...state.accountsVotes,
+          [accountId]: {
+            "comment cid 1": {
+              ...state.accountsVotes[accountId]["comment cid 1"],
+              vote: 1,
+              communityAddress: "community address 1",
+              timestamp: now,
+            },
+            "comment cid 2": {
+              ...state.accountsVotes[accountId]["comment cid 2"],
+              vote: -1,
+              communityAddress: "community address 1",
+              timestamp: now - 100,
+            },
+            "comment cid 3": {
+              ...state.accountsVotes[accountId]["comment cid 3"],
+              vote: 1,
+              communityAddress: "community address 2",
+              timestamp: now - 200,
+            },
+          },
+        },
+      }));
+
+      const rendered2 = renderHook<any, any>(() =>
+        useAccountVotes({
+          vote: 1,
+          communityAddress: "community address 1",
+          newerThan: 50,
+          sortType: "new",
+          page: 0,
+          pageSize: 1,
+        }),
+      );
+      expect(rendered2.result.current.accountVotes).toHaveLength(1);
+      expect(rendered2.result.current.accountVotes[0].commentCid).toBe("comment cid 1");
+
+      const rendered3 = renderHook<any, any>(() =>
+        useAccountVotes({ sortType: "new", page: 1, pageSize: 1 }),
+      );
+      expect(rendered3.result.current.accountVotes).toHaveLength(1);
+      expect(rendered3.result.current.accountVotes[0].commentCid).toBe("comment cid 2");
+    });
+
+    test("useAccountVotes commentCid and newerThan Infinity keep compatibility", () => {
+      const rendered2 = renderHook<any, any>(() => {
+        const voteByCid = useAccountVotes({ commentCid: "comment cid 1" });
+        const allVotes = useAccountVotes({ newerThan: Infinity });
+        return { voteByCid, allVotes };
+      });
+
+      expect(rendered2.result.current.voteByCid.accountVotes[0].commentCid).toBe("comment cid 1");
+      expect(rendered2.result.current.allVotes.accountVotes.length).toBeGreaterThan(0);
+    });
+
+    test("useAccountVotes sorts by timestamp before applying sortType and pagination", () => {
+      const now = Math.floor(Date.now() / 1000);
+      const accountId = accountsStore.getState().activeAccountId!;
+      accountsStore.setState((state: any) => ({
+        ...state,
+        accountsVotes: {
+          ...state.accountsVotes,
+          [accountId]: {
+            "older-cid": {
+              ...state.accountsVotes[accountId]["comment cid 1"],
+              commentCid: "older-cid",
+              vote: 1,
+              timestamp: now,
+            },
+            "middle-cid": {
+              ...state.accountsVotes[accountId]["comment cid 2"],
+              commentCid: "middle-cid",
+              vote: 1,
+              timestamp: now - 100,
+            },
+            "newer-cid": {
+              ...state.accountsVotes[accountId]["comment cid 3"],
+              commentCid: "newer-cid",
+              vote: 1,
+              timestamp: now - 200,
+            },
+          },
+        },
+      }));
+
+      const rendered2 = renderHook<any, any>(() =>
+        useAccountVotes({ sortType: "new", page: 0, pageSize: 1 }),
+      );
+
+      expect(rendered2.result.current.accountVotes[0].commentCid).toBe("older-cid");
     });
 
     test(`get account vote on a specific comment`, () => {
@@ -3422,6 +3734,16 @@ describe("accounts", () => {
       expect(rendered.result.current.state).toBe("initializing");
     });
 
+    test("useEditedComment with missing accountName falls back to initializing", () => {
+      const rendered = renderHook(() =>
+        useEditedComment({
+          accountName: "missing-account",
+          comment: { cid: "missing-cid" } as any,
+        }),
+      );
+      expect(rendered.result.current.state).toBe("initializing");
+    });
+
     test("useEditedComment with comment and accountName returns unedited when both present", async () => {
       const rendered = renderHook(() =>
         useEditedComment({ comment: { cid: "test-cid" }, accountName: "Account 1" }),
@@ -3566,6 +3888,36 @@ describe("accounts", () => {
       expect(rendered.result.current.author.displayName).toBe("John");
       expect(rendered.result.current.author.wallets.eth.signature.signature).toBe(
         previousEthSignature,
+      );
+    });
+
+    test("changing author address keeps a non-signer eth wallet untouched", async () => {
+      const rendered = renderHook(() => useAccount());
+      const waitFor = testUtils.createWaitFor(rendered);
+
+      await waitFor(() => rendered.result.current.author.address);
+      const customWallet = {
+        ...rendered.result.current.author.wallets.eth,
+        address: "0x0000000000000000000000000000000000000001",
+      };
+
+      await act(async () => {
+        const author = {
+          ...rendered.result.current.author,
+          address: "custom-author.eth",
+          wallets: {
+            ...rendered.result.current.author.wallets,
+            eth: customWallet,
+          },
+        };
+        const account = { ...rendered.result.current, author };
+        await accountsActions.setAccount(account);
+      });
+
+      await waitFor(() => rendered.result.current.author.address === "custom-author.eth");
+      expect(rendered.result.current.author.wallets.eth.address).toBe(customWallet.address);
+      expect(rendered.result.current.author.wallets.eth.signature.signature).toBe(
+        customWallet.signature.signature,
       );
     });
   });

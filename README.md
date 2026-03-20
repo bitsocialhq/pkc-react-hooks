@@ -109,9 +109,9 @@ Run `corepack enable` once per machine so plain `yarn` resolves to the pinned Ya
 
 ```
 useAccount(): Account | undefined
-useAccountComment({commentIndex: string}): Comment // get a pending published comment by its index
-useAccountComments({filter: AccountPublicationsFilter}): {accountComments: Comment[]} // export or display list of own comments
-useAccountVotes({filter: AccountPublicationsFilter}): {accountVotes: Vote[]}  // export or display list of own votes
+useAccountComment({commentIndex?: number, commentCid?: string}): Comment // get one own comment by index or cid
+useAccountComments({filter?: AccountPublicationsFilter, commentCid?: string, commentIndices?: number[], communityAddress?: string, parentCid?: string, newerThan?: number, page?: number, pageSize?: number, sortType?: "new" | "old"}): {accountComments: Comment[]} // export or display list of own comments
+useAccountVotes({filter?: AccountPublicationsFilter, vote?: number, commentCid?: string, communityAddress?: string, newerThan?: number, page?: number, pageSize?: number, sortType?: "new" | "old"}): {accountVotes: Vote[]}  // export or display list of own votes
 useAccountVote({commentCid: string}): Vote // know if you already voted on some comment
 useAccountEdits({filer: AccountPublicationsFilter}):  {accountEdits: AccountEdit[]}
 useAccountCommunities(): {accountCommunities: {[communityAddress: string]: AccountCommunity}, onlyIfCached?: boolean}
@@ -904,11 +904,7 @@ const { accountVotes } = useAccountVotes();
 
 // my own comments in memes.eth
 const communityAddress = "memes.eth";
-const filter = useCallback(
-  (comment) => comment.communityAddress === communityAddress,
-  [communityAddress],
-); // important to use useCallback or the same function or will cause rerenders
-const myCommentsInMemesEth = useAccountComments({ filter });
+const myCommentsInMemesEth = useAccountComments({ communityAddress });
 
 // my own posts in memes.eth
 const filter = useCallback(
@@ -924,8 +920,31 @@ const myCommentsInSomePost = useAccountComments({ filter });
 
 // my own replies to a comment with cid 'Qm...'
 const parentCommentCid = "Qm...";
-const filter = useCallback((comment) => comment.parentCid === parentCommentCid, [parentCommentCid]);
-const myRepliesToSomeComment = useAccountComments({ filter });
+const myRepliesToSomeComment = useAccountComments({ parentCid: parentCommentCid });
+
+// recent own comments in memes.eth, newest first, one page at a time
+const recentMyCommentsInMemesEth = useAccountComments({
+  communityAddress,
+  newerThan: 60 * 60 * 24 * 30,
+  sortType: "new",
+  page: 0,
+  pageSize: 20,
+});
+
+// get one own comment directly by cid
+const accountComment = useAccountComment({ commentCid: "Qm..." });
+
+// get a specific set of own comments by account comment index
+const replacementReplies = useAccountComments({ commentIndices: [5, 7, 9] });
+
+// voted profile tab helpers
+const recentUpvotes = useAccountVotes({
+  vote: 1,
+  newerThan: 60 * 60 * 24 * 30,
+  sortType: "new",
+  page: 0,
+  pageSize: 20,
+});
 
 // know if you upvoted a comment already with cid 'Qm...'
 const { vote } = useAccountVote({ commentCid: "Qm..." });
