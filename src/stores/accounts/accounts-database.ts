@@ -36,7 +36,7 @@ const storageVersionKey = "__storageVersion";
 const votesLatestIndexKey = "__commentCidToLatestIndex";
 const editsTargetToIndicesKey = "__targetToIndices";
 const editsSummaryKey = "__summary";
-const commentStorageVersion = 1;
+const commentStorageVersion = 2;
 const voteStorageVersion = 1;
 const editStorageVersion = 1;
 

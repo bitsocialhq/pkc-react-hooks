@@ -769,7 +769,30 @@ describe("accounts-database", () => {
         communityAddress: "sub",
         timestamp: 1,
         author: { address: "addr" },
+        clients: {
+          ipfsGateways: {
+            best: {
+              state: "stopped",
+            },
+          },
+        },
+        raw: {
+          comment: {
+            content: "legacy",
+          },
+        },
+        original: {
+          content: "legacy",
+          signature: { signature: "sig" },
+        },
         replies: {
+          clients: {
+            ipfsGateways: {
+              best: {
+                state: "stopped",
+              },
+            },
+          },
           pages: {
             best: {
               comments: [{ cid: "reply-1", content: "reply" }],
@@ -785,9 +808,17 @@ describe("accounts-database", () => {
 
       expect(exported.accountComments[0].replies?.pages).toBeUndefined();
       expect(exported.accountComments[0].replies?.pageCids).toEqual({ best: "page-1" });
+      expect(exported.accountComments[0].replies?.clients).toBeUndefined();
+      expect(exported.accountComments[0].clients).toBeUndefined();
+      expect(exported.accountComments[0].raw).toBeUndefined();
+      expect(exported.accountComments[0].original).toBeUndefined();
       expect(storedComment.replies?.pages).toBeUndefined();
       expect(storedComment.replies?.pageCids).toEqual({ best: "page-1" });
-      expect(await commentsDb.getItem("__storageVersion")).toBe(1);
+      expect(storedComment.replies?.clients).toBeUndefined();
+      expect(storedComment.clients).toBeUndefined();
+      expect(storedComment.raw).toBeUndefined();
+      expect(storedComment.original).toBeUndefined();
+      expect(await commentsDb.getItem("__storageVersion")).toBe(2);
     });
   });
 
@@ -815,7 +846,7 @@ describe("accounts-database", () => {
       expect(comments[1].cid).toBe("cid2");
     });
 
-    test("addAccountComment strips nested replies.pages payloads but keeps core comment fields", async () => {
+    test("addAccountComment strips nested runtime payloads but keeps renderable comment fields", async () => {
       const acc = makeAccount({ id: "comment-slim", name: "CommentSlim" });
       await accountsDatabase.addAccount(acc);
       await accountsDatabase.addAccountComment(acc.id, {
@@ -824,7 +855,10 @@ describe("accounts-database", () => {
         communityAddress: "sub",
         timestamp: 1,
         author: { address: "addr" },
+        clients: { ipfsGateways: { best: { state: "stopped" } } },
+        raw: { comment: { content: "hello" } },
         replies: {
+          clients: { ipfsGateways: { best: { state: "stopped" } } },
           pages: {
             best: {
               comments: [{ cid: "reply-1", content: "reply" }],
@@ -832,12 +866,41 @@ describe("accounts-database", () => {
           },
           pageCids: { best: "page-1" },
         },
+        edit: true,
+        original: {
+          content: "before edit",
+          title: "original title",
+          author: {
+            address: "addr",
+            wallets: {
+              eth: {
+                address: "0xabc",
+              },
+            },
+          },
+          signature: {
+            signature: "sig",
+          },
+        },
       } as any);
       const comments = await accountsDatabase.getAccountComments(acc.id);
       const exported = JSON.parse(await accountsDatabase.getExportedAccountJson(acc.id));
       expect(comments[0].replies?.pages).toBeUndefined();
+      expect(comments[0].replies?.clients).toBeUndefined();
       expect(comments[0].replies?.pageCids).toEqual({ best: "page-1" });
+      expect(comments[0].clients).toBeUndefined();
+      expect(comments[0].raw).toBeUndefined();
+      expect(comments[0].original).toEqual({
+        content: "before edit",
+        title: "original title",
+        author: {
+          address: "addr",
+        },
+      });
       expect(exported.accountComments[0].replies?.pages).toBeUndefined();
+      expect(exported.accountComments[0].replies?.clients).toBeUndefined();
+      expect(exported.accountComments[0].clients).toBeUndefined();
+      expect(exported.accountComments[0].raw).toBeUndefined();
     });
 
     test("getAccountComments compacts legacy stored comments on read", async () => {
@@ -850,7 +913,10 @@ describe("accounts-database", () => {
         communityAddress: "sub",
         timestamp: 1,
         author: { address: "addr" },
+        clients: { ipfsGateways: { best: { state: "stopped" } } },
+        raw: { comment: { content: "legacy" } },
         replies: {
+          clients: { ipfsGateways: { best: { state: "stopped" } } },
           pages: {
             best: {
               comments: [{ cid: "reply-1", content: "reply" }],
@@ -866,9 +932,15 @@ describe("accounts-database", () => {
 
       expect(comments[0].replies?.pages).toBeUndefined();
       expect(comments[0].replies?.pageCids).toEqual({ best: "page-1" });
+      expect(comments[0].replies?.clients).toBeUndefined();
+      expect(comments[0].clients).toBeUndefined();
+      expect(comments[0].raw).toBeUndefined();
       expect(storedComment.replies?.pages).toBeUndefined();
       expect(storedComment.replies?.pageCids).toEqual({ best: "page-1" });
-      expect(await commentsDb.getItem("__storageVersion")).toBe(1);
+      expect(storedComment.replies?.clients).toBeUndefined();
+      expect(storedComment.clients).toBeUndefined();
+      expect(storedComment.raw).toBeUndefined();
+      expect(await commentsDb.getItem("__storageVersion")).toBe(2);
     });
 
     test("deleteAccountComment compacts legacy stored comments before mutating", async () => {
@@ -881,7 +953,9 @@ describe("accounts-database", () => {
         communityAddress: "sub",
         timestamp: 1,
         author: { address: "addr" },
+        clients: { ipfsGateways: { best: { state: "stopped" } } },
         replies: {
+          clients: { ipfsGateways: { best: { state: "stopped" } } },
           pages: {
             best: {
               comments: [{ cid: "reply-1", content: "reply" }],
@@ -896,7 +970,9 @@ describe("accounts-database", () => {
         communityAddress: "sub",
         timestamp: 2,
         author: { address: "addr" },
+        raw: { comment: { content: "legacy-2" } },
         replies: {
+          clients: { ipfsGateways: { best: { state: "stopped" } } },
           pages: {
             best: {
               comments: [{ cid: "reply-2", content: "reply" }],
@@ -914,10 +990,14 @@ describe("accounts-database", () => {
       expect(storedComment.cid).toBe("legacy-delete-comment-2");
       expect(storedComment.replies?.pages).toBeUndefined();
       expect(storedComment.replies?.pageCids).toEqual({ best: "page-2" });
+      expect(storedComment.replies?.clients).toBeUndefined();
+      expect(storedComment.raw).toBeUndefined();
       expect(exported.accountComments).toHaveLength(1);
       expect(exported.accountComments[0].replies?.pages).toBeUndefined();
       expect(exported.accountComments[0].replies?.pageCids).toEqual({ best: "page-2" });
-      expect(await commentsDb.getItem("__storageVersion")).toBe(1);
+      expect(exported.accountComments[0].replies?.clients).toBeUndefined();
+      expect(exported.accountComments[0].raw).toBeUndefined();
+      expect(await commentsDb.getItem("__storageVersion")).toBe(2);
     });
 
     test("addAccountComment asserts accountCommentIndex < length", async () => {

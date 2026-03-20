@@ -160,6 +160,26 @@ describe("accountsStore utils", () => {
   });
 
   describe("sanitizeStoredAccountComment", () => {
+    test("sanitizeAccountCommentForState keeps live clients while dropping pages and raw", () => {
+      const sanitized = utils.sanitizeAccountCommentForState({
+        raw: { comment: { content: "raw-content" } },
+        clients: { ipfsGateways: { best: { state: "fetching" } } },
+        replies: {
+          clients: { ipfsGateways: { best: { state: "stopped" } } },
+          pages: { best: { comments: [{ cid: "reply-1" }] } },
+          pageCids: { best: "page-1" },
+        },
+      } as any);
+
+      expect(sanitized.raw).toBeUndefined();
+      expect(sanitized.clients).toEqual({ ipfsGateways: { best: { state: "fetching" } } });
+      expect(sanitized.replies.pages).toBeUndefined();
+      expect(sanitized.replies.clients).toEqual({
+        ipfsGateways: { best: { state: "stopped" } },
+      });
+      expect(sanitized.replies.pageCids).toEqual({ best: "page-1" });
+    });
+
     test("returns undefined for function values nested in arrays", () => {
       const sanitized = utils.sanitizeStoredAccountComment({
         flair: [() => "skip", "keep"],
@@ -167,18 +187,24 @@ describe("accountsStore utils", () => {
       expect(sanitized.flair).toEqual(["keep"]);
     });
 
-    test("removes functions, signer, and nested replies.pages while keeping pageCids", () => {
+    test("removes runtime-only fields while keeping core render fields", () => {
       const sanitized = utils.sanitizeStoredAccountComment({
         signer: { privateKey: "secret" },
         onChallenge: () => {},
+        clients: { ipfsGateways: { someGateway: { state: "stopped" } } },
+        raw: { comment: { content: "raw-content" } },
         replies: {
+          clients: { ipfsGateways: { best: { state: "stopped" } } },
           pages: { best: { comments: [{ cid: "reply-1" }] } },
           pageCids: { best: "page-1" },
         },
       } as any);
       expect(sanitized.signer).toBeUndefined();
       expect(sanitized.onChallenge).toBeUndefined();
+      expect(sanitized.clients).toBeUndefined();
+      expect(sanitized.raw).toBeUndefined();
       expect(sanitized.replies.pages).toBeUndefined();
+      expect(sanitized.replies.clients).toBeUndefined();
       expect(sanitized.replies.pageCids).toEqual({ best: "page-1" });
     });
 
@@ -187,6 +213,55 @@ describe("accountsStore utils", () => {
         replies: { pages: { best: { comments: [] } } },
       } as any);
       expect(sanitized.replies).toBeUndefined();
+    });
+
+    test("drops original snapshots for unedited comments", () => {
+      const sanitized = utils.sanitizeStoredAccountComment({
+        content: "current content",
+        original: {
+          content: "original content",
+          signature: { signature: "sig" },
+        },
+      } as any);
+      expect(sanitized.original).toBeUndefined();
+    });
+
+    test("keeps a compact original snapshot for edited comments", () => {
+      const sanitized = utils.sanitizeStoredAccountComment({
+        edit: true,
+        content: "edited content",
+        original: {
+          content: "original content",
+          title: "original title",
+          author: {
+            address: "author-address",
+            wallets: {
+              eth: {
+                address: "0xabc",
+              },
+            },
+          },
+          signature: { signature: "sig" },
+          raw: { comment: { content: "raw-content" } },
+          clients: { ipfsGateways: { best: { state: "stopped" } } },
+          replies: {
+            pages: {
+              best: {
+                comments: [{ cid: "reply-1" }],
+              },
+            },
+            pageCids: { best: "page-1" },
+          },
+        },
+      } as any);
+
+      expect(sanitized.original).toEqual({
+        content: "original content",
+        title: "original title",
+        author: {
+          address: "author-address",
+        },
+      });
     });
   });
 

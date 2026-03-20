@@ -2118,7 +2118,7 @@ describe("accounts-actions", () => {
       await new Promise((r) => setTimeout(r, 150));
     });
 
-    test("publishComment with clients.ipfsGateways triggers non-chainTicker callback", async () => {
+    test("publishComment with clients.ipfsGateways does not disrupt the pending comment state", async () => {
       const account = Object.values(accountsStore.getState().accounts)[0];
       const EventEmitter = (await import("events")).default;
       const ipfsClient = new EventEmitter();
@@ -2143,8 +2143,7 @@ describe("accounts-actions", () => {
 
       await new Promise((r) => setTimeout(r, 100));
       const comments = accountsStore.getState().accountsComments[account.id] || [];
-      const commentWithClients = comments.find((c: any) => c.clients?.ipfsGateways);
-      expect(commentWithClients).toBeDefined();
+      expect(comments.find((c: any) => c.content === "ipfs")).toBeDefined();
     });
 
     test("publishComment publish throws: onError called", async () => {
