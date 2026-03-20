@@ -731,11 +731,24 @@ describe("feeds", () => {
         filter: cidMatch5,
         key: "cid-match-5",
       };
+      const waitForFirstFilteredPage = async () => {
+        await waitFor(() => rendered.result.current.feed?.length >= postsPerPage);
+        await waitFor(
+          () =>
+            rendered.result.current.feed?.[0]?.cid ===
+              "community address 1 page cid hot comment cid 95" &&
+            rendered.result.current.feed?.[1]?.cid ===
+              "community address 2 page cid hot comment cid 95" &&
+            rendered.result.current.feed?.[2]?.cid ===
+              "community address 3 page cid hot comment cid 95",
+        );
+      };
+
       rendered.rerender({
         communityAddresses: ["community address 1", "community address 2", "community address 3"],
         filter,
       });
-      await waitFor(() => rendered.result.current.feed?.length >= postsPerPage);
+      await waitForFirstFilteredPage();
 
       expect(rendered.result.current.feed.length).toBe(postsPerPage);
       expect(rendered.result.current.updatedFeed.length).toBe(rendered.result.current.feed.length);
