@@ -708,19 +708,22 @@ export function useAccountEdits(options?: UseAccountEditsOptions): UseAccountEdi
     `useAccountEdits options.filter argument '${filter}' not an function`,
   );
   const accountId = useAccountId(accountName);
-  const accountActionsInternal = useAccountsStore((state) => state.accountsActionsInternal);
+  const ensureAccountEditsLoaded = useAccountsStore(
+    (state) => state.accountsActionsInternal.ensureAccountEditsLoaded,
+  );
   const accountEdits = useAccountsStore((state) => state.accountsEdits[accountId || ""]);
   const accountEditsLoaded = useAccountsStore(
     (state) => state.accountsEditsLoaded[accountId || ""],
   );
 
-  if (accountId && !accountEditsLoaded) {
-    accountActionsInternal
-      .ensureAccountEditsLoaded(accountId)
-      .catch((error: unknown) =>
-        log.error("useAccountEdits ensureAccountEditsLoaded error", { accountId, error }),
-      );
-  }
+  useEffect(() => {
+    if (!accountId || accountEditsLoaded) {
+      return;
+    }
+    ensureAccountEditsLoaded(accountId).catch((error: unknown) =>
+      log.error("useAccountEdits ensureAccountEditsLoaded error", { accountId, error }),
+    );
+  }, [accountEditsLoaded, accountId, ensureAccountEditsLoaded]);
 
   const accountEditsArray = useMemo(() => {
     const accountEditsArray = [];

@@ -4,6 +4,7 @@ import accountsStore, { listeners } from "./accounts-store";
 import accountsDatabase from "./accounts-database";
 import Logger from "@plebbit/plebbit-logger";
 import assert from "assert";
+import isEqual from "lodash.isequal";
 const log = Logger("bitsocial-react-hooks:accounts:stores");
 import {
   Account,
@@ -27,6 +28,41 @@ import {
 } from "./utils";
 
 const accountEditsLoadPromises = new Map<string, Promise<void>>();
+
+const doesStoredAccountEditMatch = (storedAccountEdit: any, targetStoredAccountEdit: any) =>
+  storedAccountEdit?.clientId && targetStoredAccountEdit?.clientId
+    ? storedAccountEdit.clientId === targetStoredAccountEdit.clientId
+    : isEqual(storedAccountEdit, targetStoredAccountEdit);
+
+const mergeLoadedAccountEdits = (
+  loadedAccountEdits: Record<string, any[]> | undefined,
+  currentAccountEdits: Record<string, any[]> | undefined,
+) => {
+  const mergedAccountEdits: Record<string, any[]> = { ...(loadedAccountEdits || {}) };
+  const editTargets = new Set([
+    ...Object.keys(loadedAccountEdits || {}),
+    ...Object.keys(currentAccountEdits || {}),
+  ]);
+
+  for (const editTarget of editTargets) {
+    const mergedTargetEdits = [...(loadedAccountEdits?.[editTarget] || [])];
+    for (const currentAccountEdit of currentAccountEdits?.[editTarget] || []) {
+      const alreadyLoaded = mergedTargetEdits.some((loadedAccountEdit) =>
+        doesStoredAccountEditMatch(loadedAccountEdit, currentAccountEdit),
+      );
+      if (!alreadyLoaded) {
+        mergedTargetEdits.push(currentAccountEdit);
+      }
+    }
+    if (mergedTargetEdits.length > 0) {
+      mergedAccountEdits[editTarget] = mergedTargetEdits.sort(
+        (a, b) => (a?.timestamp || 0) - (b?.timestamp || 0),
+      );
+    }
+  }
+
+  return mergedAccountEdits;
+};
 
 const backfillLiveCommentCommunityAddress = (
   comment: Comment | undefined,
@@ -383,9 +419,12 @@ export const ensureAccountEditsLoaded = async (accountId: string) => {
 
   const loadPromise = accountsDatabase
     .getAccountEdits(accountId)
-    .then((accountEdits) => {
+    .then((loadedAccountEdits) => {
       accountsStore.setState(({ accountsEdits, accountsEditsLoaded }) => ({
-        accountsEdits: { ...accountsEdits, [accountId]: accountEdits },
+        accountsEdits: {
+          ...accountsEdits,
+          [accountId]: mergeLoadedAccountEdits(loadedAccountEdits, accountsEdits[accountId]),
+        },
         accountsEditsLoaded: { ...accountsEditsLoaded, [accountId]: true },
       }));
     })

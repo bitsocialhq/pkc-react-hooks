@@ -530,11 +530,35 @@ describe("accounts-database", () => {
       expect(votes).toEqual({});
     });
 
+    test("getAccountVotes tolerates missing latest-index metadata after a partial write", async () => {
+      const acc = makeAccount({ id: "gv-missing-index", name: "GVMissingIndex" });
+      await accountsDatabase.addAccount(acc);
+      const votesDb = createPerAccountDatabase("accountVotes", acc.id);
+      await votesDb.setItem("__storageVersion", 1);
+
+      const votes = await accountsDatabase.getAccountVotes(acc.id);
+
+      expect(votes).toEqual({});
+    });
+
     test("getAccountEdits returns empty when no edits (branch 570)", async () => {
       const acc = makeAccount({ id: "ge-empty", name: "GEEmpty" });
       await accountsDatabase.addAccount(acc);
       const edits = await accountsDatabase.getAccountEdits(acc.id);
       expect(edits).toEqual({});
+    });
+
+    test("getAccountEdits tolerates missing target-index metadata after a partial write", async () => {
+      const acc = makeAccount({ id: "ge-missing-index", name: "GEMissingIndex" });
+      await accountsDatabase.addAccount(acc);
+      const editsDb = createPerAccountDatabase("accountEdits", acc.id);
+      await editsDb.setItem("__storageVersion", 1);
+
+      const edits = await accountsDatabase.getAccountEdits(acc.id);
+      const summary = await accountsDatabase.getAccountEditsSummary(acc.id);
+
+      expect(edits).toEqual({});
+      expect(summary).toEqual({});
     });
 
     test("addAccountVote with multiple votes hits getAccountVotes loop", async () => {
@@ -619,6 +643,53 @@ describe("accounts-database", () => {
 
       expect(edits).toEqual({});
       expect(summary).toEqual({});
+    });
+
+    test("preserves sparse legacy edit indices when rebuilding compact indexes", async () => {
+      const acc = makeAccount({ id: "legacy-edit-sparse", name: "LegacyEditSparse" });
+      await accountsDatabase.addAccount(acc);
+      const editsDb = createPerAccountDatabase("accountEdits", acc.id);
+      await editsDb.setItem("0", { commentCid: "cid-a", spoiler: true, timestamp: 10 });
+      await editsDb.setItem("2", { commentCid: "cid-b", nsfw: true, timestamp: 20 });
+      await editsDb.setItem("length", 3);
+
+      const edits = await accountsDatabase.getAccountEdits(acc.id);
+      const summary = await accountsDatabase.getAccountEditsSummary(acc.id);
+
+      expect(edits["cid-a"]).toEqual([{ commentCid: "cid-a", spoiler: true, timestamp: 10 }]);
+      expect(edits["cid-b"]).toEqual([{ commentCid: "cid-b", nsfw: true, timestamp: 20 }]);
+      expect(summary["cid-a"].spoiler.value).toBe(true);
+      expect(summary["cid-b"].nsfw.value).toBe(true);
+      expect(await editsDb.getItem("__targetToIndices")).toEqual({
+        "cid-a": [0],
+        "cid-b": [2],
+      });
+    });
+
+    test("addAccountEdit keeps sparse legacy edit indices aligned when appending new edits", async () => {
+      const acc = makeAccount({ id: "legacy-edit-sparse-append", name: "LegacyEditSparseAppend" });
+      await accountsDatabase.addAccount(acc);
+      const editsDb = createPerAccountDatabase("accountEdits", acc.id);
+      await editsDb.setItem("0", { commentCid: "cid-a", spoiler: true, timestamp: 10 });
+      await editsDb.setItem("2", { commentCid: "cid-b", nsfw: true, timestamp: 20 });
+      await editsDb.setItem("length", 3);
+
+      await accountsDatabase.addAccountEdit(acc.id, {
+        commentCid: "cid-c",
+        content: "new",
+        timestamp: 30,
+      } as any);
+
+      const edits = await accountsDatabase.getAccountEdits(acc.id);
+
+      expect(edits["cid-a"]).toEqual([{ commentCid: "cid-a", spoiler: true, timestamp: 10 }]);
+      expect(edits["cid-b"]).toEqual([{ commentCid: "cid-b", nsfw: true, timestamp: 20 }]);
+      expect(edits["cid-c"]).toEqual([{ commentCid: "cid-c", content: "new", timestamp: 30 }]);
+      expect(await editsDb.getItem("__targetToIndices")).toEqual({
+        "cid-a": [0],
+        "cid-b": [2],
+        "cid-c": [3],
+      });
     });
 
     test("builds compact edit indexes for community and subplebbit targets", async () => {

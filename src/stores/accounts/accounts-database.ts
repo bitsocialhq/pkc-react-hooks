@@ -503,7 +503,7 @@ const addAccountVote = async (accountId: string, createVoteOptions: CreateCommen
 const getAccountVotes = async (accountId: string) => {
   const accountVotesDatabase = getAccountVotesDatabase(accountId);
   await ensureAccountVotesDatabaseLayout(accountId);
-  const latestIndexByCommentCid = await accountVotesDatabase.getItem(votesLatestIndexKey);
+  const latestIndexByCommentCid = (await accountVotesDatabase.getItem(votesLatestIndexKey)) || {};
   const votes: any = {};
   const latestIndexes = Object.values<number>(latestIndexByCommentCid);
   if (latestIndexes.length === 0) {
@@ -624,7 +624,7 @@ const ensureAccountEditsDatabaseLayout = async (accountId: string) => {
     return;
   }
 
-  const edits = (await getDatabaseAsArray(accountEditsDatabase)).filter(Boolean);
+  const edits = await getDatabaseAsArray(accountEditsDatabase);
   const keys = await accountEditsDatabase.keys();
   const duplicateKeysToDelete = keys.filter(
     (key: string) =>
@@ -633,12 +633,12 @@ const ensureAccountEditsDatabaseLayout = async (accountId: string) => {
       key !== storageVersionKey &&
       key !== editsTargetToIndicesKey &&
       key !== editsSummaryKey &&
-      edits.some((edit) => getAccountEditTarget(edit) === key),
+      edits.some((edit) => getAccountEditTarget(edit as AccountEdit) === key),
   );
   await Promise.all(
     duplicateKeysToDelete.map((key: string) => accountEditsDatabase.removeItem(key)),
   );
-  await persistAccountEditsIndexes(accountId, edits);
+  await persistAccountEditsIndexes(accountId, edits as AccountEdit[]);
 };
 
 const addAccountEdit = async (accountId: string, createEditOptions: CreateCommentOptions) => {
@@ -648,8 +648,8 @@ const addAccountEdit = async (accountId: string, createEditOptions: CreateCommen
   await ensureAccountEditsDatabaseLayout(accountId);
   const length = (await accountEditsDatabase.getItem("length")) || 0;
   const edit = removeFunctionsAndSensitiveFields(createEditOptions);
-  const existingEdits = (await getDatabaseAsArray(accountEditsDatabase)).filter(Boolean);
-  existingEdits.push(edit);
+  const existingEdits = await getDatabaseAsArray(accountEditsDatabase);
+  existingEdits[length] = edit;
   await Promise.all([
     accountEditsDatabase.setItem(String(length), edit),
     accountEditsDatabase.setItem(storageVersionKey, editStorageVersion),
@@ -697,7 +697,7 @@ const deleteAccountEdit = async (accountId: string, editToDelete: CreateCommentO
 const getAccountEdits = async (accountId: string) => {
   const accountEditsDatabase = getAccountEditsDatabase(accountId);
   await ensureAccountEditsDatabaseLayout(accountId);
-  const targetToIndices = await accountEditsDatabase.getItem(editsTargetToIndicesKey);
+  const targetToIndices = (await accountEditsDatabase.getItem(editsTargetToIndicesKey)) || {};
   const edits: any = {};
   const targets = Object.keys(targetToIndices);
   if (targets.length === 0) {
@@ -716,7 +716,7 @@ const getAccountEdits = async (accountId: string) => {
 const getAccountEditsSummary = async (accountId: string): Promise<AccountEditsSummary> => {
   const accountEditsDatabase = getAccountEditsDatabase(accountId);
   await ensureAccountEditsDatabaseLayout(accountId);
-  return await accountEditsDatabase.getItem(editsSummaryKey);
+  return (await accountEditsDatabase.getItem(editsSummaryKey)) || {};
 };
 
 const getAccountsEdits = async (accountIds: string[]) => {

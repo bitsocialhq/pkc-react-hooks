@@ -1447,6 +1447,10 @@ describe("accounts-actions", () => {
       await testUtils.resetDatabasesAndStores();
     });
 
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
     test("deleteComment abandons pending publish session, no-op mutation when session removed", async () => {
       const rendered = renderHook(() => {
         const { accountsComments, activeAccountId } = accountsStore.getState();
@@ -1529,6 +1533,101 @@ describe("accounts-actions", () => {
 
       await new Promise((r) => setTimeout(r, 100));
       expect(rendered.result.current.comments?.length).toBe(0);
+    });
+
+    test("deleting an earlier comment does not let a later pending publish reuse another session", async () => {
+      const account = Object.values(accountsStore.getState().accounts)[0];
+      const origCreateComment = account.plebbit.createComment.bind(account.plebbit);
+      const createCommentCallCounts: Record<string, number> = {};
+      const liveCommentsByContent: Record<string, any> = {};
+      const waitForAccountComments = async (
+        predicate: (accountComments: any[]) => boolean,
+        timeout = 2000,
+      ) => {
+        const start = Date.now();
+        while (Date.now() - start < timeout) {
+          await act(async () => {});
+          const accountComments = accountsStore.getState().accountsComments[account.id] || [];
+          if (predicate(accountComments)) {
+            return accountComments;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+        throw new Error("timed out waiting for account comments");
+      };
+
+      vi.spyOn(account.plebbit, "createComment").mockImplementation(async (opts: any) => {
+        const content = opts.content || "";
+        createCommentCallCounts[content] = (createCommentCallCounts[content] || 0) + 1;
+        const comment = await origCreateComment(opts);
+
+        if (createCommentCallCounts[content] % 2 === 0) {
+          liveCommentsByContent[content] = comment;
+          if (content === "second-pending") {
+            vi.spyOn(comment, "publish").mockImplementation(async () => {
+              comment.state = "publishing";
+              comment.publishingState = "publishing-challenge-request";
+              comment.emit("statechange", "publishing");
+              comment.emit("publishingstatechange", "publishing-challenge-request");
+            });
+          }
+        }
+
+        return comment;
+      });
+
+      await act(async () => {
+        await accountsActions.publishComment({
+          communityAddress: "sub.eth",
+          content: "first-pending",
+          onChallenge: (challenge: any, comment: any) => comment.publishChallengeAnswers(),
+          onChallengeVerification: () => {},
+        });
+      });
+      await waitForAccountComments((accountComments) => accountComments.length >= 1);
+
+      await act(async () => {
+        await accountsActions.publishComment({
+          communityAddress: "sub.eth",
+          content: "second-pending",
+          onChallenge: (challenge: any, comment: any) => comment.publishChallengeAnswers(),
+          onChallengeVerification: () => {},
+        });
+      });
+      await waitForAccountComments((accountComments) => accountComments.length >= 2);
+
+      await act(async () => {
+        await accountsActions.deleteComment(0);
+      });
+      await waitForAccountComments(
+        (accountComments) =>
+          accountComments.length === 1 && accountComments[0]?.content === "second-pending",
+      );
+
+      await act(async () => {
+        await accountsActions.publishComment({
+          communityAddress: "sub.eth",
+          content: "third-pending",
+          onChallenge: (challenge: any, comment: any) => comment.publishChallengeAnswers(),
+          onChallengeVerification: () => {},
+        });
+      });
+      await waitForAccountComments(
+        (accountComments) =>
+          accountComments.length >= 2 && accountComments[1]?.content === "third-pending",
+      );
+
+      await act(async () => {
+        liveCommentsByContent["second-pending"]?.emit(
+          "publishingstatechange",
+          "waiting-challenge-verification",
+        );
+      });
+
+      const accountComments = accountsStore.getState().accountsComments[account.id] || [];
+      expect(accountComments[0]?.publishingState).toBe("waiting-challenge-verification");
+      expect(accountComments[1]?.content).toBe("third-pending");
+      expect(accountComments[1]?.publishingState).not.toBe("waiting-challenge-verification");
     });
 
     test("subscribe already subscribed throws", async () => {

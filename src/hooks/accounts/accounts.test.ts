@@ -1339,9 +1339,10 @@ describe("accounts", () => {
 
         try {
           const rendered2 = renderHook<any, any>(() => useAccountEdits());
+          const waitFor = testUtils.createWaitFor(rendered2);
           expect(rendered2.result.current.state).toBe("initializing");
-          await Promise.resolve();
-          expect(mockedEnsure).toHaveBeenCalled();
+          await waitFor(() => mockedEnsure.mock.calls.length === 1);
+          expect(mockedEnsure).toHaveBeenCalledWith(accountId);
         } finally {
           store.default.setState({
             accountsActionsInternal: internal,

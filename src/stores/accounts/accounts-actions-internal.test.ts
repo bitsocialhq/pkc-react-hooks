@@ -17,6 +17,57 @@ describe("accounts-actions-internal", () => {
     testUtils.restoreAll();
   });
 
+  describe("ensureAccountEditsLoaded", () => {
+    beforeEach(async () => {
+      await testUtils.resetDatabasesAndStores();
+    });
+
+    test("merges fetched edits with optimistic edits added while lazy load is in flight", async () => {
+      const account = Object.values(accountsStore.getState().accounts)[0];
+      let resolveLoadedEdits: ((value: any) => void) | undefined;
+      const getAccountEditsSpy = vi
+        .spyOn(accountsDatabase, "getAccountEdits")
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              resolveLoadedEdits = resolve;
+            }) as any,
+        );
+
+      const loadPromise = accountsActionsInternal.ensureAccountEditsLoaded(account.id);
+      const optimisticEdit = {
+        commentCid: "cid-merge",
+        content: "optimistic",
+        timestamp: 20,
+        clientId: "optimistic-1",
+      };
+      accountsStore.setState(({ accountsEdits }) => ({
+        accountsEdits: {
+          ...accountsEdits,
+          [account.id]: {
+            "cid-merge": [optimisticEdit],
+          },
+        },
+      }));
+
+      resolveLoadedEdits?.({
+        "cid-merge": [{ commentCid: "cid-merge", spoiler: true, timestamp: 10 }],
+        "cid-loaded": [{ commentCid: "cid-loaded", nsfw: true, timestamp: 15 }],
+      });
+      await loadPromise;
+
+      expect(getAccountEditsSpy).toHaveBeenCalledWith(account.id);
+      expect(accountsStore.getState().accountsEditsLoaded[account.id]).toBe(true);
+      expect(accountsStore.getState().accountsEdits[account.id]["cid-merge"]).toEqual([
+        { commentCid: "cid-merge", spoiler: true, timestamp: 10 },
+        optimisticEdit,
+      ]);
+      expect(accountsStore.getState().accountsEdits[account.id]["cid-loaded"]).toEqual([
+        { commentCid: "cid-loaded", nsfw: true, timestamp: 15 },
+      ]);
+    });
+  });
+
   describe("startUpdatingAccountCommentOnCommentUpdateEvents", () => {
     beforeEach(async () => {
       await testUtils.resetDatabasesAndStores();
