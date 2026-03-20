@@ -350,6 +350,7 @@ const removeAccount = async (account: Account) => {
 };
 
 const accountsCommentsDatabases: any = {};
+const accountCommentsLayoutMigrations: Record<string, Promise<void> | undefined> = {};
 const getAccountCommentsDatabase = (accountId: string) => {
   assert(
     accountId && typeof accountId === "string",
@@ -368,22 +369,30 @@ const ensureAccountCommentsDatabaseLayout = async (accountId: string) => {
   if ((await accountCommentsDatabase.getItem(storageVersionKey)) === commentStorageVersion) {
     return;
   }
+  if (!accountCommentsLayoutMigrations[accountId]) {
+    accountCommentsLayoutMigrations[accountId] = (async () => {
+      if ((await accountCommentsDatabase.getItem(storageVersionKey)) === commentStorageVersion) {
+        return;
+      }
 
-  const comments = await getDatabaseAsArray(accountCommentsDatabase);
-  const updatedComments = comments.map((comment) =>
-    comment ? sanitizeStoredAccountComment(comment) : comment,
-  );
-  const rewritePromises = updatedComments
-    .map((comment, index) =>
-      isEqual(comment, comments[index])
-        ? null
-        : accountCommentsDatabase.setItem(String(index), comment),
-    )
-    .filter(Boolean);
-  await Promise.all([
-    ...rewritePromises,
-    accountCommentsDatabase.setItem(storageVersionKey, commentStorageVersion),
-  ]);
+      const comments = await getDatabaseAsArray(accountCommentsDatabase);
+      const updatedComments = comments.map((comment) =>
+        comment ? sanitizeStoredAccountComment(comment) : comment,
+      );
+      const rewritePromises: Promise<void>[] = [];
+      for (const [index, updatedComment] of updatedComments.entries()) {
+        if (!isEqual(updatedComment, comments[index])) {
+          rewritePromises.push(accountCommentsDatabase.setItem(String(index), updatedComment));
+        }
+      }
+      await Promise.all(rewritePromises);
+      await accountCommentsDatabase.setItem(storageVersionKey, commentStorageVersion);
+    })().finally(() => {
+      delete accountCommentsLayoutMigrations[accountId];
+    });
+  }
+
+  await accountCommentsLayoutMigrations[accountId];
 };
 
 const deleteAccountComment = async (accountId: string, accountCommentIndex: number) => {
