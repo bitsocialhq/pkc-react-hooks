@@ -943,6 +943,42 @@ describe("accounts-database", () => {
       expect(await commentsDb.getItem("__storageVersion")).toBe(2);
     });
 
+    test("getAccountComments densifies sparse legacy comment slots during compaction", async () => {
+      const acc = makeAccount({ id: "legacy-sparse-comments", name: "LegacySparseComments" });
+      await accountsDatabase.addAccount(acc);
+      const commentsDb = createPerAccountDatabase("accountComments", acc.id);
+      await commentsDb.setItem("0", {
+        cid: "legacy-sparse-comment-1",
+        content: "legacy-1",
+        communityAddress: "sub",
+        timestamp: 1,
+        author: { address: "addr" },
+      });
+      await commentsDb.setItem("2", {
+        cid: "legacy-sparse-comment-2",
+        content: "legacy-2",
+        communityAddress: "sub",
+        timestamp: 2,
+        author: { address: "addr" },
+        raw: { comment: { content: "legacy-2" } },
+      });
+      await commentsDb.setItem("length", 3);
+
+      const comments = await accountsDatabase.getAccountComments(acc.id);
+
+      expect(comments).toHaveLength(2);
+      expect(comments[0].cid).toBe("legacy-sparse-comment-1");
+      expect(comments[1].cid).toBe("legacy-sparse-comment-2");
+      expect(await commentsDb.getItem("1")).toEqual(
+        expect.objectContaining({
+          cid: "legacy-sparse-comment-2",
+        }),
+      );
+      expect(await commentsDb.getItem("2")).toBeNull();
+      expect(await commentsDb.getItem("length")).toBe(2);
+      expect(await commentsDb.getItem("__storageVersion")).toBe(2);
+    });
+
     test("deleteAccountComment compacts legacy stored comments before mutating", async () => {
       const acc = makeAccount({ id: "legacy-delete-comments", name: "LegacyDeleteComments" });
       await accountsDatabase.addAccount(acc);

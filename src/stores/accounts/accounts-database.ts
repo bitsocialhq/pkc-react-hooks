@@ -376,15 +376,19 @@ const ensureAccountCommentsDatabaseLayout = async (accountId: string) => {
       }
 
       const comments = await getDatabaseAsArray(accountCommentsDatabase);
-      const updatedComments = comments.map((comment) =>
-        comment ? sanitizeStoredAccountComment(comment) : comment,
-      );
+      const updatedComments = comments
+        .map((comment) => (comment ? sanitizeStoredAccountComment(comment) : undefined))
+        .filter((comment) => comment !== undefined);
       const rewritePromises: Promise<void>[] = [];
       for (const [index, updatedComment] of updatedComments.entries()) {
         if (!isEqual(updatedComment, comments[index])) {
           rewritePromises.push(accountCommentsDatabase.setItem(String(index), updatedComment));
         }
       }
+      for (let index = updatedComments.length; index < comments.length; index++) {
+        rewritePromises.push(accountCommentsDatabase.removeItem(String(index)));
+      }
+      rewritePromises.push(accountCommentsDatabase.setItem("length", updatedComments.length));
       await Promise.all(rewritePromises);
       await accountCommentsDatabase.setItem(storageVersionKey, commentStorageVersion);
     })().finally(() => {

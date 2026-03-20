@@ -77,6 +77,30 @@ const getClientsSnapshotForState = (clients: any): any => {
   return Object.keys(snapshot).length > 0 ? snapshot : undefined;
 };
 
+const syncCommentClientsSnapshot = (
+  publishSessionId: string,
+  accountId: string,
+  publication: any,
+) => {
+  const session = getPublishSession(publishSessionId);
+  if (session?.currentIndex === undefined) {
+    return;
+  }
+
+  const snapshot = getClientsSnapshotForState(publication?.clients);
+  accountsStore.setState(({ accountsComments }) =>
+    maybeUpdateAccountComment(accountsComments, accountId, session.currentIndex, (ac, acc) => {
+      const updatedAccountComment = { ...acc };
+      if (snapshot === undefined) {
+        delete updatedAccountComment.clients;
+      } else {
+        updatedAccountComment.clients = snapshot;
+      }
+      ac[session.currentIndex] = updatedAccountComment;
+    }),
+  );
+};
+
 const accountOwnsCommunityLocally = (account: Account, communityAddress: string) => {
   const localCommunityAddresses = getPlebbitCommunityAddresses(account.plebbit);
   if (localCommunityAddresses.includes(communityAddress)) {
@@ -1036,15 +1060,7 @@ export const publishComment = async (
       await account.plebbit.createComment(createCommentOptions),
       createCommentOptions,
     );
-    const session = getPublishSession(publishSessionId);
-    const commentClientsSnapshot = getClientsSnapshotForState(comment?.clients);
-    if (session?.currentIndex !== undefined && commentClientsSnapshot) {
-      accountsStore.setState(({ accountsComments }) =>
-        maybeUpdateAccountComment(accountsComments, account.id, session.currentIndex, (ac, acc) => {
-          ac[session.currentIndex] = { ...acc, clients: commentClientsSnapshot };
-        }),
-      );
-    }
+    syncCommentClientsSnapshot(publishSessionId, account.id, comment);
     publishAndRetryFailedChallengeVerification();
     log("accountsActions.publishComment", { createCommentOptions });
   })();
@@ -1074,6 +1090,7 @@ export const publishComment = async (
           await account.plebbit.createComment(createCommentOptions),
           createCommentOptions,
         );
+        syncCommentClientsSnapshot(publishSessionId, account.id, comment);
         lastChallenge = undefined;
         publishAndRetryFailedChallengeVerification();
       } else {
