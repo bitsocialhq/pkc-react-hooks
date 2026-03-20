@@ -11,8 +11,10 @@ import {
   Comment,
   AccountsVotes,
   AccountsEdits,
+  AccountsEditsSummaries,
   AccountComment,
   AccountsComments,
+  AccountsCommentsIndexes,
   AccountsCommentsReplies,
   CommentCidsToAccountsComments,
 } from "../../types";
@@ -20,7 +22,11 @@ import createStore from "zustand";
 import * as accountsActions from "./accounts-actions";
 import * as accountsActionsInternal from "./accounts-actions-internal";
 import localForage from "localforage";
-import { getCommentCidsToAccountsComments, getInitAccountCommentsToUpdate } from "./utils";
+import {
+  getAccountsCommentsIndexes,
+  getCommentCidsToAccountsComments,
+  getInitAccountCommentsToUpdate,
+} from "./utils";
 
 // reset all event listeners in between tests
 export const listeners: any = [];
@@ -31,11 +37,14 @@ type AccountsState = {
   activeAccountId: string | undefined;
   accountNamesToAccountIds: AccountNamesToAccountIds;
   accountsComments: AccountsComments;
+  accountsCommentsIndexes: AccountsCommentsIndexes;
   commentCidsToAccountsComments: CommentCidsToAccountsComments;
   accountsCommentsUpdating: { [commentCid: string]: boolean };
   accountsCommentsReplies: AccountsCommentsReplies;
   accountsVotes: AccountsVotes;
   accountsEdits: AccountsEdits;
+  accountsEditsSummaries: AccountsEditsSummaries;
+  accountsEditsLoaded: { [accountId: string]: boolean };
   accountsActions: { [functionName: string]: Function };
   accountsActionsInternal: { [functionName: string]: Function };
 };
@@ -46,11 +55,14 @@ const accountsStore = createStore<AccountsState>((setState: Function, getState: 
   activeAccountId: undefined,
   accountNamesToAccountIds: {},
   accountsComments: {},
+  accountsCommentsIndexes: {},
   commentCidsToAccountsComments: {},
   accountsCommentsUpdating: {},
   accountsCommentsReplies: {},
   accountsVotes: {},
   accountsEdits: {},
+  accountsEditsSummaries: {},
+  accountsEditsLoaded: {},
   accountsActions,
   accountsActionsInternal,
 }));
@@ -89,24 +101,29 @@ const initializeAccountsStore = async () => {
       )}'`,
     );
   }
-  const [accountsComments, accountsVotes, accountsCommentsReplies, accountsEdits] =
+  const [accountsComments, accountsVotes, accountsCommentsReplies, accountsEditsSummaries] =
     await Promise.all<any>([
       accountsDatabase.getAccountsComments(accountIds),
       accountsDatabase.getAccountsVotes(accountIds),
       accountsDatabase.getAccountsCommentsReplies(accountIds),
-      accountsDatabase.getAccountsEdits(accountIds),
+      accountsDatabase.getAccountsEditsSummaries(accountIds),
     ]);
   const commentCidsToAccountsComments = getCommentCidsToAccountsComments(accountsComments);
+  const accountsCommentsIndexes = getAccountsCommentsIndexes(accountsComments);
   accountsStore.setState((state) => ({
     accounts,
     accountIds,
     activeAccountId,
     accountNamesToAccountIds,
     accountsComments,
+    accountsCommentsIndexes,
     commentCidsToAccountsComments,
     accountsVotes,
     accountsCommentsReplies,
-    accountsEdits,
+    // Keep accountsEditsSummaries hot while accountsEdits stays cold until accountsEditsLoaded flips true.
+    accountsEdits: Object.fromEntries(accountIds.map((accountId) => [accountId, {}])),
+    accountsEditsSummaries,
+    accountsEditsLoaded: Object.fromEntries(accountIds.map((accountId) => [accountId, false])),
   }));
 
   // start looking for updates for all accounts comments in database
@@ -181,6 +198,7 @@ export const resetAccountsStore = async () => {
 
   // remove all event listeners
   listeners.forEach((listener: any) => listener.removeAllListeners());
+  accountsStore.getState().accountsActionsInternal.resetLazyAccountHistoryLoaders?.();
   // destroy all component subscriptions to the store
   accountsStore.destroy();
   // restore original state

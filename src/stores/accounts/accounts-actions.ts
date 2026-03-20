@@ -33,49 +33,65 @@ import {
   normalizePublicationOptionsForPlebbit,
 } from "../../lib/plebbit-compat";
 import {
+  getAccountCommentsIndex,
   getAccountCommunities,
   getCommentCidsToAccountsComments,
+  getAccountsCommentsIndexes,
+  getAccountEditPropertySummary,
   fetchCommentLinkDimensions,
   getAccountCommentDepth,
   addShortAddressesToAccountComment,
+  sanitizeStoredAccountComment,
 } from "./utils";
 import isEqual from "lodash.isequal";
 import { v4 as uuid } from "uuid";
 import utils from "../../lib/utils";
 
-// Active publish-session tracking for pending comments (Task 3)
-const activePublishSessions = new Map<
-  string,
-  { comment: any; abandoned: boolean; currentIndex: number }
->();
-const abandonedPublishKeys = new Set<string>();
-const getPublishSessionKey = (accountId: string, index: number) => `${accountId}:${index}`;
+type PublishSession = {
+  accountId: string;
+  originalIndex: number;
+  currentIndex: number;
+  comment?: any;
+};
 
-const registerPublishSession = (accountId: string, index: number, comment: any) => {
-  activePublishSessions.set(getPublishSessionKey(accountId, index), {
-    comment,
-    abandoned: false,
+// Active publish-session tracking for pending comments (Task 3)
+const activePublishSessions = new Map<string, PublishSession>();
+const abandonedPublishSessionIds = new Set<string>();
+
+const createPublishSession = (accountId: string, index: number) => {
+  const sessionId = uuid();
+  activePublishSessions.set(sessionId, {
+    accountId,
+    originalIndex: index,
     currentIndex: index,
   });
+  return sessionId;
+};
+
+const updatePublishSessionComment = (sessionId: string, comment?: any) => {
+  const session = activePublishSessions.get(sessionId);
+  if (!session) {
+    return;
+  }
+  activePublishSessions.set(sessionId, { ...session, comment });
 };
 
 const abandonAndStopPublishSession = (accountId: string, index: number) => {
-  const key = getPublishSessionKey(accountId, index);
-  abandonedPublishKeys.add(key);
-  const session = activePublishSessions.get(key);
+  const session = getPublishSessionByCurrentIndex(accountId, index);
   if (!session) return;
+  abandonedPublishSessionIds.add(session.sessionId);
   try {
     const stop = session.comment?.stop?.bind(session.comment);
     if (typeof stop === "function") stop();
   } catch (e) {
     log.error("comment.stop() error during abandon", { accountId, index, error: e });
   }
-  activePublishSessions.delete(key);
+  activePublishSessions.delete(session.sessionId);
 };
 
-const isPublishSessionAbandoned = (accountId: string, index: number) => {
-  return abandonedPublishKeys.has(getPublishSessionKey(accountId, index));
-};
+const isPublishSessionAbandoned = (sessionId: string) => abandonedPublishSessionIds.has(sessionId);
+
+const getPublishSession = (sessionId: string) => activePublishSessions.get(sessionId);
 
 /** Returns state update or {} when accountComment not yet in state (no-op). Exported for coverage. */
 export const maybeUpdateAccountComment = (
@@ -91,51 +107,138 @@ export const maybeUpdateAccountComment = (
   return { accountsComments: { ...accountsComments, [accountId]: accountComments } };
 };
 
-const getPublishSessionForComment = (
+const getPublishSessionByCurrentIndex = (
   accountId: string,
-  comment: any,
-): { currentIndex: number; sessionKey: string; keyIndex: number } | undefined => {
+  index: number,
+): ({ sessionId: string } & PublishSession) | undefined => {
   for (const [key, session] of activePublishSessions) {
-    const [aid, idxStr] = key.split(":");
-    if (aid === accountId && session.comment === comment) {
-      return {
-        currentIndex: session.currentIndex,
-        sessionKey: key,
-        keyIndex: parseInt(idxStr, 10),
-      };
+    if (session.accountId === accountId && session.currentIndex === index) {
+      return { sessionId: key, ...session };
     }
   }
   return undefined;
 };
 
 const shiftPublishSessionIndicesAfterDelete = (accountId: string, deletedIndex: number) => {
-  for (const [key, session] of activePublishSessions) {
-    const [aid] = key.split(":");
-    if (aid === accountId && session.currentIndex > deletedIndex) {
+  for (const session of activePublishSessions.values()) {
+    if (session.accountId === accountId && session.currentIndex > deletedIndex) {
       session.currentIndex -= 1;
     }
   }
 };
 
-const cleanupPublishSessionOnTerminal = (accountId: string, index: number) => {
-  const key = getPublishSessionKey(accountId, index);
-  activePublishSessions.delete(key);
-  abandonedPublishKeys.delete(key);
+const cleanupPublishSessionOnTerminal = (sessionId: string) => {
+  activePublishSessions.delete(sessionId);
+  abandonedPublishSessionIds.delete(sessionId);
 };
 
-const doesStoredAccountEditMatch = (storedAccountEdit: any, targetStoredAccountEdit: any) =>
+export const doesStoredAccountEditMatch = (storedAccountEdit: any, targetStoredAccountEdit: any) =>
   storedAccountEdit?.clientId && targetStoredAccountEdit?.clientId
     ? storedAccountEdit.clientId === targetStoredAccountEdit.clientId
     : isEqual(storedAccountEdit, targetStoredAccountEdit);
 
-const sanitizeStoredAccountEdit = (storedAccountEdit: any) => {
+export const sanitizeStoredAccountEdit = (storedAccountEdit: any) => {
   const sanitizedStoredAccountEdit = { ...storedAccountEdit };
   delete sanitizedStoredAccountEdit.signer;
   delete sanitizedStoredAccountEdit.author;
   return sanitizedStoredAccountEdit;
 };
 
-const hasTerminalChallengeVerificationError = (challengeVerification: any) => {
+const accountEditNonPropertyNames = new Set([
+  "author",
+  "signer",
+  "clientId",
+  "commentCid",
+  "communityAddress",
+  "subplebbitAddress",
+  "timestamp",
+]);
+
+const getStoredAccountEditTarget = (storedAccountEdit: any) =>
+  storedAccountEdit.commentCid ||
+  storedAccountEdit.communityAddress ||
+  storedAccountEdit.subplebbitAddress;
+
+export const addStoredAccountEditSummaryToState = (
+  accountsEditsSummaries: Record<string, Record<string, any>>,
+  accountId: string,
+  storedAccountEdit: any,
+) => {
+  const editTarget = getStoredAccountEditTarget(storedAccountEdit);
+  if (!editTarget) {
+    return { accountsEditsSummaries };
+  }
+
+  const accountEditsSummary = accountsEditsSummaries[accountId] || {};
+  const targetSummary = accountEditsSummary[editTarget] || {};
+  const nextSummary = { ...targetSummary };
+  const normalizedEdit = storedAccountEdit.commentModeration
+    ? { ...storedAccountEdit, ...storedAccountEdit.commentModeration, commentModeration: undefined }
+    : storedAccountEdit;
+
+  for (const propertyName in normalizedEdit) {
+    if (
+      normalizedEdit[propertyName] === undefined ||
+      accountEditNonPropertyNames.has(propertyName)
+    ) {
+      continue;
+    }
+    const previousTimestamp = nextSummary[propertyName]?.timestamp || 0;
+    if ((normalizedEdit.timestamp || 0) >= previousTimestamp) {
+      nextSummary[propertyName] = {
+        timestamp: normalizedEdit.timestamp,
+        value: normalizedEdit[propertyName],
+      };
+    }
+  }
+
+  return {
+    accountsEditsSummaries: {
+      ...accountsEditsSummaries,
+      [accountId]: {
+        ...accountEditsSummary,
+        [editTarget]: nextSummary,
+      },
+    },
+  };
+};
+
+export const removeStoredAccountEditSummaryFromState = (
+  accountsEditsSummaries: Record<string, Record<string, any>>,
+  accountsEdits: Record<string, Record<string, any[]>>,
+  accountId: string,
+  storedAccountEdit: any,
+) => {
+  const editTarget = getStoredAccountEditTarget(storedAccountEdit);
+  if (!editTarget) {
+    return { accountsEditsSummaries };
+  }
+
+  let deletedEdit = false;
+  const editsForTarget = (accountsEdits[accountId]?.[editTarget] || []).filter((storedEdit) => {
+    if (!deletedEdit && doesStoredAccountEditMatch(storedEdit, storedAccountEdit)) {
+      deletedEdit = true;
+      return false;
+    }
+    return true;
+  });
+  const nextTargetSummary = getAccountEditPropertySummary(editsForTarget);
+  const nextAccountSummary = { ...(accountsEditsSummaries[accountId] || {}) };
+  if (Object.keys(nextTargetSummary).length > 0) {
+    nextAccountSummary[editTarget] = nextTargetSummary;
+  } else {
+    delete nextAccountSummary[editTarget];
+  }
+
+  return {
+    accountsEditsSummaries: {
+      ...accountsEditsSummaries,
+      [accountId]: nextAccountSummary,
+    },
+  };
+};
+
+export const hasTerminalChallengeVerificationError = (challengeVerification: any) => {
   const challengeErrors = challengeVerification?.challengeErrors;
   const hasChallengeErrors = Array.isArray(challengeErrors)
     ? challengeErrors.length > 0
@@ -149,31 +252,39 @@ const hasTerminalChallengeVerificationError = (challengeVerification: any) => {
   );
 };
 
-const addStoredAccountEditToState = (
+export const addStoredAccountEditToState = (
   accountsEdits: Record<string, Record<string, any[]>>,
   accountId: string,
   storedAccountEdit: any,
 ) => {
   const accountEdits = accountsEdits[accountId] || {};
-  const commentEdits = accountEdits[storedAccountEdit.commentCid] || [];
+  const editTarget = getStoredAccountEditTarget(storedAccountEdit);
+  if (!editTarget) {
+    return { accountsEdits };
+  }
+  const commentEdits = accountEdits[editTarget] || [];
   return {
     accountsEdits: {
       ...accountsEdits,
       [accountId]: {
         ...accountEdits,
-        [storedAccountEdit.commentCid]: [...commentEdits, storedAccountEdit],
+        [editTarget]: [...commentEdits, storedAccountEdit],
       },
     },
   };
 };
 
-const removeStoredAccountEditFromState = (
+export const removeStoredAccountEditFromState = (
   accountsEdits: Record<string, Record<string, any[]>>,
   accountId: string,
   storedAccountEdit: any,
 ) => {
   const accountEdits = accountsEdits[accountId] || {};
-  const commentEdits = accountEdits[storedAccountEdit.commentCid] || [];
+  const editTarget = getStoredAccountEditTarget(storedAccountEdit);
+  if (!editTarget) {
+    return { accountsEdits };
+  }
+  const commentEdits = accountEdits[editTarget] || [];
   let deletedEdit = false;
   const nextCommentEdits = commentEdits.filter((commentEdit) => {
     if (!deletedEdit && doesStoredAccountEditMatch(commentEdit, storedAccountEdit)) {
@@ -187,12 +298,10 @@ const removeStoredAccountEditFromState = (
     nextCommentEdits.length > 0
       ? {
           ...accountEdits,
-          [storedAccountEdit.commentCid]: nextCommentEdits,
+          [editTarget]: nextCommentEdits,
         }
       : Object.fromEntries(
-          Object.entries(accountEdits).filter(
-            ([commentCid]) => commentCid !== storedAccountEdit.commentCid,
-          ),
+          Object.entries(accountEdits).filter(([target]) => target !== editTarget),
         );
 
   return {
@@ -213,16 +322,30 @@ const addNewAccountToDatabaseAndState = async (newAccount: Account) => {
   ]);
 
   // set the new state
-  const { accounts, accountsComments, accountsVotes, accountsEdits, accountsCommentsReplies } =
-    accountsStore.getState();
+  const {
+    accounts,
+    accountsComments,
+    accountsCommentsIndexes,
+    accountsVotes,
+    accountsEdits,
+    accountsEditsSummaries,
+    accountsEditsLoaded,
+    accountsCommentsReplies,
+  } = accountsStore.getState();
   const newAccounts = { ...accounts, [newAccount.id]: newAccount };
   const newState: any = {
     accounts: newAccounts,
     accountIds: newAccountIds,
     accountNamesToAccountIds: newAccountNamesToAccountIds,
     accountsComments: { ...accountsComments, [newAccount.id]: [] },
+    accountsCommentsIndexes: {
+      ...accountsCommentsIndexes,
+      [newAccount.id]: getAccountCommentsIndex([]),
+    },
     accountsVotes: { ...accountsVotes, [newAccount.id]: {} },
     accountsEdits: { ...accountsEdits, [newAccount.id]: {} },
+    accountsEditsSummaries: { ...accountsEditsSummaries, [newAccount.id]: {} },
+    accountsEditsLoaded: { ...accountsEditsLoaded, [newAccount.id]: false },
     accountsCommentsReplies: { ...accountsCommentsReplies, [newAccount.id]: {} },
   };
   // if there is only 1 account, make it active
@@ -243,8 +366,17 @@ export const createAccount = async (accountName?: string) => {
 };
 
 export const deleteAccount = async (accountName?: string) => {
-  const { accounts, accountNamesToAccountIds, activeAccountId, accountsComments, accountsVotes } =
-    accountsStore.getState();
+  const {
+    accounts,
+    accountNamesToAccountIds,
+    activeAccountId,
+    accountsComments,
+    accountsCommentsIndexes,
+    accountsVotes,
+    accountsEdits,
+    accountsEditsSummaries,
+    accountsEditsLoaded,
+  } = accountsStore.getState();
   assert(
     accounts && accountNamesToAccountIds && activeAccountId,
     `can't use accountsStore.accountActions before initialized`,
@@ -268,8 +400,17 @@ export const deleteAccount = async (accountName?: string) => {
   ]);
   const newAccountsComments = { ...accountsComments };
   delete newAccountsComments[account.id];
+  const newAccountsCommentsIndexes = { ...accountsCommentsIndexes };
+  delete newAccountsCommentsIndexes[account.id];
+  const newCommentCidsToAccountsComments = getCommentCidsToAccountsComments(newAccountsComments);
   const newAccountsVotes = { ...accountsVotes };
   delete newAccountsVotes[account.id];
+  const newAccountsEdits = { ...accountsEdits };
+  delete newAccountsEdits[account.id];
+  const newAccountsEditsSummaries = { ...accountsEditsSummaries };
+  delete newAccountsEditsSummaries[account.id];
+  const newAccountsEditsLoaded = { ...accountsEditsLoaded };
+  delete newAccountsEditsLoaded[account.id];
 
   accountsStore.setState({
     accounts: newAccounts,
@@ -277,7 +418,12 @@ export const deleteAccount = async (accountName?: string) => {
     activeAccountId: newActiveAccountId,
     accountNamesToAccountIds: newAccountNamesToAccountIds,
     accountsComments: newAccountsComments,
+    accountsCommentsIndexes: newAccountsCommentsIndexes,
+    commentCidsToAccountsComments: newCommentCidsToAccountsComments,
     accountsVotes: newAccountsVotes,
+    accountsEdits: newAccountsEdits,
+    accountsEditsSummaries: newAccountsEditsSummaries,
+    accountsEditsLoaded: newAccountsEditsLoaded,
   });
 };
 
@@ -413,26 +559,40 @@ export const importAccount = async (serializedAccount: string) => {
   // set new state
 
   // get new state data from database because it's easier
-  const [accountComments, accountVotes, accountEdits, accountIds, newAccountNamesToAccountIds] =
-    await Promise.all<any>([
-      accountsDatabase.getAccountComments(newAccount.id),
-      accountsDatabase.getAccountVotes(newAccount.id),
-      accountsDatabase.getAccountEdits(newAccount.id),
-      accountsDatabase.accountsMetadataDatabase.getItem("accountIds"),
-      accountsDatabase.accountsMetadataDatabase.getItem("accountNamesToAccountIds"),
-    ]);
+  const [
+    accountComments,
+    accountVotes,
+    accountEditsSummary,
+    accountIds,
+    newAccountNamesToAccountIds,
+  ] = await Promise.all<any>([
+    accountsDatabase.getAccountComments(newAccount.id),
+    accountsDatabase.getAccountVotes(newAccount.id),
+    accountsDatabase.getAccountEditsSummary(newAccount.id),
+    accountsDatabase.accountsMetadataDatabase.getItem("accountIds"),
+    accountsDatabase.accountsMetadataDatabase.getItem("accountNamesToAccountIds"),
+  ]);
 
   accountsStore.setState((state) => ({
     accounts: { ...state.accounts, [newAccount.id]: newAccount },
     accountIds,
     accountNamesToAccountIds: newAccountNamesToAccountIds,
     accountsComments: { ...state.accountsComments, [newAccount.id]: accountComments },
+    accountsCommentsIndexes: {
+      ...state.accountsCommentsIndexes,
+      [newAccount.id]: getAccountCommentsIndex(accountComments),
+    },
     commentCidsToAccountsComments: getCommentCidsToAccountsComments({
       ...state.accountsComments,
       [newAccount.id]: accountComments,
     }),
     accountsVotes: { ...state.accountsVotes, [newAccount.id]: accountVotes },
-    accountsEdits: { ...state.accountsEdits, [newAccount.id]: accountEdits },
+    accountsEdits: { ...state.accountsEdits, [newAccount.id]: {} },
+    accountsEditsSummaries: {
+      ...state.accountsEditsSummaries,
+      [newAccount.id]: accountEditsSummary,
+    },
+    accountsEditsLoaded: { ...state.accountsEditsLoaded, [newAccount.id]: false },
     // don't import/export replies to own comments, those are just cached and can be refetched
     accountsCommentsReplies: { ...state.accountsCommentsReplies, [newAccount.id]: {} },
   }));
@@ -441,7 +601,7 @@ export const importAccount = async (serializedAccount: string) => {
     account: newAccount,
     accountComments,
     accountVotes,
-    accountEdits,
+    accountEditsSummary,
   });
 
   // start looking for updates for all accounts comments in database
@@ -751,18 +911,45 @@ export const publishComment = async (
 
   // save comment to db
   let accountCommentIndex = accountsComments[account.id].length;
+  const publishSessionId = createPublishSession(account.id, accountCommentIndex);
   let savedOnce = false;
   const saveCreatedAccountComment = async (accountComment: AccountComment) => {
+    if (isPublishSessionAbandoned(publishSessionId)) {
+      return;
+    }
+    const isUpdate = savedOnce;
+    const session = getPublishSession(publishSessionId);
+    const currentIndex = session?.currentIndex ?? accountCommentIndex;
+    const sanitizedAccountComment = addShortAddressesToAccountComment(
+      sanitizeStoredAccountComment(accountComment),
+    ) as AccountComment;
+    const liveAccountComments = accountsStore.getState().accountsComments[account.id] || [];
+    if (isUpdate && !liveAccountComments[currentIndex]) {
+      return;
+    }
     await accountsDatabase.addAccountComment(
       account.id,
-      createdAccountComment,
-      savedOnce ? accountCommentIndex : undefined,
+      sanitizedAccountComment,
+      isUpdate ? currentIndex : undefined,
     );
     savedOnce = true;
-    accountsStore.setState(({ accountsComments }) => {
+    accountsStore.setState(({ accountsComments, accountsCommentsIndexes }) => {
       const accountComments = [...accountsComments[account.id]];
-      accountComments[accountCommentIndex] = accountComment;
-      return { accountsComments: { ...accountsComments, [account.id]: accountComments } };
+      if (isUpdate && !accountComments[currentIndex]) {
+        return {};
+      }
+      accountComments[currentIndex] = {
+        ...sanitizedAccountComment,
+        index: currentIndex,
+        accountId: account.id,
+      };
+      return {
+        accountsComments: { ...accountsComments, [account.id]: accountComments },
+        accountsCommentsIndexes: {
+          ...accountsCommentsIndexes,
+          [account.id]: getAccountCommentsIndex(accountComments),
+        },
+      };
     });
   };
   let createdAccountComment = {
@@ -771,7 +958,9 @@ export const publishComment = async (
     index: accountCommentIndex,
     accountId: account.id,
   };
-  createdAccountComment = addShortAddressesToAccountComment(createdAccountComment);
+  createdAccountComment = addShortAddressesToAccountComment(
+    sanitizeStoredAccountComment(createdAccountComment),
+  );
   await saveCreatedAccountComment(createdAccountComment);
   publishCommentOptions._onPendingCommentIndex?.(accountCommentIndex, createdAccountComment);
 
@@ -785,6 +974,9 @@ export const publishComment = async (
       createdAccountComment = { ...createdAccountComment, ...commentLinkDimensions };
       await saveCreatedAccountComment(createdAccountComment);
     }
+    if (isPublishSessionAbandoned(publishSessionId)) {
+      return;
+    }
     comment = backfillPublicationCommunityAddress(
       await account.plebbit.createComment(createCommentOptions),
       createCommentOptions,
@@ -795,8 +987,10 @@ export const publishComment = async (
 
   let lastChallenge: Challenge | undefined;
   async function publishAndRetryFailedChallengeVerification() {
-    cleanupPublishSessionOnTerminal(account.id, accountCommentIndex);
-    registerPublishSession(account.id, accountCommentIndex, comment);
+    if (isPublishSessionAbandoned(publishSessionId)) {
+      return;
+    }
+    updatePublishSessionComment(publishSessionId, comment);
     comment.once("challenge", async (challenge: Challenge) => {
       lastChallenge = challenge;
       publishCommentOptions.onChallenge(challenge, comment);
@@ -809,6 +1003,9 @@ export const publishComment = async (
         createCommentOptions = { ...createCommentOptions, timestamp };
         createdAccountComment = { ...createdAccountComment, timestamp };
         await saveCreatedAccountComment(createdAccountComment);
+        if (isPublishSessionAbandoned(publishSessionId)) {
+          return;
+        }
         comment = backfillPublicationCommunityAddress(
           await account.plebbit.createComment(createCommentOptions),
           createCommentOptions,
@@ -818,34 +1015,44 @@ export const publishComment = async (
       } else {
         // the challengeverification message of a comment publication should in theory send back the CID
         // of the published comment which is needed to resolve it for replies, upvotes, etc
+        const session = getPublishSession(publishSessionId);
+        const currentIndex = session?.currentIndex ?? accountCommentIndex;
+        if (!session || isPublishSessionAbandoned(publishSessionId)) return;
+        queueMicrotask(() => cleanupPublishSessionOnTerminal(publishSessionId));
         if (challengeVerification?.commentUpdate?.cid) {
-          const sessionInfo = getPublishSessionForComment(account.id, comment);
-          const currentIndex = sessionInfo?.currentIndex ?? accountCommentIndex;
-          if (!sessionInfo || abandonedPublishKeys.has(sessionInfo.sessionKey)) return;
-          cleanupPublishSessionOnTerminal(account.id, sessionInfo.keyIndex);
           const commentWithCid = addShortAddressesToAccountComment(
-            normalizePublicationOptionsForStore(comment as any),
+            sanitizeStoredAccountComment(normalizePublicationOptionsForStore(comment as any)),
           );
+          delete (commentWithCid as any).clients;
+          delete (commentWithCid as any).publishingState;
+          delete (commentWithCid as any).error;
+          delete (commentWithCid as any).errors;
           await accountsDatabase.addAccountComment(account.id, commentWithCid, currentIndex);
-          accountsStore.setState(({ accountsComments, commentCidsToAccountsComments }) => {
-            const updatedAccountComments = [...accountsComments[account.id]];
-            const updatedAccountComment = {
-              ...commentWithCid,
-              index: currentIndex,
-              accountId: account.id,
-            };
-            updatedAccountComments[currentIndex] = updatedAccountComment;
-            return {
-              accountsComments: { ...accountsComments, [account.id]: updatedAccountComments },
-              commentCidsToAccountsComments: {
-                ...commentCidsToAccountsComments,
-                [challengeVerification?.commentUpdate?.cid]: {
-                  accountId: account.id,
-                  accountCommentIndex: currentIndex,
+          accountsStore.setState(
+            ({ accountsComments, accountsCommentsIndexes, commentCidsToAccountsComments }) => {
+              const updatedAccountComments = [...accountsComments[account.id]];
+              const updatedAccountComment = {
+                ...commentWithCid,
+                index: currentIndex,
+                accountId: account.id,
+              };
+              updatedAccountComments[currentIndex] = updatedAccountComment;
+              return {
+                accountsComments: { ...accountsComments, [account.id]: updatedAccountComments },
+                accountsCommentsIndexes: {
+                  ...accountsCommentsIndexes,
+                  [account.id]: getAccountCommentsIndex(updatedAccountComments),
                 },
-              },
-            };
-          });
+                commentCidsToAccountsComments: {
+                  ...commentCidsToAccountsComments,
+                  [challengeVerification?.commentUpdate?.cid]: {
+                    accountId: account.id,
+                    accountCommentIndex: currentIndex,
+                  },
+                },
+              };
+            },
+          );
 
           // clone the comment or it bugs publishing callbacks
           const updatingComment = await account.plebbit.createComment(
@@ -868,20 +1075,24 @@ export const publishComment = async (
     });
 
     comment.on("error", (error: Error) => {
-      if (isPublishSessionAbandoned(account.id, accountCommentIndex)) return;
+      const session = getPublishSession(publishSessionId);
+      if (!session || isPublishSessionAbandoned(publishSessionId)) return;
+      const currentIndex = session.currentIndex;
       accountsStore.setState(({ accountsComments }) =>
-        maybeUpdateAccountComment(accountsComments, account.id, accountCommentIndex, (ac, acc) => {
+        maybeUpdateAccountComment(accountsComments, account.id, currentIndex, (ac, acc) => {
           const errors = [...(acc.errors || []), error];
-          ac[accountCommentIndex] = { ...acc, errors, error };
+          ac[currentIndex] = { ...acc, errors, error };
         }),
       );
       publishCommentOptions.onError?.(error, comment);
     });
     comment.on("publishingstatechange", async (publishingState: string) => {
-      if (isPublishSessionAbandoned(account.id, accountCommentIndex)) return;
+      const session = getPublishSession(publishSessionId);
+      if (!session || isPublishSessionAbandoned(publishSessionId)) return;
+      const currentIndex = session.currentIndex;
       accountsStore.setState(({ accountsComments }) =>
-        maybeUpdateAccountComment(accountsComments, account.id, accountCommentIndex, (ac, acc) => {
-          ac[accountCommentIndex] = { ...acc, publishingState };
+        maybeUpdateAccountComment(accountsComments, account.id, currentIndex, (ac, acc) => {
+          ac[currentIndex] = { ...acc, publishingState };
         }),
       );
       publishCommentOptions.onPublishingStateChange?.(publishingState);
@@ -891,24 +1102,21 @@ export const publishComment = async (
     utils.clientsOnStateChange(
       comment.clients,
       (clientState: string, clientType: string, clientUrl: string, chainTicker?: string) => {
-        if (isPublishSessionAbandoned(account.id, accountCommentIndex)) return;
+        const session = getPublishSession(publishSessionId);
+        if (!session || isPublishSessionAbandoned(publishSessionId)) return;
+        const currentIndex = session.currentIndex;
         accountsStore.setState(({ accountsComments }) =>
-          maybeUpdateAccountComment(
-            accountsComments,
-            account.id,
-            accountCommentIndex,
-            (ac, acc) => {
-              const clients = { ...comment.clients };
-              const client = { state: clientState };
-              if (chainTicker) {
-                const chainProviders = { ...clients[clientType][chainTicker], [clientUrl]: client };
-                clients[clientType] = { ...clients[clientType], [chainTicker]: chainProviders };
-              } else {
-                clients[clientType] = { ...clients[clientType], [clientUrl]: client };
-              }
-              ac[accountCommentIndex] = { ...acc, clients };
-            },
-          ),
+          maybeUpdateAccountComment(accountsComments, account.id, currentIndex, (ac, acc) => {
+            const clients = { ...comment.clients };
+            const client = { state: clientState };
+            if (chainTicker) {
+              const chainProviders = { ...clients[clientType][chainTicker], [clientUrl]: client };
+              clients[clientType] = { ...clients[clientType], [chainTicker]: chainProviders };
+            } else {
+              clients[clientType] = { ...clients[clientType], [clientUrl]: client };
+            }
+            ac[currentIndex] = { ...acc, clients };
+          }),
         );
       },
     );
@@ -975,10 +1183,14 @@ export const deleteComment = async (
   const newAccountsComments = { ...accountsComments, [account.id]: reindexed };
   const newCommentCidsToAccountsComments = getCommentCidsToAccountsComments(newAccountsComments);
 
-  accountsStore.setState({
+  accountsStore.setState(({ accountsCommentsIndexes }) => ({
     accountsComments: newAccountsComments,
+    accountsCommentsIndexes: {
+      ...accountsCommentsIndexes,
+      [account.id]: getAccountCommentsIndex(reindexed),
+    },
     commentCidsToAccountsComments: newCommentCidsToAccountsComments,
-  });
+  }));
 
   await accountsDatabase.deleteAccountComment(account.id, accountCommentIndex);
 
@@ -1116,9 +1328,19 @@ export const publishCommentEdit = async (
       rollbackPendingEditPromise = Promise.all([
         accountsDatabase.deleteAccountEdit(account.id, storedCommentEdit),
         Promise.resolve(
-          accountsStore.setState(({ accountsEdits }) =>
-            removeStoredAccountEditFromState(accountsEdits, account.id, storedCommentEdit),
-          ),
+          accountsStore.setState(({ accountsEdits, accountsEditsSummaries }) => {
+            const nextState: any = removeStoredAccountEditSummaryFromState(
+              accountsEditsSummaries,
+              accountsEdits,
+              account.id,
+              storedCommentEdit,
+            );
+            Object.assign(
+              nextState,
+              removeStoredAccountEditFromState(accountsEdits, account.id, storedCommentEdit),
+            );
+            return nextState;
+          }),
         ),
       ]).then(() => {});
     }
@@ -1127,9 +1349,18 @@ export const publishCommentEdit = async (
 
   await accountsDatabase.addAccountEdit(account.id, storedCreateCommentEditOptions);
   log("accountsActions.publishCommentEdit", { createCommentEditOptions });
-  accountsStore.setState(({ accountsEdits }) =>
-    addStoredAccountEditToState(accountsEdits, account.id, storedCommentEdit),
-  );
+  accountsStore.setState(({ accountsEdits, accountsEditsSummaries }) => {
+    const nextState: any = addStoredAccountEditSummaryToState(
+      accountsEditsSummaries,
+      account.id,
+      storedCommentEdit,
+    );
+    Object.assign(
+      nextState,
+      addStoredAccountEditToState(accountsEdits, account.id, storedCommentEdit),
+    );
+    return nextState;
+  });
 
   const publishAndRetryFailedChallengeVerification = async () => {
     commentEdit.once("challenge", async (challenge: Challenge) => {
@@ -1272,25 +1503,29 @@ export const publishCommentModeration = async (
 
   await accountsDatabase.addAccountEdit(account.id, storedCreateCommentModerationOptions);
   log("accountsActions.publishCommentModeration", { createCommentModerationOptions });
-  accountsStore.setState(({ accountsEdits }) => {
+  accountsStore.setState(({ accountsEdits, accountsEditsSummaries }) => {
     // remove signer and author because not needed and they expose private key
     const commentModeration = {
       ...storedCreateCommentModerationOptions,
       signer: undefined,
       author: undefined,
     };
+    const nextState: any = addStoredAccountEditSummaryToState(
+      accountsEditsSummaries,
+      account.id,
+      commentModeration,
+    );
     let commentModerations =
-      accountsEdits[account.id][storedCreateCommentModerationOptions.commentCid] || [];
+      accountsEdits[account.id]?.[storedCreateCommentModerationOptions.commentCid] || [];
     commentModerations = [...commentModerations, commentModeration];
-    return {
-      accountsEdits: {
-        ...accountsEdits,
-        [account.id]: {
-          ...accountsEdits[account.id],
-          [storedCreateCommentModerationOptions.commentCid]: commentModerations,
-        },
+    nextState.accountsEdits = {
+      ...accountsEdits,
+      [account.id]: {
+        ...(accountsEdits[account.id] || {}),
+        [storedCreateCommentModerationOptions.commentCid]: commentModerations,
       },
     };
+    return nextState;
   });
 };
 

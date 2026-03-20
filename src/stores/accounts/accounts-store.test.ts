@@ -1,6 +1,7 @@
 import { vi } from "vitest";
 import testUtils from "../../lib/test-utils";
 import accountsStore, { resetAccountsStore, resetAccountsDatabaseAndStore } from "./accounts-store";
+import accountsDatabase from "./accounts-database";
 import { setPlebbitJs } from "../../lib/plebbit-js";
 import PlebbitJsMock from "../../lib/plebbit-js/plebbit-js-mock";
 
@@ -71,6 +72,23 @@ describe("accounts-store", () => {
       expect(typeof state.accountsActionsInternal?.addCommunityRoleToAccountsCommunities).toBe(
         "function",
       );
+    });
+
+    test("init keeps cold edit history out of hot state but loads summaries", async () => {
+      await testUtils.resetDatabasesAndStores();
+      const accountId = accountsStore.getState().activeAccountId!;
+      await accountsDatabase.addAccountEdit(accountId, {
+        commentCid: "cold-edit-cid",
+        spoiler: true,
+        timestamp: 1,
+      } as any);
+
+      await resetAccountsStore();
+      const state = accountsStore.getState();
+
+      expect(state.accountsEdits[accountId]).toEqual({});
+      expect(state.accountsEditsLoaded[accountId]).toBe(false);
+      expect(state.accountsEditsSummaries[accountId]["cold-edit-cid"].spoiler.value).toBe(true);
     });
   });
 

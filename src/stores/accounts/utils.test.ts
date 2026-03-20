@@ -159,6 +159,115 @@ describe("accountsStore utils", () => {
     });
   });
 
+  describe("sanitizeStoredAccountComment", () => {
+    test("returns undefined for function values nested in arrays", () => {
+      const sanitized = utils.sanitizeStoredAccountComment({
+        flair: [() => "skip", "keep"],
+      } as any);
+      expect(sanitized.flair).toEqual(["keep"]);
+    });
+
+    test("removes functions, signer, and nested replies.pages while keeping pageCids", () => {
+      const sanitized = utils.sanitizeStoredAccountComment({
+        signer: { privateKey: "secret" },
+        onChallenge: () => {},
+        replies: {
+          pages: { best: { comments: [{ cid: "reply-1" }] } },
+          pageCids: { best: "page-1" },
+        },
+      } as any);
+      expect(sanitized.signer).toBeUndefined();
+      expect(sanitized.onChallenge).toBeUndefined();
+      expect(sanitized.replies.pages).toBeUndefined();
+      expect(sanitized.replies.pageCids).toEqual({ best: "page-1" });
+    });
+
+    test("removes replies object entirely when pages was the only nested payload", () => {
+      const sanitized = utils.sanitizeStoredAccountComment({
+        replies: { pages: { best: { comments: [] } } },
+      } as any);
+      expect(sanitized.replies).toBeUndefined();
+    });
+  });
+
+  describe("comment indexes and edit summaries", () => {
+    test("getAccountCommentsIndex handles undefined input", () => {
+      expect(utils.getAccountCommentsIndex(undefined as any)).toEqual({
+        byCommunityAddress: {},
+        byParentCid: {},
+      });
+    });
+
+    test("getAccountCommentsIndex skips comments without communityAddress or parentCid", () => {
+      const index = utils.getAccountCommentsIndex([
+        { index: 0, cid: "cid-1" },
+        { index: 1, cid: "cid-2", communityAddress: "sub.eth" },
+        { index: 2, cid: "cid-3", parentCid: "parent-cid" },
+      ] as any);
+      expect(index.byCommunityAddress).toEqual({ "sub.eth": [1] });
+      expect(index.byParentCid).toEqual({ "parent-cid": [2] });
+    });
+
+    test("getAccountCommentsIndex appends repeated community and parent indexes", () => {
+      const index = utils.getAccountCommentsIndex([
+        { index: 0, communityAddress: "sub.eth", parentCid: "parent-cid" },
+        { index: 1, communityAddress: "sub.eth", parentCid: "parent-cid" },
+      ] as any);
+      expect(index.byCommunityAddress["sub.eth"]).toEqual([0, 1]);
+      expect(index.byParentCid["parent-cid"]).toEqual([0, 1]);
+    });
+
+    test("getAccountsCommentsIndexes builds indexes per account", () => {
+      const indexes = utils.getAccountsCommentsIndexes({
+        acc1: [{ index: 0, communityAddress: "sub.eth" }],
+        acc2: [{ index: 1, parentCid: "parent-cid" }],
+      } as any);
+      expect(indexes.acc1.byCommunityAddress["sub.eth"]).toEqual([0]);
+      expect(indexes.acc2.byParentCid["parent-cid"]).toEqual([1]);
+    });
+
+    test("getAccountEditPropertySummary merges commentModeration and ignores stale or non-edit fields", () => {
+      const summary = utils.getAccountEditPropertySummary([
+        {
+          commentCid: "cid-1",
+          timestamp: 10,
+          spoiler: false,
+          author: { address: "addr" },
+        },
+        {
+          commentCid: "cid-1",
+          timestamp: 20,
+          commentModeration: { removed: true },
+        },
+        {
+          commentCid: "cid-1",
+          timestamp: 15,
+          spoiler: true,
+        },
+        {
+          commentCid: "cid-1",
+          timestamp: 12,
+          spoiler: false,
+        },
+      ] as any);
+      expect(summary.spoiler).toEqual({ timestamp: 15, value: true });
+      expect(summary.removed).toEqual({ timestamp: 20, value: true });
+      expect((summary as any).author).toBeUndefined();
+    });
+
+    test("getAccountEditPropertySummary handles undefined input", () => {
+      expect(utils.getAccountEditPropertySummary(undefined as any)).toEqual({});
+    });
+
+    test("getAccountsEditsSummary handles empty targets", () => {
+      expect(utils.getAccountsEditsSummary({} as any)).toEqual({});
+    });
+
+    test("getAccountsEditsSummary handles undefined input", () => {
+      expect(utils.getAccountsEditsSummary(undefined as any)).toEqual({});
+    });
+  });
+
   describe("promiseAny", () => {
     test("rejects when given empty array", async () => {
       await expect(utils.promiseAny([])).rejects.toThrow("all promises rejected");
