@@ -61,7 +61,7 @@
     "react": ">=16.8"
   },
   "resolutions": {
-    "vite": "8.0.1",
+    "vite": "8.0.2",
     "tar": "7.5.11",
     "undici": "7.24.0",
     "minimatch": "3.1.4",
@@ -102,8 +102,8 @@
     "react-dom": "19.1.0",
     "tcp-port-used": "1.0.2",
     "tempy": "1.0.1",
-    "typescript": "5.9.3",
-    "vite": "8.0.1",
+    "typescript": "6.0.2",
+    "vite": "8.0.2",
     "vitest": "4.0.18",
     "wait-on": "9.0.3"
   },
