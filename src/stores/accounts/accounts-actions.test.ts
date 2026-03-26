@@ -2146,7 +2146,7 @@ describe("accounts-actions", () => {
       expect(comments.find((c: any) => c.content === "ipfs")).toBeDefined();
     });
 
-    test("publishComment publish throws: onError called", async () => {
+    test("publishComment publish throws: stores error on the pending comment and calls onError", async () => {
       const account = Object.values(accountsStore.getState().accounts)[0];
       const origCreate = account.plebbit.createComment.bind(account.plebbit);
       vi.spyOn(account.plebbit, "createComment").mockImplementation(async (opts: any) => {
@@ -2168,6 +2168,40 @@ describe("accounts-actions", () => {
 
       await new Promise((r) => setTimeout(r, 100));
       expect(onError).toHaveBeenCalled();
+      const comments = accountsStore.getState().accountsComments[account.id] || [];
+      expect(comments[0]?.error?.message).toBe("publish failed");
+      expect(comments[0]?.errors?.map((error: Error) => error.message)).toEqual(["publish failed"]);
+    });
+
+    test("publishComment stores terminal publication state for pending comments", async () => {
+      const account = Object.values(accountsStore.getState().accounts)[0];
+      const origCreate = account.plebbit.createComment.bind(account.plebbit);
+      let commentRef: any;
+      vi.spyOn(account.plebbit, "createComment").mockImplementation(async (opts: any) => {
+        const c = await origCreate(opts);
+        commentRef = c;
+        vi.spyOn(c, "publish").mockResolvedValueOnce(undefined);
+        return c;
+      });
+
+      await act(async () => {
+        await accountsActions.publishComment({
+          communityAddress: "sub.eth",
+          content: "terminal-state",
+          onChallenge: () => {},
+          onChallengeVerification: () => {},
+        });
+      });
+
+      await new Promise((r) => setTimeout(r, 25));
+      await act(async () => {
+        commentRef.emit("statechange", "stopped");
+        commentRef.emit("publishingstatechange", "failed");
+      });
+
+      const comments = accountsStore.getState().accountsComments[account.id] || [];
+      expect(comments[0]?.state).toBe("stopped");
+      expect(comments[0]?.publishingState).toBe("failed");
     });
 
     test("publishComment startUpdatingAccountCommentOnCommentUpdateEvents error: catch logs (line 760)", async () => {

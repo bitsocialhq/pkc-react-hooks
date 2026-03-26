@@ -1558,6 +1558,63 @@ describe("accounts", () => {
       await waitForErr(() => renderedErr.result.current.error !== undefined);
       expect(renderedErr.result.current.error?.message).toBe("publish failed");
       expect(renderedErr.result.current.errors).toHaveLength(1);
+      expect(renderedErr.result.current.state).toBe("failed");
+    });
+
+    test("useAccountComment keeps pending when publishingState is failed but publication state is not stopped", async () => {
+      const state = accountsStore.getState() as any;
+      const accountId = state.activeAccountId || Object.keys(state.accounts)[0];
+      const existing = state.accountsComments?.[accountId] || [];
+      const failedIndex = existing.length;
+      accountsStore.setState((s: any) => ({
+        ...s,
+        accountsComments: {
+          ...s.accountsComments,
+          [accountId]: [
+            ...(s.accountsComments?.[accountId] || []),
+            {
+              timestamp: Math.floor(Date.now() / 1000),
+              communityAddress: "test.eth",
+              content: "still retrying",
+              index: failedIndex,
+              publishingState: "failed",
+              state: "publishing",
+            },
+          ],
+        },
+      }));
+      const renderedPending = renderHook(() => useAccountComment({ commentIndex: failedIndex }));
+      const waitForPending = testUtils.createWaitFor(renderedPending);
+      await waitForPending(() => renderedPending.result.current.state === "pending");
+      expect(renderedPending.result.current.state).toBe("pending");
+    });
+
+    test("useAccountComment shows failed when publishingState is failed and publication state is stopped", async () => {
+      const state = accountsStore.getState() as any;
+      const accountId = state.activeAccountId || Object.keys(state.accounts)[0];
+      const existing = state.accountsComments?.[accountId] || [];
+      const failedIndex = existing.length;
+      accountsStore.setState((s: any) => ({
+        ...s,
+        accountsComments: {
+          ...s.accountsComments,
+          [accountId]: [
+            ...(s.accountsComments?.[accountId] || []),
+            {
+              timestamp: Math.floor(Date.now() / 1000),
+              communityAddress: "test.eth",
+              content: "failed",
+              index: failedIndex,
+              publishingState: "failed",
+              state: "stopped",
+            },
+          ],
+        },
+      }));
+      const renderedFailed = renderHook(() => useAccountComment({ commentIndex: failedIndex }));
+      const waitForFailed = testUtils.createWaitFor(renderedFailed);
+      await waitForFailed(() => renderedFailed.result.current.state === "failed");
+      expect(renderedFailed.result.current.state).toBe("failed");
     });
 
     test("useAccountVote with no commentCid returns initializing", async () => {
