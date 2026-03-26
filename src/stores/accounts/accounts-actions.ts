@@ -1066,140 +1066,212 @@ export const publishComment = async (
   })();
 
   let lastChallenge: Challenge | undefined;
+  let lastReportedPublishError: Error | undefined;
+  const normalizePublishError = (error: unknown): Error =>
+    error instanceof Error ? error : new Error(String(error));
+  const getActiveSessionForComment = (activeComment: any) => {
+    const session = getPublishSession(publishSessionId);
+    if (
+      !session ||
+      isPublishSessionAbandoned(publishSessionId) ||
+      session.comment !== activeComment
+    ) {
+      return undefined;
+    }
+    return session;
+  };
+  const queueCleanupFailedPublishSession = (activeComment: any) => {
+    if (!getActiveSessionForComment(activeComment)) return;
+    queueMicrotask(() => {
+      if (getActiveSessionForComment(activeComment)) {
+        cleanupPublishSessionOnTerminal(publishSessionId);
+      }
+    });
+  };
+  const recordPublishCommentError = (rawError: unknown, activeComment: any) => {
+    const error = normalizePublishError(rawError);
+    if (lastReportedPublishError === error) {
+      return error;
+    }
+    lastReportedPublishError = error;
+
+    const session = getActiveSessionForComment(activeComment);
+    if (!session) return error;
+    const currentIndex = session.currentIndex;
+    accountsStore.setState(({ accountsComments }) =>
+      maybeUpdateAccountComment(accountsComments, account.id, currentIndex, (ac, acc) => {
+        const previousErrors = Array.isArray(acc.errors) ? acc.errors : [];
+        const errors =
+          previousErrors[previousErrors.length - 1] === error
+            ? previousErrors
+            : [...previousErrors, error];
+        ac[currentIndex] = { ...acc, errors, error };
+      }),
+    );
+    return error;
+  };
+  const reportActivePublishCommentError = (rawError: unknown, activeComment: any) => {
+    if (!getActiveSessionForComment(activeComment)) return;
+    const error = recordPublishCommentError(rawError, activeComment);
+    queueCleanupFailedPublishSession(activeComment);
+    publishCommentOptions.onError?.(error, activeComment);
+  };
   async function publishAndRetryFailedChallengeVerification() {
     if (isPublishSessionAbandoned(publishSessionId)) {
       return;
     }
-    updatePublishSessionComment(publishSessionId, comment);
-    comment.once("challenge", async (challenge: Challenge) => {
+    const activeComment = comment;
+    updatePublishSessionComment(publishSessionId, activeComment);
+    activeComment.once("challenge", async (challenge: Challenge) => {
       lastChallenge = challenge;
-      publishCommentOptions.onChallenge(challenge, comment);
+      publishCommentOptions.onChallenge(challenge, activeComment);
     });
-    comment.once("challengeverification", async (challengeVerification: ChallengeVerification) => {
-      publishCommentOptions.onChallengeVerification(challengeVerification, comment);
-      if (!challengeVerification.challengeSuccess && lastChallenge) {
-        // publish again automatically on fail
-        const timestamp = Math.floor(Date.now() / 1000);
-        createCommentOptions = { ...createCommentOptions, timestamp };
-        createdAccountComment = { ...createdAccountComment, timestamp };
-        await saveCreatedAccountComment(createdAccountComment);
-        if (isPublishSessionAbandoned(publishSessionId)) {
-          return;
-        }
-        comment = backfillPublicationCommunityAddress(
-          await account.plebbit.createComment(createCommentOptions),
-          createCommentOptions,
-        );
-        syncCommentClientsSnapshot(publishSessionId, account.id, comment);
-        lastChallenge = undefined;
-        publishAndRetryFailedChallengeVerification();
-      } else {
-        // the challengeverification message of a comment publication should in theory send back the CID
-        // of the published comment which is needed to resolve it for replies, upvotes, etc
-        const session = getPublishSession(publishSessionId);
-        const currentIndex = session?.currentIndex ?? accountCommentIndex;
-        if (!session || isPublishSessionAbandoned(publishSessionId)) return;
-        queueMicrotask(() => cleanupPublishSessionOnTerminal(publishSessionId));
-        if (challengeVerification?.commentUpdate?.cid) {
-          const persistedCommentWithCid = addShortAddressesToAccountComment(
-            sanitizeStoredAccountComment(normalizePublicationOptionsForStore(comment as any)),
+    activeComment.once(
+      "challengeverification",
+      async (challengeVerification: ChallengeVerification) => {
+        publishCommentOptions.onChallengeVerification(challengeVerification, activeComment);
+        if (!challengeVerification.challengeSuccess && lastChallenge) {
+          // publish again automatically on fail
+          const timestamp = Math.floor(Date.now() / 1000);
+          createCommentOptions = { ...createCommentOptions, timestamp };
+          createdAccountComment = { ...createdAccountComment, timestamp };
+          updatePublishSessionComment(publishSessionId, undefined);
+          await saveCreatedAccountComment(createdAccountComment);
+          if (isPublishSessionAbandoned(publishSessionId)) {
+            return;
+          }
+          comment = backfillPublicationCommunityAddress(
+            await account.plebbit.createComment(createCommentOptions),
+            createCommentOptions,
           );
-          const liveCommentWithCid = addShortAddressesToAccountComment(
-            sanitizeAccountCommentForState(normalizePublicationOptionsForStore(comment as any)),
-          );
-          delete (persistedCommentWithCid as any).clients;
-          delete (persistedCommentWithCid as any).publishingState;
-          delete (persistedCommentWithCid as any).error;
-          delete (persistedCommentWithCid as any).errors;
-          delete (liveCommentWithCid as any).clients;
-          delete (liveCommentWithCid as any).publishingState;
-          delete (liveCommentWithCid as any).error;
-          delete (liveCommentWithCid as any).errors;
-          await accountsDatabase.addAccountComment(
-            account.id,
-            persistedCommentWithCid,
-            currentIndex,
-          );
-          accountsStore.setState(
-            ({ accountsComments, accountsCommentsIndexes, commentCidsToAccountsComments }) => {
-              const updatedAccountComments = [...accountsComments[account.id]];
-              const updatedAccountComment = {
-                ...liveCommentWithCid,
-                index: currentIndex,
-                accountId: account.id,
-              };
-              updatedAccountComments[currentIndex] = updatedAccountComment;
-              return {
-                accountsComments: { ...accountsComments, [account.id]: updatedAccountComments },
-                accountsCommentsIndexes: {
-                  ...accountsCommentsIndexes,
-                  [account.id]: getAccountCommentsIndex(updatedAccountComments),
-                },
-                commentCidsToAccountsComments: {
-                  ...commentCidsToAccountsComments,
-                  [challengeVerification?.commentUpdate?.cid]: {
-                    accountId: account.id,
-                    accountCommentIndex: currentIndex,
-                  },
-                },
-              };
-            },
-          );
-
-          // clone the comment or it bugs publishing callbacks
-          const updatingComment = await account.plebbit.createComment(
-            normalizePublicationOptionsForPlebbit(account.plebbit, { ...comment }),
-          );
-          accountsActionsInternal
-            .startUpdatingAccountCommentOnCommentUpdateEvents(
-              updatingComment,
-              account,
-              currentIndex,
-            )
-            .catch((error: unknown) =>
-              log.error(
-                "accountsActions.publishComment startUpdatingAccountCommentOnCommentUpdateEvents error",
-                { comment, account, accountCommentIndex, error },
-              ),
+          syncCommentClientsSnapshot(publishSessionId, account.id, comment);
+          lastChallenge = undefined;
+          publishAndRetryFailedChallengeVerification();
+        } else {
+          // the challengeverification message of a comment publication should in theory send back the CID
+          // of the published comment which is needed to resolve it for replies, upvotes, etc
+          const session = getPublishSession(publishSessionId);
+          const currentIndex = session?.currentIndex ?? accountCommentIndex;
+          if (!session || isPublishSessionAbandoned(publishSessionId)) return;
+          queueMicrotask(() => cleanupPublishSessionOnTerminal(publishSessionId));
+          if (challengeVerification?.commentUpdate?.cid) {
+            const persistedCommentWithCid = addShortAddressesToAccountComment(
+              sanitizeStoredAccountComment(normalizePublicationOptionsForStore(comment as any)),
             );
+            const liveCommentWithCid = addShortAddressesToAccountComment(
+              sanitizeAccountCommentForState(normalizePublicationOptionsForStore(comment as any)),
+            );
+            delete (persistedCommentWithCid as any).clients;
+            delete (persistedCommentWithCid as any).publishingState;
+            delete (persistedCommentWithCid as any).error;
+            delete (persistedCommentWithCid as any).errors;
+            delete (liveCommentWithCid as any).clients;
+            delete (liveCommentWithCid as any).publishingState;
+            delete (liveCommentWithCid as any).error;
+            delete (liveCommentWithCid as any).errors;
+            await accountsDatabase.addAccountComment(
+              account.id,
+              persistedCommentWithCid,
+              currentIndex,
+            );
+            accountsStore.setState(
+              ({ accountsComments, accountsCommentsIndexes, commentCidsToAccountsComments }) => {
+                const updatedAccountComments = [...accountsComments[account.id]];
+                const updatedAccountComment = {
+                  ...liveCommentWithCid,
+                  index: currentIndex,
+                  accountId: account.id,
+                };
+                updatedAccountComments[currentIndex] = updatedAccountComment;
+                return {
+                  accountsComments: { ...accountsComments, [account.id]: updatedAccountComments },
+                  accountsCommentsIndexes: {
+                    ...accountsCommentsIndexes,
+                    [account.id]: getAccountCommentsIndex(updatedAccountComments),
+                  },
+                  commentCidsToAccountsComments: {
+                    ...commentCidsToAccountsComments,
+                    [challengeVerification?.commentUpdate?.cid]: {
+                      accountId: account.id,
+                      accountCommentIndex: currentIndex,
+                    },
+                  },
+                };
+              },
+            );
+
+            // clone the comment or it bugs publishing callbacks
+            const updatingComment = await account.plebbit.createComment(
+              normalizePublicationOptionsForPlebbit(account.plebbit, { ...comment }),
+            );
+            accountsActionsInternal
+              .startUpdatingAccountCommentOnCommentUpdateEvents(
+                updatingComment,
+                account,
+                currentIndex,
+              )
+              .catch((error: unknown) =>
+                log.error(
+                  "accountsActions.publishComment startUpdatingAccountCommentOnCommentUpdateEvents error",
+                  { comment, account, accountCommentIndex, error },
+                ),
+              );
+          }
         }
+      },
+    );
+
+    activeComment.on("error", (error: Error) => {
+      reportActivePublishCommentError(error, activeComment);
+    });
+    activeComment.on("statechange", (state: string) => {
+      const session = getActiveSessionForComment(activeComment);
+      if (!session) return;
+      const currentIndex = session.currentIndex;
+      let hasTerminalFailedState = false;
+      accountsStore.setState(({ accountsComments }) =>
+        maybeUpdateAccountComment(accountsComments, account.id, currentIndex, (ac, acc) => {
+          const nextAccountComment = { ...acc, state };
+          ac[currentIndex] = nextAccountComment;
+          hasTerminalFailedState =
+            nextAccountComment.state === "stopped" &&
+            nextAccountComment.publishingState === "failed";
+        }),
+      );
+      if (hasTerminalFailedState) {
+        queueCleanupFailedPublishSession(activeComment);
       }
     });
-
-    comment.on("error", (error: Error) => {
-      const session = getPublishSession(publishSessionId);
-      if (!session || isPublishSessionAbandoned(publishSessionId)) return;
+    activeComment.on("publishingstatechange", async (publishingState: string) => {
+      const session = getActiveSessionForComment(activeComment);
+      if (!session) return;
       const currentIndex = session.currentIndex;
+      let hasTerminalFailedState = false;
       accountsStore.setState(({ accountsComments }) =>
         maybeUpdateAccountComment(accountsComments, account.id, currentIndex, (ac, acc) => {
-          const errors = [...(acc.errors || []), error];
-          ac[currentIndex] = { ...acc, errors, error };
+          const nextAccountComment = { ...acc, publishingState };
+          ac[currentIndex] = nextAccountComment;
+          hasTerminalFailedState =
+            nextAccountComment.state === "stopped" &&
+            nextAccountComment.publishingState === "failed";
         }),
       );
-      publishCommentOptions.onError?.(error, comment);
-    });
-    comment.on("publishingstatechange", async (publishingState: string) => {
-      const session = getPublishSession(publishSessionId);
-      if (!session || isPublishSessionAbandoned(publishSessionId)) return;
-      const currentIndex = session.currentIndex;
-      accountsStore.setState(({ accountsComments }) =>
-        maybeUpdateAccountComment(accountsComments, account.id, currentIndex, (ac, acc) => {
-          ac[currentIndex] = { ...acc, publishingState };
-        }),
-      );
+      if (hasTerminalFailedState) {
+        queueCleanupFailedPublishSession(activeComment);
+      }
       publishCommentOptions.onPublishingStateChange?.(publishingState);
     });
 
     // set clients on account comment so the frontend can display it, dont persist in db because a reload cancels publishing
     utils.clientsOnStateChange(
-      comment.clients,
+      activeComment.clients,
       (clientState: string, clientType: string, clientUrl: string, chainTicker?: string) => {
-        const session = getPublishSession(publishSessionId);
-        if (!session || isPublishSessionAbandoned(publishSessionId)) return;
+        const session = getActiveSessionForComment(activeComment);
+        if (!session) return;
         const currentIndex = session.currentIndex;
         accountsStore.setState(({ accountsComments }) =>
           maybeUpdateAccountComment(accountsComments, account.id, currentIndex, (ac, acc) => {
-            const clients = getClientsSnapshotForState(comment.clients) || {};
+            const clients = getClientsSnapshotForState(activeComment.clients) || {};
             const client = { state: clientState };
             if (chainTicker) {
               const chainProviders = { ...clients[clientType][chainTicker], [clientUrl]: client };
@@ -1213,13 +1285,13 @@ export const publishComment = async (
       },
     );
 
-    listeners.push(comment);
+    listeners.push(activeComment);
     try {
       // publish will resolve after the challenge request
       // if it fails before, like failing to resolve ENS, we can emit the error
-      await comment.publish();
+      await activeComment.publish();
     } catch (error) {
-      publishCommentOptions.onError?.(error, comment);
+      reportActivePublishCommentError(error, activeComment);
     }
   }
 

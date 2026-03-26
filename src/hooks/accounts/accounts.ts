@@ -312,7 +312,9 @@ export function useNotifications(options?: UseNotificationsOptions): UseNotifica
 }
 
 const getAccountCommentsStates = (accountComments: AccountComment[]) => {
-  // no longer consider an pending ater an expiry time of 20 minutes, consider failed
+  // Without a cid, the account comment is still a local pending publish. plebbit-js marks
+  // terminal publish failures when `publishingState === "failed"` and publication `state`
+  // is `"stopped"`, so we derive failed from that terminal pair or recorded publish errors.
   const now = Math.round(Date.now() / 1000);
   const expiryTime = now - 60 * 20;
 
@@ -320,7 +322,20 @@ const getAccountCommentsStates = (accountComments: AccountComment[]) => {
   for (const accountComment of accountComments) {
     let state = "succeeded";
     if (!accountComment.cid) {
-      if (accountComment.timestamp > expiryTime) {
+      const ac = accountComment as AccountComment & {
+        error?: Error;
+        errors?: Error[];
+        publishingState?: string;
+        state?: string;
+      };
+      const resolvedPublishFailed =
+        (ac.publishingState === "failed" && ac.state === "stopped") ||
+        ac.error != null ||
+        (Array.isArray(ac.errors) && ac.errors.length > 0);
+
+      if (resolvedPublishFailed) {
+        state = "failed";
+      } else if (accountComment.timestamp > expiryTime) {
         state = "pending";
       } else {
         state = "failed";
@@ -447,7 +462,7 @@ export function useAccountComments(options?: UseAccountCommentsOptions): UseAcco
     parentCid,
   ]);
 
-  // recheck the states for changes every 1 minute because succeeded / failed / pending aren't events, they are time elapsed
+  // Recheck periodically so the 20-minute “stale pending → failed” transition updates without other store events
   const delay = 60_000;
   const immediate = false;
   useInterval(

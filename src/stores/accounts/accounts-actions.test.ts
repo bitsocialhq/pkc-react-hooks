@@ -1002,6 +1002,49 @@ describe("accounts-actions", () => {
       expect(comments.some((c: any) => c.cid)).toBe(true);
     });
 
+    test("publishComment ignores stale errors from a replaced retry comment", async () => {
+      const account = Object.values(accountsStore.getState().accounts)[0];
+      const createdComments: any[] = [];
+      const origCreateComment = account.plebbit.createComment.bind(account.plebbit);
+      vi.spyOn(account.plebbit, "createComment").mockImplementation(async (opts: any) => {
+        const comment = await origCreateComment(opts);
+        createdComments.push(comment);
+        return comment;
+      });
+
+      const onError = vi.fn();
+      await act(async () => {
+        await accountsActions.publishComment({
+          communityAddress: "sub.eth",
+          content: "retry stale error",
+          onChallenge: (ch: any, c: any) => c.publishChallengeAnswers(["4"]),
+          onChallengeVerification: () => {},
+          onError,
+        });
+      });
+
+      const start = Date.now();
+      while (createdComments.length < 2 && Date.now() - start < 2000) {
+        await new Promise((resolve) => setTimeout(resolve, 25));
+      }
+
+      expect(createdComments).toHaveLength(2);
+      createdComments[0]?.listeners("error")?.[0]?.(new Error("stale retry error"));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(onError).not.toHaveBeenCalled();
+      const successStart = Date.now();
+      while (Date.now() - successStart < 2000) {
+        const currentComments = accountsStore.getState().accountsComments[account.id] || [];
+        if (currentComments.some((comment: any) => comment.cid === "retry stale error cid")) {
+          break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 25));
+      }
+      const comments = accountsStore.getState().accountsComments[account.id] || [];
+      expect(comments.some((comment: any) => comment.cid === "retry stale error cid")).toBe(true);
+    });
+
     test("publishVote retries on challenge failure", async () => {
       const opts = {
         communityAddress: "sub.eth",
@@ -2146,7 +2189,7 @@ describe("accounts-actions", () => {
       expect(comments.find((c: any) => c.content === "ipfs")).toBeDefined();
     });
 
-    test("publishComment publish throws: onError called", async () => {
+    test("publishComment publish throws: stores error on the pending comment and calls onError", async () => {
       const account = Object.values(accountsStore.getState().accounts)[0];
       const origCreate = account.plebbit.createComment.bind(account.plebbit);
       vi.spyOn(account.plebbit, "createComment").mockImplementation(async (opts: any) => {
@@ -2168,6 +2211,51 @@ describe("accounts-actions", () => {
 
       await new Promise((r) => setTimeout(r, 100));
       expect(onError).toHaveBeenCalled();
+      const comments = accountsStore.getState().accountsComments[account.id] || [];
+      expect(comments[0]?.error?.message).toBe("publish failed");
+      expect(comments[0]?.errors?.map((error: Error) => error.message)).toEqual(["publish failed"]);
+    });
+
+    test("publishComment stores terminal publication state and ignores later errors", async () => {
+      const account = Object.values(accountsStore.getState().accounts)[0];
+      const origCreate = account.plebbit.createComment.bind(account.plebbit);
+      let commentRef: any;
+      let resolveCommentCreated!: () => void;
+      const commentCreated = new Promise<void>((resolve) => {
+        resolveCommentCreated = resolve;
+      });
+      vi.spyOn(account.plebbit, "createComment").mockImplementation(async (opts: any) => {
+        const c = await origCreate(opts);
+        commentRef = c;
+        resolveCommentCreated();
+        vi.spyOn(c, "publish").mockResolvedValueOnce(undefined);
+        return c;
+      });
+
+      const onError = vi.fn();
+      await act(async () => {
+        await accountsActions.publishComment({
+          communityAddress: "sub.eth",
+          content: "terminal-state",
+          onChallenge: () => {},
+          onChallengeVerification: () => {},
+          onError,
+        });
+      });
+
+      await commentCreated;
+      await act(async () => {
+        commentRef.emit("statechange", "stopped");
+        commentRef.emit("publishingstatechange", "failed");
+      });
+      await Promise.resolve();
+      commentRef.emit("error", new Error("late terminal error"));
+      await new Promise((resolve) => setTimeout(resolve, 25));
+
+      const comments = accountsStore.getState().accountsComments[account.id] || [];
+      expect(comments[0]?.state).toBe("stopped");
+      expect(comments[0]?.publishingState).toBe("failed");
+      expect(onError).not.toHaveBeenCalled();
     });
 
     test("publishComment startUpdatingAccountCommentOnCommentUpdateEvents error: catch logs (line 760)", async () => {

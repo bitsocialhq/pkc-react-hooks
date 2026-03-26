@@ -1007,15 +1007,14 @@ describe("actions", () => {
       });
 
       // wait for error
-      await waitFor(() => rendered.result.current.errors.length === 2);
-      expect(rendered.result.current.errors.length).toBe(2);
-      expect(rendered.result.current.error.message).toBe("publish error");
+      await waitFor(() => rendered.result.current.errors.length === 1);
+      expect(rendered.result.current.errors.length).toBe(1);
+      expect(rendered.result.current.error.message).toBe("emit error");
       expect(rendered.result.current.errors[0].message).toBe("emit error");
-      expect(rendered.result.current.errors[1].message).toBe("publish error");
 
       // check callbacks
+      expect(onError).toHaveBeenCalledTimes(1);
       expect(onError.mock.calls[0][0].message).toBe("emit error");
-      expect(onError.mock.calls[1][0].message).toBe("publish error");
 
       // restore mock
       Comment.prototype.publish = commentPublish;

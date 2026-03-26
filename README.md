@@ -897,6 +897,7 @@ for (const accountComment of accountComments) {
   // it is recommended to show a label in the UI if accountComment.state is 'pending' or 'failed'
   console.log("comment", accountComment.index, "is status", accountComment.state);
 }
+// `state` becomes `failed` as soon as a pending local publish records terminal failure (`publishingState === "failed"` and `state === "stopped"`) or a publish error, instead of waiting for the 20-minute fallback.
 // note: accountComment.index can change after deletions; prefer commentCid for stable identifiers
 
 // all my own votes
