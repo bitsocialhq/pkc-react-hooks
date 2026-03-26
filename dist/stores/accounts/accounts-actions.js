@@ -731,25 +731,73 @@ export const publishComment = (publishCommentOptions, accountName) => __awaiter(
         log("accountsActions.publishComment", { createCommentOptions });
     }))();
     let lastChallenge;
+    let lastReportedPublishError;
+    const normalizePublishError = (error) => error instanceof Error ? error : new Error(String(error));
+    const getActiveSessionForComment = (activeComment) => {
+        const session = getPublishSession(publishSessionId);
+        if (!session ||
+            isPublishSessionAbandoned(publishSessionId) ||
+            session.comment !== activeComment) {
+            return undefined;
+        }
+        return session;
+    };
+    const queueCleanupFailedPublishSession = (activeComment) => {
+        if (!getActiveSessionForComment(activeComment))
+            return;
+        queueMicrotask(() => {
+            if (getActiveSessionForComment(activeComment)) {
+                cleanupPublishSessionOnTerminal(publishSessionId);
+            }
+        });
+    };
+    const recordPublishCommentError = (rawError, activeComment) => {
+        const error = normalizePublishError(rawError);
+        if (lastReportedPublishError === error) {
+            return error;
+        }
+        lastReportedPublishError = error;
+        const session = getActiveSessionForComment(activeComment);
+        if (!session)
+            return error;
+        const currentIndex = session.currentIndex;
+        accountsStore.setState(({ accountsComments }) => maybeUpdateAccountComment(accountsComments, account.id, currentIndex, (ac, acc) => {
+            const previousErrors = Array.isArray(acc.errors) ? acc.errors : [];
+            const errors = previousErrors[previousErrors.length - 1] === error
+                ? previousErrors
+                : [...previousErrors, error];
+            ac[currentIndex] = Object.assign(Object.assign({}, acc), { errors, error });
+        }));
+        return error;
+    };
+    const reportActivePublishCommentError = (rawError, activeComment) => {
+        var _a;
+        if (!getActiveSessionForComment(activeComment))
+            return;
+        const error = recordPublishCommentError(rawError, activeComment);
+        queueCleanupFailedPublishSession(activeComment);
+        (_a = publishCommentOptions.onError) === null || _a === void 0 ? void 0 : _a.call(publishCommentOptions, error, activeComment);
+    };
     function publishAndRetryFailedChallengeVerification() {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a;
             if (isPublishSessionAbandoned(publishSessionId)) {
                 return;
             }
-            updatePublishSessionComment(publishSessionId, comment);
-            comment.once("challenge", (challenge) => __awaiter(this, void 0, void 0, function* () {
+            const activeComment = comment;
+            updatePublishSessionComment(publishSessionId, activeComment);
+            activeComment.once("challenge", (challenge) => __awaiter(this, void 0, void 0, function* () {
                 lastChallenge = challenge;
-                publishCommentOptions.onChallenge(challenge, comment);
+                publishCommentOptions.onChallenge(challenge, activeComment);
             }));
-            comment.once("challengeverification", (challengeVerification) => __awaiter(this, void 0, void 0, function* () {
+            activeComment.once("challengeverification", (challengeVerification) => __awaiter(this, void 0, void 0, function* () {
                 var _a, _b;
-                publishCommentOptions.onChallengeVerification(challengeVerification, comment);
+                publishCommentOptions.onChallengeVerification(challengeVerification, activeComment);
                 if (!challengeVerification.challengeSuccess && lastChallenge) {
                     // publish again automatically on fail
                     const timestamp = Math.floor(Date.now() / 1000);
                     createCommentOptions = Object.assign(Object.assign({}, createCommentOptions), { timestamp });
                     createdAccountComment = Object.assign(Object.assign({}, createdAccountComment), { timestamp });
+                    updatePublishSessionComment(publishSessionId, undefined);
                     yield saveCreatedAccountComment(createdAccountComment);
                     if (isPublishSessionAbandoned(publishSessionId)) {
                         return;
@@ -801,37 +849,53 @@ export const publishComment = (publishCommentOptions, accountName) => __awaiter(
                     }
                 }
             }));
-            comment.on("error", (error) => {
-                var _a;
-                const session = getPublishSession(publishSessionId);
-                if (!session || isPublishSessionAbandoned(publishSessionId))
-                    return;
-                const currentIndex = session.currentIndex;
-                accountsStore.setState(({ accountsComments }) => maybeUpdateAccountComment(accountsComments, account.id, currentIndex, (ac, acc) => {
-                    const errors = [...(acc.errors || []), error];
-                    ac[currentIndex] = Object.assign(Object.assign({}, acc), { errors, error });
-                }));
-                (_a = publishCommentOptions.onError) === null || _a === void 0 ? void 0 : _a.call(publishCommentOptions, error, comment);
+            activeComment.on("error", (error) => {
+                reportActivePublishCommentError(error, activeComment);
             });
-            comment.on("publishingstatechange", (publishingState) => __awaiter(this, void 0, void 0, function* () {
-                var _a;
-                const session = getPublishSession(publishSessionId);
-                if (!session || isPublishSessionAbandoned(publishSessionId))
+            activeComment.on("statechange", (state) => {
+                const session = getActiveSessionForComment(activeComment);
+                if (!session)
                     return;
                 const currentIndex = session.currentIndex;
+                let hasTerminalFailedState = false;
                 accountsStore.setState(({ accountsComments }) => maybeUpdateAccountComment(accountsComments, account.id, currentIndex, (ac, acc) => {
-                    ac[currentIndex] = Object.assign(Object.assign({}, acc), { publishingState });
+                    const nextAccountComment = Object.assign(Object.assign({}, acc), { state });
+                    ac[currentIndex] = nextAccountComment;
+                    hasTerminalFailedState =
+                        nextAccountComment.state === "stopped" &&
+                            nextAccountComment.publishingState === "failed";
                 }));
+                if (hasTerminalFailedState) {
+                    queueCleanupFailedPublishSession(activeComment);
+                }
+            });
+            activeComment.on("publishingstatechange", (publishingState) => __awaiter(this, void 0, void 0, function* () {
+                var _a;
+                const session = getActiveSessionForComment(activeComment);
+                if (!session)
+                    return;
+                const currentIndex = session.currentIndex;
+                let hasTerminalFailedState = false;
+                accountsStore.setState(({ accountsComments }) => maybeUpdateAccountComment(accountsComments, account.id, currentIndex, (ac, acc) => {
+                    const nextAccountComment = Object.assign(Object.assign({}, acc), { publishingState });
+                    ac[currentIndex] = nextAccountComment;
+                    hasTerminalFailedState =
+                        nextAccountComment.state === "stopped" &&
+                            nextAccountComment.publishingState === "failed";
+                }));
+                if (hasTerminalFailedState) {
+                    queueCleanupFailedPublishSession(activeComment);
+                }
                 (_a = publishCommentOptions.onPublishingStateChange) === null || _a === void 0 ? void 0 : _a.call(publishCommentOptions, publishingState);
             }));
             // set clients on account comment so the frontend can display it, dont persist in db because a reload cancels publishing
-            utils.clientsOnStateChange(comment.clients, (clientState, clientType, clientUrl, chainTicker) => {
-                const session = getPublishSession(publishSessionId);
-                if (!session || isPublishSessionAbandoned(publishSessionId))
+            utils.clientsOnStateChange(activeComment.clients, (clientState, clientType, clientUrl, chainTicker) => {
+                const session = getActiveSessionForComment(activeComment);
+                if (!session)
                     return;
                 const currentIndex = session.currentIndex;
                 accountsStore.setState(({ accountsComments }) => maybeUpdateAccountComment(accountsComments, account.id, currentIndex, (ac, acc) => {
-                    const clients = getClientsSnapshotForState(comment.clients) || {};
+                    const clients = getClientsSnapshotForState(activeComment.clients) || {};
                     const client = { state: clientState };
                     if (chainTicker) {
                         const chainProviders = Object.assign(Object.assign({}, clients[clientType][chainTicker]), { [clientUrl]: client });
@@ -843,14 +907,14 @@ export const publishComment = (publishCommentOptions, accountName) => __awaiter(
                     ac[currentIndex] = Object.assign(Object.assign({}, acc), { clients });
                 }));
             });
-            listeners.push(comment);
+            listeners.push(activeComment);
             try {
                 // publish will resolve after the challenge request
                 // if it fails before, like failing to resolve ENS, we can emit the error
-                yield comment.publish();
+                yield activeComment.publish();
             }
             catch (error) {
-                (_a = publishCommentOptions.onError) === null || _a === void 0 ? void 0 : _a.call(publishCommentOptions, error, comment);
+                reportActivePublishCommentError(error, activeComment);
             }
         });
     }
