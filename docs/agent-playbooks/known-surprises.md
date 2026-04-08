@@ -28,6 +28,16 @@ If uncertain, ask the developer before adding an entry.
 
 ## Entries
 
+### Agent model names are toolchain-specific
+
+- **Date:** 2026-04-08
+- **Observed by:** Codex
+- **Context:** reviewing repo-managed agent manifests under `.codex/`, `.cursor/`, and `.claude/`
+- **What was surprising:** provider/model names are not interchangeable across toolchains in this repo. `composer-2` is valid for Cursor, but not for Claude. Codex agents should use `gpt-5.4`, not `gpt-5.3-codex` or `gpt-5.3-codex-spark`.
+- **Impact:** agents can silently pick unsupported or poor-performing models and break contributor workflows.
+- **Mitigation:** keep the repo model mapping explicit when editing agent manifests: `.codex` → `gpt-5.4`, `.cursor` → `composer-2`, `.claude` → `sonnet`.
+- **Status:** confirmed
+
 ### Browser test screenshots are generated under `test/**/__screenshots__/`
 
 - **Date:** 2026-03-04

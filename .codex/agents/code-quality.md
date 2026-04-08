@@ -1,6 +1,6 @@
 ---
 name: code-quality
-model: composer-1.5
+model: gpt-5.4
 description: Code quality specialist that runs build and tests, then fixes any errors it finds. Use proactively after code changes to verify nothing is broken.
 ---
 
