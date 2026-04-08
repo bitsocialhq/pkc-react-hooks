@@ -10,11 +10,8 @@ import accountsStore from "../accounts";
 import commentsStore from "../comments";
 import { getUpdatedBufferedComments } from "./utils";
 import { CommentsFilter, Comment, Account } from "../../types";
-import { setPlebbitJs } from "../..";
-import PlebbitJsMock, {
-  Plebbit,
-  Comment as MockComment,
-} from "../../lib/plebbit-js/plebbit-js-mock";
+import { setPkcJs } from "../..";
+import PkcJsMock, { PKC, Comment as MockComment } from "../../lib/pkc-js/pkc-js-mock";
 
 const authorAddress = "author.eth";
 
@@ -23,8 +20,8 @@ describe("authors comments store", () => {
   const timeout = 20000;
 
   beforeAll(async () => {
-    // set plebbit-js mock and reset dbs
-    setPlebbitJs(PlebbitJsMock);
+    // set pkc-js mock and reset dbs
+    setPkcJs(PkcJsMock);
     await testUtils.resetDatabasesAndStores();
 
     testUtils.silenceReactWarnings();
@@ -64,11 +61,11 @@ describe("authors comments store", () => {
   });
 
   test("get multiple pages", { timeout }, async () => {
-    // mock plebbit.getComment() result
-    const commentToGet = Plebbit.prototype.commentToGet;
+    // mock pkc.getComment() result
+    const commentToGet = PKC.prototype.commentToGet;
     const totalAuthorCommentCount = 110;
     let currentAuthorCommentCount = 0;
-    Plebbit.prototype.commentToGet = (commentCid: string) => {
+    PKC.prototype.commentToGet = (commentCid: string) => {
       currentAuthorCommentCount++;
       const authorCommentIndex = totalAuthorCommentCount - currentAuthorCommentCount;
       return {
@@ -227,17 +224,17 @@ describe("authors comments store", () => {
     expect(rendered.result.current.hasMoreBufferedComments[authorCommentsName]).toBe(false);
 
     // restore mock
-    Plebbit.prototype.commentToGet = commentToGet;
+    PKC.prototype.commentToGet = commentToGet;
   });
 
   test("discover new lastCommentCid while scrolling", { timeout }, async () => {
-    // mock plebbit.getComment() result
-    const commentToGet = Plebbit.prototype.commentToGet;
+    // mock pkc.getComment() result
+    const commentToGet = PKC.prototype.commentToGet;
     const firstTimestamp = 1000;
     const totalAuthorCommentCount = 105;
     const totalAuthorCommentCountFromLastCommentCid = 40;
     const totalAuthorCommentCountFromLastCommentCid2 = 10;
-    Plebbit.prototype.commentToGet = (commentCid: string) => {
+    PKC.prototype.commentToGet = (commentCid: string) => {
       let authorCommentIndex = Number(commentCid.match(/\d+$/)?.[0]);
       if (commentCid === "comment cid") {
         authorCommentIndex = totalAuthorCommentCount;
@@ -757,19 +754,19 @@ describe("authors comments store", () => {
     expect(rendered.result.current.nextCommentCidsToFetch[differentAuthorAddress]).toBe(undefined);
 
     // restore mock
-    Plebbit.prototype.commentToGet = commentToGet;
+    PKC.prototype.commentToGet = commentToGet;
   });
 
   test("multiple filters and authors at the same time", { timeout }, async () => {
     // because this is a concurrency test, must use overlapping act()
     testUtils.silenceOverlappingActWarning();
 
-    // mock plebbit.getComment() result
-    const commentToGet = Plebbit.prototype.commentToGet;
+    // mock pkc.getComment() result
+    const commentToGet = PKC.prototype.commentToGet;
     const getAccountCommentCid = (startCommentCid: string, authorCommentIndex: number) =>
       `${startCommentCid.replace(/\d+$/, "")}${authorCommentIndex}`;
     const getAccountCommentIndex = (commentCid: string) => Number(commentCid.match(/\d+$/)?.[0]);
-    Plebbit.prototype.commentToGet = (commentCid: string) => {
+    PKC.prototype.commentToGet = (commentCid: string) => {
       const authorAddress = commentCid.split(" ")[0];
       const authorCommentIndex = getAccountCommentIndex(commentCid);
       const comment = {
@@ -949,13 +946,13 @@ describe("authors comments store", () => {
     );
 
     // restore mock
-    Plebbit.prototype.commentToGet = commentToGet;
+    PKC.prototype.commentToGet = commentToGet;
   });
 
   test("store error paths", { timeout }, async () => {
-    const commentToGet = Plebbit.prototype.commentToGet;
+    const commentToGet = PKC.prototype.commentToGet;
     const totalCount = 110;
-    Plebbit.prototype.commentToGet = (cid: string) => {
+    PKC.prototype.commentToGet = (cid: string) => {
       const idx = cid === "comment cid" ? totalCount : Number(cid.match(/\d+$/)?.[0]) || 0;
       return {
         cid,
@@ -1034,14 +1031,14 @@ describe("authors comments store", () => {
     }));
     expect(() => store.setLastCommentCid(authorAddress, "existing-last-cid")).toThrow("same value");
 
-    Plebbit.prototype.commentToGet = commentToGet;
+    PKC.prototype.commentToGet = commentToGet;
   });
 
   test("addCommentToStore rejection is caught and logged", { timeout }, async () => {
-    const commentToGet = Plebbit.prototype.commentToGet;
-    const createComment = Plebbit.prototype.createComment;
-    Plebbit.prototype.commentToGet = () => ({ author: { address: authorAddress } });
-    Plebbit.prototype.createComment = function (opts: any) {
+    const commentToGet = PKC.prototype.commentToGet;
+    const createComment = PKC.prototype.createComment;
+    PKC.prototype.commentToGet = () => ({ author: { address: authorAddress } });
+    PKC.prototype.createComment = function (opts: any) {
       if (opts?.cid === "comment cid") {
         return Promise.reject(new Error("fetch failed"));
       }
@@ -1066,8 +1063,8 @@ describe("authors comments store", () => {
     );
     await new Promise((r) => setTimeout(r, 100));
 
-    Plebbit.prototype.commentToGet = commentToGet;
-    Plebbit.prototype.createComment = createComment;
+    PKC.prototype.commentToGet = commentToGet;
+    PKC.prototype.createComment = createComment;
   });
 
   test(
@@ -1076,9 +1073,9 @@ describe("authors comments store", () => {
       timeout,
     },
     async () => {
-      const createComment = Plebbit.prototype.createComment;
+      const createComment = PKC.prototype.createComment;
       const failingLastCid = "community-last-fail";
-      Plebbit.prototype.createComment = async function (opts: any) {
+      PKC.prototype.createComment = async function (opts: any) {
         if (opts?.cid === failingLastCid) {
           throw new Error("sub last comment fetch failed");
         }
@@ -1112,7 +1109,7 @@ describe("authors comments store", () => {
       );
       await new Promise((r) => setTimeout(r, 500));
 
-      Plebbit.prototype.createComment = createComment;
+      PKC.prototype.createComment = createComment;
     },
   );
 
@@ -1152,9 +1149,9 @@ describe("authors comments store", () => {
       timeout,
     },
     async () => {
-      const createComment = Plebbit.prototype.createComment;
+      const createComment = PKC.prototype.createComment;
       const orphanCid = "orphan-last-cid";
-      Plebbit.prototype.createComment = async function (opts: any) {
+      PKC.prototype.createComment = async function (opts: any) {
         const comment = new MockComment(opts);
         if (opts?.cid === "comment cid") {
           (comment as any).author = {
@@ -1196,7 +1193,7 @@ describe("authors comments store", () => {
       }));
       await new Promise((r) => setTimeout(r, 50));
 
-      Plebbit.prototype.createComment = createComment;
+      PKC.prototype.createComment = createComment;
     },
   );
 
@@ -1206,11 +1203,11 @@ describe("authors comments store", () => {
       timeout,
     },
     async () => {
-      const createComment = Plebbit.prototype.createComment;
+      const createComment = PKC.prototype.createComment;
       const newerBufferedCid = "newer-buffered-cid";
       const midTsLastCid = "mid-ts-last-cid";
       const lowTsCid = "low-ts-cid";
-      Plebbit.prototype.createComment = async function (opts: any) {
+      PKC.prototype.createComment = async function (opts: any) {
         const comment = new MockComment(opts);
         if (opts?.cid === "comment cid") {
           (comment as any).author = {
@@ -1288,7 +1285,7 @@ describe("authors comments store", () => {
       }));
       await new Promise((r) => setTimeout(r, 150));
 
-      Plebbit.prototype.createComment = createComment;
+      PKC.prototype.createComment = createComment;
     },
   );
 
@@ -1298,9 +1295,9 @@ describe("authors comments store", () => {
       timeout,
     },
     async () => {
-      const createComment = Plebbit.prototype.createComment;
+      const createComment = PKC.prototype.createComment;
       const wrongAuthorCid = "wrong-author-last-cid";
-      Plebbit.prototype.createComment = async function (opts: any) {
+      PKC.prototype.createComment = async function (opts: any) {
         const comment = new MockComment(opts);
         if (opts?.cid === "comment cid") {
           (comment as any).author = {
@@ -1335,7 +1332,7 @@ describe("authors comments store", () => {
       );
       await new Promise((r) => setTimeout(r, 200));
 
-      Plebbit.prototype.createComment = createComment;
+      PKC.prototype.createComment = createComment;
     },
   );
 
@@ -1345,9 +1342,9 @@ describe("authors comments store", () => {
       timeout,
     },
     async () => {
-      const createComment = Plebbit.prototype.createComment;
+      const createComment = PKC.prototype.createComment;
       const leafLastCid = "leaf-last-cid";
-      Plebbit.prototype.createComment = async function (opts: any) {
+      PKC.prototype.createComment = async function (opts: any) {
         const comment = new MockComment(opts);
         if (opts?.cid === "comment cid") {
           (comment as any).author = {
@@ -1384,7 +1381,7 @@ describe("authors comments store", () => {
         useAuthorsCommentsStore.getState().nextCommentCidsToFetch[authorAddress],
       ).toBeDefined();
 
-      Plebbit.prototype.createComment = createComment;
+      PKC.prototype.createComment = createComment;
     },
   );
 });

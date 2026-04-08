@@ -18,7 +18,7 @@ import chain from "../../lib/chain";
 import assert from "assert";
 const log = Logger("bitsocial-react-hooks:accounts:stores");
 import * as accountsActionsInternal from "./accounts-actions-internal";
-import { backfillPublicationCommunityAddress, createPlebbitCommunityEdit, getPlebbitCommunityAddresses, normalizeCommunityEditOptionsForPlebbit, normalizePublicationOptionsForStore, normalizePublicationOptionsForPlebbit, } from "../../lib/plebbit-compat";
+import { backfillPublicationCommunityAddress, createPkcCommunityEdit, getPkcCommunityAddresses, normalizeCommunityEditOptionsForPkc, normalizePublicationOptionsForStore, normalizePublicationOptionsForPkc, } from "../../lib/pkc-compat";
 import { getAccountCommentsIndex, getAccountCommunities, getCommentCidsToAccountsComments, getAccountEditPropertySummary, fetchCommentLinkDimensions, getAccountCommentDepth, addShortAddressesToAccountComment, sanitizeAccountCommentForState, sanitizeStoredAccountComment, } from "./utils";
 import isEqual from "lodash.isequal";
 import { v4 as uuid } from "uuid";
@@ -61,7 +61,7 @@ const syncCommentClientsSnapshot = (publishSessionId, accountId, publication) =>
 };
 const accountOwnsCommunityLocally = (account, communityAddress) => {
     var _a, _b, _c, _d, _e, _f, _g;
-    const localCommunityAddresses = getPlebbitCommunityAddresses(account.plebbit);
+    const localCommunityAddresses = getPkcCommunityAddresses(account.pkc);
     if (localCommunityAddresses.includes(communityAddress)) {
         return true;
     }
@@ -152,26 +152,26 @@ const accountEditNonPropertyNames = new Set([
     "clientId",
     "commentCid",
     "communityAddress",
-    "subplebbitAddress",
+    "communityAddress",
     "communityEdit",
-    "subplebbitEdit",
+    "communityEdit",
     "timestamp",
 ]);
 const normalizeStoredAccountEditForSummary = (storedAccountEdit) => {
     var _a;
     const normalizedEdit = storedAccountEdit.commentModeration
         ? Object.assign(Object.assign(Object.assign({}, storedAccountEdit), storedAccountEdit.commentModeration), { commentModeration: undefined }) : Object.assign({}, storedAccountEdit);
-    const communityEdit = (_a = normalizedEdit.communityEdit) !== null && _a !== void 0 ? _a : normalizedEdit.subplebbitEdit;
+    const communityEdit = (_a = normalizedEdit.communityEdit) !== null && _a !== void 0 ? _a : normalizedEdit.communityEdit;
     if (communityEdit && typeof communityEdit === "object") {
         Object.assign(normalizedEdit, communityEdit);
     }
     delete normalizedEdit.communityEdit;
-    delete normalizedEdit.subplebbitEdit;
+    delete normalizedEdit.communityEdit;
     return normalizedEdit;
 };
 const getStoredAccountEditTarget = (storedAccountEdit) => storedAccountEdit.commentCid ||
     storedAccountEdit.communityAddress ||
-    storedAccountEdit.subplebbitAddress;
+    storedAccountEdit.communityAddress;
 export const addStoredAccountEditSummaryToState = (accountsEditsSummaries, accountId, storedAccountEdit) => {
     var _a;
     const editTarget = getStoredAccountEditTarget(storedAccountEdit);
@@ -370,10 +370,10 @@ export const setAccount = (account) => __awaiter(void 0, void 0, void 0, functio
         account = Object.assign(Object.assign({}, account), { communities });
         // wallet.signature changes if author.address changes
         if ((_a = account.author.wallets) === null || _a === void 0 ? void 0 : _a.eth) {
-            const plebbitSignerWalletWithNewAuthorAddress = yield chain.getEthWalletFromPlebbitPrivateKey(account.signer.privateKey, account.author.address);
-            // wallet is using plebbit signer, redo signature with new author.address
-            if (account.author.wallets.eth.address === (plebbitSignerWalletWithNewAuthorAddress === null || plebbitSignerWalletWithNewAuthorAddress === void 0 ? void 0 : plebbitSignerWalletWithNewAuthorAddress.address)) {
-                account.author.wallets = Object.assign(Object.assign({}, account.author.wallets), { eth: plebbitSignerWalletWithNewAuthorAddress });
+            const pkcSignerWalletWithNewAuthorAddress = yield chain.getEthWalletFromPkcPrivateKey(account.signer.privateKey, account.author.address);
+            // wallet is using pkc signer, redo signature with new author.address
+            if (account.author.wallets.eth.address === (pkcSignerWalletWithNewAuthorAddress === null || pkcSignerWalletWithNewAuthorAddress === void 0 ? void 0 : pkcSignerWalletWithNewAuthorAddress.address)) {
+                account.author.wallets = Object.assign(Object.assign({}, account.author.wallets), { eth: pkcSignerWalletWithNewAuthorAddress });
             }
         }
     }
@@ -428,7 +428,7 @@ export const importAccount = (serializedAccount) => __awaiter(void 0, void 0, vo
     }
     // generate new account
     const generatedAccount = yield accountGenerator.generateDefaultAccount();
-    // use generatedAccount to init properties like .plebbit and .id on a new account
+    // use generatedAccount to init properties like .pkc and .id on a new account
     // overwrite account.id to avoid duplicate ids
     const newAccount = Object.assign(Object.assign(Object.assign({}, generatedAccount), imported.account), { communities, id: generatedAccount.id });
     // add account to database
@@ -656,7 +656,7 @@ export const publishComment = (publishCommentOptions, accountName) => __awaiter(
     if (previousCommentCid) {
         author.previousCommentCid = previousCommentCid;
     }
-    let createCommentOptions = normalizePublicationOptionsForPlebbit(account.plebbit, Object.assign({ timestamp: Math.floor(Date.now() / 1000), author, signer: account.signer }, publishCommentOptions));
+    let createCommentOptions = normalizePublicationOptionsForPkc(account.pkc, Object.assign({ timestamp: Math.floor(Date.now() / 1000), author, signer: account.signer }, publishCommentOptions));
     delete createCommentOptions.onChallenge;
     delete createCommentOptions.onChallengeVerification;
     delete createCommentOptions.onError;
@@ -664,7 +664,7 @@ export const publishComment = (publishCommentOptions, accountName) => __awaiter(
     delete createCommentOptions._onPendingCommentIndex;
     const storedCreateCommentOptions = normalizePublicationOptionsForStore(createCommentOptions);
     // make sure the options dont throw
-    yield account.plebbit.createComment(createCommentOptions);
+    yield account.pkc.createComment(createCommentOptions);
     // try to get comment depth needed for custom depth flat account replies
     const depth = getAccountCommentDepth(createCommentOptions);
     // set fetching link dimensions state
@@ -725,7 +725,7 @@ export const publishComment = (publishCommentOptions, accountName) => __awaiter(
         if (isPublishSessionAbandoned(publishSessionId)) {
             return;
         }
-        comment = backfillPublicationCommunityAddress(yield account.plebbit.createComment(createCommentOptions), createCommentOptions);
+        comment = backfillPublicationCommunityAddress(yield account.pkc.createComment(createCommentOptions), createCommentOptions);
         syncCommentClientsSnapshot(publishSessionId, account.id, comment);
         publishAndRetryFailedChallengeVerification();
         log("accountsActions.publishComment", { createCommentOptions });
@@ -802,7 +802,7 @@ export const publishComment = (publishCommentOptions, accountName) => __awaiter(
                     if (isPublishSessionAbandoned(publishSessionId)) {
                         return;
                     }
-                    comment = backfillPublicationCommunityAddress(yield account.plebbit.createComment(createCommentOptions), createCommentOptions);
+                    comment = backfillPublicationCommunityAddress(yield account.pkc.createComment(createCommentOptions), createCommentOptions);
                     syncCommentClientsSnapshot(publishSessionId, account.id, comment);
                     lastChallenge = undefined;
                     publishAndRetryFailedChallengeVerification();
@@ -842,7 +842,7 @@ export const publishComment = (publishCommentOptions, accountName) => __awaiter(
                             };
                         });
                         // clone the comment or it bugs publishing callbacks
-                        const updatingComment = yield account.plebbit.createComment(normalizePublicationOptionsForPlebbit(account.plebbit, Object.assign({}, comment)));
+                        const updatingComment = yield account.pkc.createComment(normalizePublicationOptionsForPkc(account.pkc, Object.assign({}, comment)));
                         accountsActionsInternal
                             .startUpdatingAccountCommentOnCommentUpdateEvents(updatingComment, account, currentIndex)
                             .catch((error) => log.error("accountsActions.publishComment startUpdatingAccountCommentOnCommentUpdateEvents error", { comment, account, accountCommentIndex, error }));
@@ -969,13 +969,13 @@ export const publishVote = (publishVoteOptions, accountName) => __awaiter(void 0
         accountName,
         account,
     });
-    let createVoteOptions = normalizePublicationOptionsForPlebbit(account.plebbit, Object.assign({ timestamp: Math.floor(Date.now() / 1000), author: account.author, signer: account.signer }, publishVoteOptions));
+    let createVoteOptions = normalizePublicationOptionsForPkc(account.pkc, Object.assign({ timestamp: Math.floor(Date.now() / 1000), author: account.author, signer: account.signer }, publishVoteOptions));
     delete createVoteOptions.onChallenge;
     delete createVoteOptions.onChallengeVerification;
     delete createVoteOptions.onError;
     delete createVoteOptions.onPublishingStateChange;
     const storedCreateVoteOptions = normalizePublicationOptionsForStore(createVoteOptions);
-    let vote = backfillPublicationCommunityAddress(yield account.plebbit.createVote(createVoteOptions), createVoteOptions);
+    let vote = backfillPublicationCommunityAddress(yield account.pkc.createVote(createVoteOptions), createVoteOptions);
     let lastChallenge;
     const publishAndRetryFailedChallengeVerification = () => __awaiter(void 0, void 0, void 0, function* () {
         var _a;
@@ -988,7 +988,7 @@ export const publishVote = (publishVoteOptions, accountName) => __awaiter(void 0
             if (!challengeVerification.challengeSuccess && lastChallenge) {
                 // publish again automatically on fail
                 createVoteOptions = Object.assign(Object.assign({}, createVoteOptions), { timestamp: Math.floor(Date.now() / 1000) });
-                vote = backfillPublicationCommunityAddress(yield account.plebbit.createVote(createVoteOptions), createVoteOptions);
+                vote = backfillPublicationCommunityAddress(yield account.pkc.createVote(createVoteOptions), createVoteOptions);
                 lastChallenge = undefined;
                 publishAndRetryFailedChallengeVerification();
             }
@@ -1026,14 +1026,14 @@ export const publishCommentEdit = (publishCommentEditOptions, accountName) => __
         accountName,
         account,
     });
-    let createCommentEditOptions = normalizePublicationOptionsForPlebbit(account.plebbit, Object.assign({ timestamp: Math.floor(Date.now() / 1000), author: account.author, signer: account.signer }, publishCommentEditOptions));
+    let createCommentEditOptions = normalizePublicationOptionsForPkc(account.pkc, Object.assign({ timestamp: Math.floor(Date.now() / 1000), author: account.author, signer: account.signer }, publishCommentEditOptions));
     delete createCommentEditOptions.onChallenge;
     delete createCommentEditOptions.onChallengeVerification;
     delete createCommentEditOptions.onError;
     delete createCommentEditOptions.onPublishingStateChange;
     const storedCreateCommentEditOptions = Object.assign(Object.assign({}, normalizePublicationOptionsForStore(createCommentEditOptions)), { clientId: uuid() });
     const storedCommentEdit = sanitizeStoredAccountEdit(storedCreateCommentEditOptions);
-    let commentEdit = backfillPublicationCommunityAddress(yield account.plebbit.createCommentEdit(createCommentEditOptions), createCommentEditOptions);
+    let commentEdit = backfillPublicationCommunityAddress(yield account.pkc.createCommentEdit(createCommentEditOptions), createCommentEditOptions);
     let lastChallenge;
     let challengeSucceeded = false;
     let rollbackPendingEditPromise;
@@ -1076,7 +1076,7 @@ export const publishCommentEdit = (publishCommentEditOptions, accountName) => __
             if (!challengeVerification.challengeSuccess && lastChallenge) {
                 // publish again automatically on fail
                 createCommentEditOptions = Object.assign(Object.assign({}, createCommentEditOptions), { timestamp: Math.floor(Date.now() / 1000) });
-                commentEdit = backfillPublicationCommunityAddress(yield account.plebbit.createCommentEdit(createCommentEditOptions), createCommentEditOptions);
+                commentEdit = backfillPublicationCommunityAddress(yield account.pkc.createCommentEdit(createCommentEditOptions), createCommentEditOptions);
                 lastChallenge = undefined;
                 publishAndRetryFailedChallengeVerification();
             }
@@ -1114,13 +1114,13 @@ export const publishCommentModeration = (publishCommentModerationOptions, accoun
         accountName,
         account,
     });
-    let createCommentModerationOptions = normalizePublicationOptionsForPlebbit(account.plebbit, Object.assign({ timestamp: Math.floor(Date.now() / 1000), author: account.author, signer: account.signer }, publishCommentModerationOptions));
+    let createCommentModerationOptions = normalizePublicationOptionsForPkc(account.pkc, Object.assign({ timestamp: Math.floor(Date.now() / 1000), author: account.author, signer: account.signer }, publishCommentModerationOptions));
     delete createCommentModerationOptions.onChallenge;
     delete createCommentModerationOptions.onChallengeVerification;
     delete createCommentModerationOptions.onError;
     delete createCommentModerationOptions.onPublishingStateChange;
     const storedCreateCommentModerationOptions = normalizePublicationOptionsForStore(createCommentModerationOptions);
-    let commentModeration = backfillPublicationCommunityAddress(yield account.plebbit.createCommentModeration(createCommentModerationOptions), createCommentModerationOptions);
+    let commentModeration = backfillPublicationCommunityAddress(yield account.pkc.createCommentModeration(createCommentModerationOptions), createCommentModerationOptions);
     let lastChallenge;
     const publishAndRetryFailedChallengeVerification = () => __awaiter(void 0, void 0, void 0, function* () {
         var _a;
@@ -1133,7 +1133,7 @@ export const publishCommentModeration = (publishCommentModerationOptions, accoun
             if (!challengeVerification.challengeSuccess && lastChallenge) {
                 // publish again automatically on fail
                 createCommentModerationOptions = Object.assign(Object.assign({}, createCommentModerationOptions), { timestamp: Math.floor(Date.now() / 1000) });
-                commentModeration = backfillPublicationCommunityAddress(yield account.plebbit.createCommentModeration(createCommentModerationOptions), createCommentModerationOptions);
+                commentModeration = backfillPublicationCommunityAddress(yield account.pkc.createCommentModeration(createCommentModerationOptions), createCommentModerationOptions);
                 lastChallenge = undefined;
                 publishAndRetryFailedChallengeVerification();
             }
@@ -1185,14 +1185,13 @@ export const publishCommunityEdit = (communityAddress, publishCommunityEditOptio
     delete communityEditOptions.onChallengeVerification;
     delete communityEditOptions.onError;
     delete communityEditOptions.onPublishingStateChange;
-    let createCommunityEditOptions = normalizeCommunityEditOptionsForPlebbit(account.plebbit, {
+    let createCommunityEditOptions = normalizeCommunityEditOptionsForPkc(account.pkc, {
         timestamp: Math.floor(Date.now() / 1000),
         author: account.author,
         signer: account.signer,
         // not possible to edit community.address over pubsub, only locally
         communityAddress,
         communityEdit: communityEditOptions,
-        subplebbitEdit: communityEditOptions,
     });
     const storedCreateCommunityEditOptions = Object.assign(Object.assign({}, normalizePublicationOptionsForStore(createCommunityEditOptions)), { clientId: uuid() });
     const storedCommunityEdit = sanitizeStoredAccountEdit(storedCreateCommunityEditOptions);
@@ -1232,7 +1231,7 @@ export const publishCommunityEdit = (communityAddress, publishCommunityEditOptio
     }
     assert(!publishCommunityEditOptions.address ||
         publishCommunityEditOptions.address === communityAddress, `accountsActions.publishCommunityEdit can't edit address of a remote community`);
-    let communityEdit = backfillPublicationCommunityAddress(yield createPlebbitCommunityEdit(account.plebbit, createCommunityEditOptions), createCommunityEditOptions);
+    let communityEdit = backfillPublicationCommunityAddress(yield createPkcCommunityEdit(account.pkc, createCommunityEditOptions), createCommunityEditOptions);
     let lastChallenge;
     const publishAndRetryFailedChallengeVerification = () => __awaiter(void 0, void 0, void 0, function* () {
         var _a;
@@ -1253,7 +1252,7 @@ export const publishCommunityEdit = (communityAddress, publishCommunityEditOptio
             if (!challengeVerification.challengeSuccess && lastChallenge) {
                 // publish again automatically on fail
                 createCommunityEditOptions = Object.assign(Object.assign({}, createCommunityEditOptions), { timestamp: Math.floor(Date.now() / 1000) });
-                communityEdit = backfillPublicationCommunityAddress(yield createPlebbitCommunityEdit(account.plebbit, createCommunityEditOptions), createCommunityEditOptions);
+                communityEdit = backfillPublicationCommunityAddress(yield createPkcCommunityEdit(account.pkc, createCommunityEditOptions), createCommunityEditOptions);
                 lastChallenge = undefined;
                 publishAndRetryFailedChallengeVerification();
             }

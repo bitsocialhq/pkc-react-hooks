@@ -3,18 +3,18 @@ import localForageLru from "../lib/localforage-lru";
 
 const deleteDatabases = () =>
   Promise.all([
-    localForage.createInstance({ name: "plebbitReactHooks-accountsMetadata" }).clear(),
-    localForage.createInstance({ name: "plebbitReactHooks-accounts" }).clear(),
-    localForageLru.createInstance({ name: "plebbitReactHooks-communities" }).clear(),
-    localForageLru.createInstance({ name: "plebbitReactHooks-comments" }).clear(),
-    localForageLru.createInstance({ name: "plebbitReactHooks-communitiesPages" }).clear(),
+    localForage.createInstance({ name: "bitsocialReactHooks-accountsMetadata" }).clear(),
+    localForage.createInstance({ name: "bitsocialReactHooks-accounts" }).clear(),
+    localForageLru.createInstance({ name: "bitsocialReactHooks-communities" }).clear(),
+    localForageLru.createInstance({ name: "bitsocialReactHooks-comments" }).clear(),
+    localForageLru.createInstance({ name: "bitsocialReactHooks-communitiesPages" }).clear(),
   ]);
 
 const deleteCaches = () =>
   Promise.all([
-    localForageLru.createInstance({ name: "plebbitReactHooks-communities" }).clear(),
-    localForageLru.createInstance({ name: "plebbitReactHooks-comments" }).clear(),
-    localForageLru.createInstance({ name: "plebbitReactHooks-communitiesPages" }).clear(),
+    localForageLru.createInstance({ name: "bitsocialReactHooks-communities" }).clear(),
+    localForageLru.createInstance({ name: "bitsocialReactHooks-comments" }).clear(),
+    localForageLru.createInstance({ name: "bitsocialReactHooks-communitiesPages" }).clear(),
   ]);
 
 const debugUtils = {

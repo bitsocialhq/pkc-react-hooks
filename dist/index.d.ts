@@ -7,12 +7,12 @@ import { useAuthor, useAuthorComments, useAuthorAvatar, useResolvedAuthorAddress
 import { useSubscribe, useBlock, usePublishComment, usePublishVote, useCreateCommunity, usePublishCommentEdit, usePublishCommentModeration, usePublishCommunityEdit } from "./hooks/actions";
 import { createAccount, deleteAccount, deleteComment, setAccount, setActiveAccount, setAccountsOrder, importAccount, exportAccount, deleteCommunity } from "./stores/accounts/accounts-actions";
 import { useClientsStates, useCommunitiesStates } from "./hooks/states";
-import { usePlebbitRpcSettings } from "./hooks/plebbit-rpc";
-import { getEthWalletFromPlebbitPrivateKey, getSolWalletFromPlebbitPrivateKey, getEthPrivateKeyFromPlebbitPrivateKey, getSolPrivateKeyFromPlebbitPrivateKey, validateEthWallet, validateSolWallet } from "./lib/chain";
-import { setPlebbitJs, restorePlebbitJs } from "./lib/plebbit-js";
+import { usePkcRpcSettings } from "./hooks/pkc-rpc";
+import { getEthWalletFromPkcPrivateKey, getSolWalletFromPkcPrivateKey, getEthPrivateKeyFromPkcPrivateKey, getSolPrivateKeyFromPkcPrivateKey, validateEthWallet, validateSolWallet } from "./lib/chain";
+import { setPkcJs, restorePkcJs } from "./lib/pkc-js";
 import { deleteDatabases, deleteCaches } from "./lib/debug-utils";
 export * from "./types";
-export { useAccount, useAccounts, useAccountComment, useAccountComments, useAccountVotes, useAccountVote, useAccountEdits, useAccountCommunities, useNotifications, usePubsubSubscribe, useComment, useComments, useEditedComment, useValidateComment, useReplies, useCommunity, useCommunities, useCommunityStats, useListCommunities, useResolvedCommunityAddress, useAuthor, useAuthorComments, useAuthorAvatar, useResolvedAuthorAddress, useAuthorAddress, setAuthorAvatarsWhitelistedTokenAddresses, resetAuthorAddressCacheForTesting, useFeed, useBufferedFeeds, useSubscribe, useBlock, usePublishComment, usePublishVote, usePublishCommentEdit, usePublishCommentModeration, usePublishCommunityEdit, useCreateCommunity, createAccount, deleteAccount, deleteComment, setAccount, setActiveAccount, setAccountsOrder, importAccount, exportAccount, deleteCommunity, useClientsStates, useCommunitiesStates, usePlebbitRpcSettings, getEthWalletFromPlebbitPrivateKey, getSolWalletFromPlebbitPrivateKey, getEthPrivateKeyFromPlebbitPrivateKey, getSolPrivateKeyFromPlebbitPrivateKey, validateEthWallet, validateSolWallet, setPlebbitJs, restorePlebbitJs, deleteDatabases, deleteCaches, };
+export { useAccount, useAccounts, useAccountComment, useAccountComments, useAccountVotes, useAccountVote, useAccountEdits, useAccountCommunities, useNotifications, usePubsubSubscribe, useComment, useComments, useEditedComment, useValidateComment, useReplies, useCommunity, useCommunities, useCommunityStats, useListCommunities, useResolvedCommunityAddress, useAuthor, useAuthorComments, useAuthorAvatar, useResolvedAuthorAddress, useAuthorAddress, setAuthorAvatarsWhitelistedTokenAddresses, resetAuthorAddressCacheForTesting, useFeed, useBufferedFeeds, useSubscribe, useBlock, usePublishComment, usePublishVote, usePublishCommentEdit, usePublishCommentModeration, usePublishCommunityEdit, useCreateCommunity, createAccount, deleteAccount, deleteComment, setAccount, setActiveAccount, setAccountsOrder, importAccount, exportAccount, deleteCommunity, useClientsStates, useCommunitiesStates, usePkcRpcSettings, getEthWalletFromPkcPrivateKey, getSolWalletFromPkcPrivateKey, getEthPrivateKeyFromPkcPrivateKey, getSolPrivateKeyFromPkcPrivateKey, validateEthWallet, validateSolWallet, setPkcJs, restorePkcJs, deleteDatabases, deleteCaches, };
 declare const hooks: {
     useAccount: typeof useAccount;
     useAccounts: typeof useAccounts;
@@ -62,8 +62,8 @@ declare const hooks: {
     deleteCommunity: (communityAddress: string, accountName?: string) => Promise<void>;
     useClientsStates: typeof useClientsStates;
     useCommunitiesStates: typeof useCommunitiesStates;
-    usePlebbitRpcSettings: typeof usePlebbitRpcSettings;
-    getEthWalletFromPlebbitPrivateKey: (privateKeyBase64: string, authorAddress: string) => Promise<{
+    usePkcRpcSettings: typeof usePkcRpcSettings;
+    getEthWalletFromPkcPrivateKey: (privateKeyBase64: string, authorAddress: string) => Promise<{
         address: string;
         timestamp: number;
         signature: {
@@ -71,7 +71,7 @@ declare const hooks: {
             type: string;
         };
     } | undefined>;
-    getSolWalletFromPlebbitPrivateKey: (privateKeyBase64: string, authorAddress: string) => Promise<{
+    getSolWalletFromPkcPrivateKey: (privateKeyBase64: string, authorAddress: string) => Promise<{
         address: string;
         timestamp: number;
         signature: {
@@ -79,12 +79,12 @@ declare const hooks: {
             type: string;
         };
     } | undefined>;
-    getEthPrivateKeyFromPlebbitPrivateKey: (privateKeyBase64: string, authorAddress: string) => Promise<string | undefined>;
-    getSolPrivateKeyFromPlebbitPrivateKey: (privateKeyBase64: string, authorAddress: string) => Promise<string | undefined>;
+    getEthPrivateKeyFromPkcPrivateKey: (privateKeyBase64: string, authorAddress: string) => Promise<string | undefined>;
+    getSolPrivateKeyFromPkcPrivateKey: (privateKeyBase64: string, authorAddress: string) => Promise<string | undefined>;
     validateEthWallet: (wallet: import("./types").Wallet, authorAddress: string) => Promise<void>;
     validateSolWallet: (wallet: import("./types").Wallet, authorAddress: string) => Promise<void>;
-    setPlebbitJs: typeof setPlebbitJs;
-    restorePlebbitJs: typeof restorePlebbitJs;
+    setPkcJs: typeof setPkcJs;
+    restorePkcJs: typeof restorePkcJs;
     deleteDatabases: () => Promise<[void, void, any, any, any]>;
     deleteCaches: () => Promise<[any, any, any]>;
 };

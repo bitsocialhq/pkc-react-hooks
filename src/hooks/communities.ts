@@ -23,7 +23,7 @@ import { resolveEnsTxtRecord } from "../lib/chain";
 import useCommunitiesStore from "../stores/communities";
 import useAccountsStore from "../stores/accounts";
 import shallow from "zustand/shallow";
-import { getPlebbitCommunityAddresses } from "../lib/plebbit-compat";
+import { getPkcCommunityAddresses } from "../lib/pkc-compat";
 
 /**
  * @param communityAddress - The address of the community, e.g. 'memes.eth', '12D3KooW...', etc
@@ -66,7 +66,7 @@ export function useCommunity(options?: UseCommunityOptions): UseCommunityResult 
     if (!communityEditSummary) {
       return community;
     }
-    const localCommunityAddresses = getPlebbitCommunityAddresses(account?.plebbit);
+    const localCommunityAddresses = getPkcCommunityAddresses(account?.pkc);
     const editedCommunityAddress = communityEditSummary.address?.value;
     if (
       !community &&
@@ -93,7 +93,7 @@ export function useCommunity(options?: UseCommunityOptions): UseCommunityResult 
       ...(community || { address: communityAddress }),
       ...summaryValues,
     };
-  }, [account?.plebbit, community, communityAddress, communityEditSummary]);
+  }, [account?.pkc, community, communityAddress, communityEditSummary]);
 
   let state = mergedCommunity?.updatingState || "initializing";
   // force succeeded even if the community is fecthing a new update
@@ -143,7 +143,7 @@ export function useCommunityStats(options?: UseCommunityStatsOptions): UseCommun
     (async () => {
       let fetchedCid;
       try {
-        fetchedCid = await account.plebbit.fetchCid({ cid: communityStatsCid });
+        fetchedCid = await account.pkc.fetchCid({ cid: communityStatsCid });
         fetchedCid = JSON.parse(fetchedCid);
         if (cancelled) {
           return;
@@ -156,7 +156,7 @@ export function useCommunityStats(options?: UseCommunityStatsOptions): UseCommun
           return;
         }
         setFetchError(normalizedError);
-        log.error("useCommunityStats plebbit.fetchCid error", {
+        log.error("useCommunityStats pkc.fetchCid error", {
           communityAddress,
           communityStatsCid,
           community,
@@ -280,9 +280,9 @@ export function useCommunities(options?: UseCommunitiesOptions): UseCommunitiesR
   );
 }
 
-// TODO: plebbit.listCommunities() has been removed, rename this and use event communitieschanged instead of polling
+// TODO: pkc.listCommunities() has been removed, rename this and use event communitieschanged instead of polling
 /**
- * Returns all the owner communities created by plebbit-js by calling plebbit.listCommunities()
+ * Returns all the owner communities created by pkc-js by calling pkc.listCommunities()
  */
 export function useListCommunities(accountName?: string) {
   const account = useAccount({ accountName });
@@ -292,9 +292,9 @@ export function useListCommunities(accountName?: string) {
   const immediate = true;
   useInterval(
     () => {
-      const plebbit = account?.plebbit;
-      if (!plebbit) return;
-      const newAddrs = getPlebbitCommunityAddresses(plebbit);
+      const pkc = account?.pkc;
+      if (!pkc) return;
+      const newAddrs = getPkcCommunityAddresses(pkc);
       if (newAddrs.toString() !== communityAddresses.toString()) {
         log("useListCommunities", { communityAddresses });
         setCommunityAddresses(newAddrs);
@@ -335,8 +335,8 @@ export function useResolvedCommunityAddress(
   }
 
   const account = useAccount({ accountName });
-  // possible to use account.plebbit instead of account.plebbitOptions
-  const chainProviders = account?.plebbitOptions?.chainProviders;
+  // possible to use account.pkc instead of account.pkcOptions
+  const chainProviders = account?.pkcOptions?.chainProviders;
   const [resolvedAddress, setResolvedAddress] = useState<string>();
   const [errors, setErrors] = useState<Error[]>([]);
   const [state, setState] = useState<string>();

@@ -84,7 +84,7 @@ class MockComment extends EventEmitter {
 
 const mockAccount: any = {
   id: "mock account id",
-  plebbit: {
+  pkc: {
     createCommunity: async ({ address }: any) => new MockCommunity({ address }),
     createComment: async ({ cid }: any) => new MockComment({ cid }),
   },
@@ -134,7 +134,7 @@ describe("replies pages store", () => {
   });
 
   test("resetRepliesPagesStore after addNextRepliesPageToStore clears listeners and state", async () => {
-    const mockComment = await mockAccount.plebbit.createComment({ cid: "reset-listener-cid" });
+    const mockComment = await mockAccount.pkc.createComment({ cid: "reset-listener-cid" });
     const sortType = "new";
     const firstPageCid = mockComment.replies.pageCids[sortType];
 
@@ -198,7 +198,7 @@ describe("replies pages store", () => {
   });
 
   test("addNextRepliesPageToStore skips when existing fresher (branch 116)", async () => {
-    const mockComment = await mockAccount.plebbit.createComment({ cid: "branch116-comment" });
+    const mockComment = await mockAccount.pkc.createComment({ cid: "branch116-comment" });
     const sortType = "best";
     const firstPageCid = mockComment.replies.pages[sortType].nextCid;
 
@@ -239,7 +239,7 @@ describe("replies pages store", () => {
   });
 
   test("add next pages from comment.replies.pageCids", async () => {
-    const mockComment = await mockAccount.plebbit.createComment({ cid: "comment cid 1" });
+    const mockComment = await mockAccount.pkc.createComment({ cid: "comment cid 1" });
     // in the mock, sortType 'new' is only on replies.pageCids
     const sortType = "new";
     const commentCid1FirstPageCid = mockComment.replies.pageCids[sortType];
@@ -326,7 +326,7 @@ describe("replies pages store", () => {
   });
 
   test("add next pages from comment.replies.pages", async () => {
-    const mockComment = await mockAccount.plebbit.createComment({ cid: "comment cid 1" });
+    const mockComment = await mockAccount.pkc.createComment({ cid: "comment cid 1" });
     // in the mock, sortType 'best' is only on replies.pages
     const sortType = "best";
     const commentCid1FirstPageCid = mockComment.replies.pages[sortType].nextCid;
@@ -451,12 +451,12 @@ describe("replies pages store", () => {
     expect(Object.keys(rendered.result.current.repliesPages).length).toBe(0);
   });
 
-  test("addNextRepliesPageToStore accepts legacy plebbit accounts without createCommunity", async () => {
-    const createCommunity = mockAccount.plebbit.createCommunity;
-    delete mockAccount.plebbit.createCommunity;
+  test("addNextRepliesPageToStore accepts legacy pkc accounts without createCommunity", async () => {
+    const createCommunity = mockAccount.pkc.createCommunity;
+    delete mockAccount.pkc.createCommunity;
 
     try {
-      const legacyComment = await mockAccount.plebbit.createComment({ cid: "legacy-page-cid" });
+      const legacyComment = await mockAccount.pkc.createComment({ cid: "legacy-page-cid" });
       const sortType = "new";
       const firstPageCid = legacyComment.replies.pageCids[sortType];
 
@@ -467,7 +467,7 @@ describe("replies pages store", () => {
       await waitFor(() => rendered.result.current.repliesPages[firstPageCid]);
       expect(rendered.result.current.repliesPages[firstPageCid].comments.length).toBe(100);
     } finally {
-      mockAccount.plebbit.createCommunity = createCommunity;
+      mockAccount.pkc.createCommunity = createCommunity;
     }
   });
 
@@ -506,7 +506,7 @@ describe("replies pages store", () => {
   });
 
   test("addNextRepliesPageToStore skips comments without cid", async () => {
-    const mockComment = await mockAccount.plebbit.createComment({ cid: "no-cid-skip-cid" });
+    const mockComment = await mockAccount.pkc.createComment({ cid: "no-cid-skip-cid" });
     const sortType = "new";
     const firstPageCid = mockComment.replies.pageCids[sortType];
     const getPageOrig = MockPages.prototype.getPage;
@@ -562,14 +562,14 @@ describe("replies pages store", () => {
   });
 
   test("fetchPage returns cached page when in database", async () => {
-    const mockComment = await mockAccount.plebbit.createComment({ cid: "cached-page-cid" });
+    const mockComment = await mockAccount.pkc.createComment({ cid: "cached-page-cid" });
     const sortType = "new";
     const firstPageCid = mockComment.replies.pageCids[sortType];
     const cachedPage = {
       nextCid: firstPageCid + " - next",
       comments: [{ cid: "cached-1", communityAddress: mockComment.communityAddress }],
     };
-    const db = localForageLru.createInstance({ name: "plebbitReactHooks-repliesPages" });
+    const db = localForageLru.createInstance({ name: "bitsocialReactHooks-repliesPages" });
     await db.setItem(firstPageCid, cachedPage);
 
     act(() => {
@@ -585,7 +585,7 @@ describe("replies pages store", () => {
   });
 
   test("fetchPage onError logs when getPage rejects", async () => {
-    const mockComment = await mockAccount.plebbit.createComment({ cid: "error-page-cid" });
+    const mockComment = await mockAccount.pkc.createComment({ cid: "error-page-cid" });
     const sortType = "new";
     const firstPageCid = mockComment.replies.pageCids[sortType];
     const getPageOrig = MockPages.prototype.getPage;
@@ -637,7 +637,7 @@ describe("replies pages store", () => {
       accountsActionsInternal: { addCidToAccountComment: addCidSpy },
     });
 
-    const mockComment = await mockAccount.plebbit.createComment({ cid: "addcid-reject-cid" });
+    const mockComment = await mockAccount.pkc.createComment({ cid: "addcid-reject-cid" });
     const sortType = "new";
     const logSpy = vi.spyOn(log, "error").mockImplementation(() => {});
 
@@ -665,7 +665,7 @@ describe("replies pages store", () => {
       capturedCb = cb;
     };
 
-    const mockComment = await mockAccount.plebbit.createComment({ cid: "missing-comment-cid" });
+    const mockComment = await mockAccount.pkc.createComment({ cid: "missing-comment-cid" });
     const sortType = "new";
 
     act(() => {

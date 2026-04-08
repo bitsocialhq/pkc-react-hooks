@@ -350,18 +350,18 @@ export interface UseCommunitiesStatesResult extends Result {
         [clientUrl: string]: Peer[];
     };
 }
-export type PlebbitRpcSettings = {
+export type PkcRpcSettings = {
     [key: string]: any;
 };
-export interface UsePlebbitRpcSettingsOptions extends Options {
+export interface UsePkcRpcSettingsOptions extends Options {
 }
-export interface UsePlebbitRpcSettingsResult extends Result {
-    plebbitRpcSettings: PlebbitRpcSettings | undefined;
-    setPlebbitRpcSettings(plebbitRpcSettings: PlebbitRpcSettings): Promise<void>;
+export interface UsePkcRpcSettingsResult extends Result {
+    pkcRpcSettings: PkcRpcSettings | undefined;
+    setPkcRpcSettings(pkcRpcSettings: PkcRpcSettings): Promise<void>;
 }
 /**
  * TODO: define these types more in depth, most are already defined in:
- * https://github.com/plebbit/plebbit-js or
+ * https://github.com/pkcprotocol/pkc-js or
  * https://github.com/bitsocialnet/bitsocial-react-hooks/blob/master/docs/schema.md
  */
 export type Account = {

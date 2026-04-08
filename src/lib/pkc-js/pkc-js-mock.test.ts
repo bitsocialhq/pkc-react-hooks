@@ -1,10 +1,10 @@
-import PlebbitJsMock from "./plebbit-js-mock";
-import PlebbitJsMockContent from "./plebbit-js-mock-content";
+import PkcJsMock from "./pkc-js-mock";
+import PkcJsMockContent from "./pkc-js-mock-content";
 
-describe("PlebbitJsMock", () => {
+describe("PkcJsMock", () => {
   test("Comment.state and Comment.updatingState", async () => {
-    const plebbit = await PlebbitJsMock();
-    const comment = await plebbit.createComment({ cid: "comment cid" });
+    const pkc = await PkcJsMock();
+    const comment = await pkc.createComment({ cid: "comment cid" });
 
     // initial state is stopped
     expect(comment.state).toBe("stopped");
@@ -41,8 +41,8 @@ describe("PlebbitJsMock", () => {
   });
 
   test("Community.state and Community.updatingState", async () => {
-    const plebbit = await PlebbitJsMock();
-    const community = await plebbit.createCommunity({ address: "community address" });
+    const pkc = await PkcJsMock();
+    const community = await pkc.createCommunity({ address: "community address" });
 
     // initial state is stopped
     expect(community.state).toBe("stopped");
@@ -82,8 +82,8 @@ describe("PlebbitJsMock", () => {
   });
 
   test("Comment.publishingState", async () => {
-    const plebbit = await PlebbitJsMock();
-    const comment = await plebbit.createComment({
+    const pkc = await PkcJsMock();
+    const comment = await pkc.createComment({
       content: "content",
       communityAddress: "community address",
     });
@@ -128,8 +128,8 @@ describe("PlebbitJsMock", () => {
   });
 
   test("Publication.stop() emits/sets expected stopped publishing state", async () => {
-    const plebbit = await PlebbitJsMock();
-    const comment = await plebbit.createComment({
+    const pkc = await PkcJsMock();
+    const comment = await pkc.createComment({
       content: "content",
       communityAddress: "community address",
     });
@@ -158,8 +158,8 @@ describe("PlebbitJsMock", () => {
   });
 
   test("Community create/edit preserves intentional falsy values", async () => {
-    const plebbit = await PlebbitJsMock();
-    const community = await plebbit.createCommunity({
+    const pkc = await PkcJsMock();
+    const community = await pkc.createCommunity({
       address: "community address",
       customFlag: false,
       customCount: 0,
@@ -178,10 +178,10 @@ describe("PlebbitJsMock", () => {
   });
 });
 
-describe("PlebbitJsMockContent", () => {
+describe("PkcJsMockContent", () => {
   test("Publication.stop() emits/sets expected stopped updating state", async () => {
-    const plebbit = await PlebbitJsMockContent();
-    const comment = await plebbit.createComment({ cid: "mock-content-comment-cid" });
+    const pkc = await PkcJsMockContent();
+    const comment = await pkc.createComment({ cid: "mock-content-comment-cid" });
 
     const onStatechange = vi.fn(() => comment.state);
     const onUpdatingstatechange = vi.fn(() => comment.updatingState);

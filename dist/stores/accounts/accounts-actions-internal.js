@@ -15,7 +15,7 @@ import assert from "assert";
 import isEqual from "lodash.isequal";
 const log = Logger("bitsocial-react-hooks:accounts:stores");
 import utils from "../../lib/utils";
-import { backfillPublicationCommunityAddress, getCommentCommunityAddress, normalizePublicationOptionsForPlebbit, normalizePublicationOptionsForStore, } from "../../lib/plebbit-compat";
+import { backfillPublicationCommunityAddress, getCommentCommunityAddress, normalizePublicationOptionsForPkc, normalizePublicationOptionsForStore, } from "../../lib/pkc-compat";
 import { addShortAddressesToAccountComment, getAccountsCommentsIndexes, sanitizeStoredAccountComment, } from "./utils";
 const accountEditsLoadPromises = new Map();
 const doesStoredAccountEditMatch = (storedAccountEdit, targetStoredAccountEdit) => (storedAccountEdit === null || storedAccountEdit === void 0 ? void 0 : storedAccountEdit.clientId) && (targetStoredAccountEdit === null || targetStoredAccountEdit === void 0 ? void 0 : targetStoredAccountEdit.clientId)
@@ -88,12 +88,12 @@ export const startUpdatingAccountCommentOnCommentUpdateEvents = (comment, accoun
     }));
     // comment is not a `Comment` instance
     if (!comment.on) {
-        comment = backfillPublicationCommunityAddress(yield account.plebbit.createComment(normalizePublicationOptionsForPlebbit(account.plebbit, comment)), comment);
+        comment = backfillPublicationCommunityAddress(yield account.pkc.createComment(normalizePublicationOptionsForPkc(account.pkc, comment)), comment);
     }
     const initialStoredComment = (_a = accountsStore.getState().accountsComments[account.id]) === null || _a === void 0 ? void 0 : _a[accountCommentIndex];
     backfillLiveCommentCommunityAddress(comment, getCommentCommunityAddress(commentArgument) ||
         (initialStoredComment === null || initialStoredComment === void 0 ? void 0 : initialStoredComment.communityAddress) ||
-        (initialStoredComment === null || initialStoredComment === void 0 ? void 0 : initialStoredComment.subplebbitAddress));
+        (initialStoredComment === null || initialStoredComment === void 0 ? void 0 : initialStoredComment.communityAddress));
     comment.on("update", (updatedComment) => __awaiter(void 0, void 0, void 0, function* () {
         var _a, _b;
         const mapping = accountsStore.getState().commentCidsToAccountsComments[updatedComment.cid || ""];
@@ -118,7 +118,7 @@ export const startUpdatingAccountCommentOnCommentUpdateEvents = (comment, accoun
             return;
         }
         const currentIndex = mapping.accountCommentIndex;
-        // merge should not be needed if plebbit-js is implemented properly, but no harm in fixing potential errors
+        // merge should not be needed if pkc-js is implemented properly, but no harm in fixing potential errors
         const storedComment = (_a = accountsStore.getState().accountsComments[account.id]) === null || _a === void 0 ? void 0 : _a[currentIndex];
         updatedComment = utils.merge(commentArgument, comment, updatedComment);
         updatedComment.communityAddress =
@@ -126,7 +126,7 @@ export const startUpdatingAccountCommentOnCommentUpdateEvents = (comment, accoun
                 getCommentCommunityAddress(comment) ||
                 getCommentCommunityAddress(commentArgument) ||
                 (storedComment === null || storedComment === void 0 ? void 0 : storedComment.communityAddress) ||
-                (storedComment === null || storedComment === void 0 ? void 0 : storedComment.subplebbitAddress);
+                (storedComment === null || storedComment === void 0 ? void 0 : storedComment.communityAddress);
         const normalizedUpdatedComment = addShortAddressesToAccountComment(normalizePublicationOptionsForStore(updatedComment));
         const storedUpdatedComment = sanitizeStoredAccountComment(normalizedUpdatedComment);
         yield accountsDatabase.addAccountComment(account.id, storedUpdatedComment, currentIndex);
@@ -161,7 +161,7 @@ export const startUpdatingAccountCommentOnCommentUpdateEvents = (comment, accoun
             ? replyPageArray.map(getReplyCount).reduce((prev, curr) => prev + curr)
             : 0;
         const hasReplies = replyCount > 0;
-        const repliesAreValid = yield utils.repliesAreValid(normalizedUpdatedComment, { validateReplies: false, blockCommunity: true }, account.plebbit);
+        const repliesAreValid = yield utils.repliesAreValid(normalizedUpdatedComment, { validateReplies: false, blockCommunity: true }, account.pkc);
         if (hasReplies && repliesAreValid) {
             accountsStore.setState(({ accountsCommentsReplies }) => {
                 var _a, _b;

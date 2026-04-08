@@ -12,8 +12,8 @@ const toString = (value: any) => {
 };
 
 const getPublicationCommunityAddress = (options: any) =>
-  options?.communityAddress || options?.subplebbitAddress;
-const getAccountProtocolClient = (account: any) => account?.pkc || account?.plebbit;
+  options?.communityAddress || options?.communityAddress;
+const getAccountProtocolClient = (account: any) => account?.pkc || account?.pkc;
 
 const validateAccountsActionsPublishCommentArguments = ({
   publishCommentOptions,
@@ -47,7 +47,7 @@ const validateAccountsActionsPublishCommentArguments = ({
   );
   assert(
     typeof getPublicationCommunityAddress(publishCommentOptions) === "string",
-    "publishComment publishCommentOptions.communityAddress/subplebbitAddress not a string",
+    "publishComment publishCommentOptions.communityAddress/communityAddress not a string",
   );
   assert(
     !publishCommentOptions.parentCid || typeof publishCommentOptions.parentCid === "string",
@@ -117,7 +117,7 @@ const validateAccountsActionsPublishVoteArguments = ({
   );
   assert(
     typeof getPublicationCommunityAddress(publishVoteOptions) === "string",
-    "publishVote publishVoteOptions.communityAddress/subplebbitAddress not a string",
+    "publishVote publishVoteOptions.communityAddress/communityAddress not a string",
   );
   assert(
     typeof publishVoteOptions.commentCid === "string",
@@ -167,7 +167,7 @@ const validateAccountsActionsPublishCommentEditArguments = ({
   );
   assert(
     typeof getPublicationCommunityAddress(publishCommentEditOptions) === "string",
-    "publishCommentEdit publishCommentEditOptions.communityAddress/subplebbitAddress not a string",
+    "publishCommentEdit publishCommentEditOptions.communityAddress/communityAddress not a string",
   );
   assert(
     typeof publishCommentEditOptions.commentCid === "string",
@@ -212,7 +212,7 @@ const validateAccountsActionsPublishCommentModerationArguments = ({
   );
   assert(
     typeof getPublicationCommunityAddress(publishCommentModerationOptions) === "string",
-    "publishCommentModeration publishCommentModerationOptions.communityAddress/subplebbitAddress not a string",
+    "publishCommentModeration publishCommentModerationOptions.communityAddress/communityAddress not a string",
   );
   assert(
     typeof publishCommentModerationOptions.commentCid === "string",
@@ -363,7 +363,7 @@ const validateUseCommentArguments = (commentCid: any, account: any) => {
   assert(typeof commentCid === "string", `useComment commentCid '${commentCid}' not a string`);
   assert(
     getAccountProtocolClient(account) && typeof getAccountProtocolClient(account) === "object",
-    `useComment account.pkc/account.plebbit '${getAccountProtocolClient(account)}' not an object`,
+    `useComment account.pkc/account.pkc '${getAccountProtocolClient(account)}' not an object`,
   );
 };
 
@@ -380,7 +380,7 @@ const validateUseCommentsArguments = (commentCids: any, account: any) => {
   }
   assert(
     getAccountProtocolClient(account) && typeof getAccountProtocolClient(account) === "object",
-    `useComments account.pkc/account.plebbit '${getAccountProtocolClient(account)}' not an object`,
+    `useComments account.pkc/account.pkc '${getAccountProtocolClient(account)}' not an object`,
   );
 };
 
@@ -391,7 +391,7 @@ const validateUseCommunityArguments = (communityAddress: any, account: any) => {
   );
   assert(
     getAccountProtocolClient(account) && typeof getAccountProtocolClient(account) === "object",
-    `useCommunity account.pkc/account.plebbit '${getAccountProtocolClient(account)}' not an object`,
+    `useCommunity account.pkc/account.pkc '${getAccountProtocolClient(account)}' not an object`,
   );
 };
 
@@ -408,7 +408,7 @@ const validateUseCommunitiesArguments = (communityAddresses: any, account: any) 
   }
   assert(
     getAccountProtocolClient(account) && typeof getAccountProtocolClient(account) === "object",
-    `useCommunity account.pkc/account.plebbit '${getAccountProtocolClient(account)}' not an object`,
+    `useCommunity account.pkc/account.pkc '${getAccountProtocolClient(account)}' not an object`,
   );
 };
 

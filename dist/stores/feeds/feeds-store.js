@@ -13,7 +13,7 @@ const log = Logger("bitsocial-react-hooks:feeds:stores");
 import createStore from "zustand";
 import localForageLru from "../../lib/localforage-lru";
 import { communityPostsCacheExpired } from "../../lib/utils";
-import { getPlebbitGetCommunity } from "../../lib/plebbit-compat";
+import { getPkcGetCommunity } from "../../lib/pkc-compat";
 import accountsStore from "../accounts";
 import communitiesStore from "../communities";
 import communitiesPagesStore from "../communities-pages";
@@ -41,7 +41,7 @@ const feedsStore = createStore((setState, getState) => ({
             assert(feedName && typeof feedName === "string", `feedsStore.addFeedToStore feedName '${feedName}' invalid`);
             assert(Array.isArray(communityAddresses), `addFeedToStore.addFeedToStore communityAddresses '${communityAddresses}' invalid`);
             assert(sortType && typeof sortType === "string", `addFeedToStore.addFeedToStore sortType '${sortType}' invalid`);
-            assert(typeof getPlebbitGetCommunity(account === null || account === void 0 ? void 0 : account.plebbit) === "function", `addFeedToStore.addFeedToStore account '${account}' invalid`);
+            assert(typeof getPkcGetCommunity(account === null || account === void 0 ? void 0 : account.pkc) === "function", `addFeedToStore.addFeedToStore account '${account}' invalid`);
             assert(typeof isBufferedFeed === "boolean" ||
                 isBufferedFeed === undefined ||
                 isBufferedFeed === null, `addFeedToStore.addFeedToStore isBufferedFeed '${isBufferedFeed}' invalid`);
@@ -419,7 +419,7 @@ export const resetFeedsStore = () => __awaiter(void 0, void 0, void 0, function*
 });
 // reset database and store in between tests
 export const resetFeedsDatabaseAndStore = () => __awaiter(void 0, void 0, void 0, function* () {
-    yield localForageLru.createInstance({ name: "plebbitReactHooks-communitiesPages" }).clear();
+    yield localForageLru.createInstance({ name: "bitsocialReactHooks-communitiesPages" }).clear();
     yield resetFeedsStore();
 });
 export default feedsStore;

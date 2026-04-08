@@ -150,7 +150,7 @@ const initializeAccountsStore = async () => {
 };
 
 // @ts-ignore
-const isInitializing = () => !!window.PLEBBIT_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZING;
+const isInitializing = () => !!window.BITSOCIAL_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZING;
 const waitForInitialized = async () => {
   while (isInitializing()) {
     // uncomment to debug accounts init
@@ -162,14 +162,14 @@ const waitForInitialized = async () => {
 (async () => {
   // don't initialize on load multiple times when loading the file multiple times during karma tests
   // @ts-ignore
-  if (window.PLEBBIT_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZED_ONCE) {
+  if (window.BITSOCIAL_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZED_ONCE) {
     return;
   }
 
   // @ts-ignore
-  window.PLEBBIT_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZED_ONCE = true;
+  window.BITSOCIAL_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZED_ONCE = true;
   // @ts-ignore
-  window.PLEBBIT_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZING = true;
+  window.BITSOCIAL_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZING = true;
 
   log("accounts store initializing started");
   try {
@@ -182,7 +182,7 @@ const waitForInitialized = async () => {
     });
   } finally {
     // @ts-ignore
-    delete window.PLEBBIT_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZING;
+    delete window.BITSOCIAL_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZING;
   }
   log("accounts store initializing finished");
 })();
@@ -215,8 +215,8 @@ export const resetAccountsDatabaseAndStore = async () => {
   await waitForInitialized();
 
   await Promise.all([
-    localForage.createInstance({ name: "plebbitReactHooks-accountsMetadata" }).clear(),
-    localForage.createInstance({ name: "plebbitReactHooks-accounts" }).clear(),
+    localForage.createInstance({ name: "bitsocialReactHooks-accountsMetadata" }).clear(),
+    localForage.createInstance({ name: "bitsocialReactHooks-accounts" }).clear(),
   ]);
   await resetAccountsStore();
 };

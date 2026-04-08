@@ -6,14 +6,9 @@ import { fromString as uint8ArrayFromString } from "uint8arrays/from-string";
 import { toString as uint8ArrayToString } from "uint8arrays/to-string";
 
 // changeable with env variable so the frontend can test with different latencies
-const doubleMedia = Boolean(
-  process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT_DOUBLE_MEDIA ||
-  process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT_DOUBLE_MEDIA,
-);
+const doubleMedia = Boolean(process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT_DOUBLE_MEDIA);
 const loadingTime = Number(
-  process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT_LOADING_TIME ||
-    process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT_LOADING_TIME ||
-    100,
+  process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT_LOADING_TIME || 100,
 );
 const simulateLoadingTime = () => new Promise((r) => setTimeout(r, loadingTime));
 const NOW = 1679800000;
@@ -53,7 +48,7 @@ const commentLinks = [
   "https://fortune.com/2022/03/16/bitcoin-200k-price-prediction-crypto-outlook/",
   "https://finance.yahoo.com/news/c2x-announces-25-million-funding-120000728.html",
   "https://finance.yahoo.com/news/adopting-crypto-legal-tender-signify-101309571.html",
-  "https://twitter.com/getplebbit/status/1632113706015309825",
+  "https://x.com/pkcprotocol/status/1632113706015309825",
   "https://www.youtube.com/watch?v=jfKfPfyJRdk",
 ];
 
@@ -888,7 +883,7 @@ const getCommentsPage = async (pageCid: string, communityOrComment: any) => {
   };
   const postCount = 100;
   let index = 0;
-  const plebbit = new Plebbit();
+  const pkc = new PKC();
   while (index++ < postCount) {
     const cid = await seedToCid(await getNumberHash(pageCid + index));
     // debug message
@@ -897,7 +892,7 @@ const getCommentsPage = async (pageCid: string, communityOrComment: any) => {
     }
     pageCommentCids.add(cid);
     // comment = {...comment, ...(await getPostContent(comment.cid)), ...(await getCommentUpdateContent(comment))}
-    const comment: any = await plebbit.getComment({ cid });
+    const comment: any = await pkc.getComment({ cid });
     comment.communityAddress = communityAddress;
     const commentUpdateContent: any = await getCommentUpdateContent(comment);
     for (const prop in commentUpdateContent) {
@@ -911,7 +906,7 @@ const getCommentsPage = async (pageCid: string, communityOrComment: any) => {
 // array of communities probably created by the user
 const createdCommunities: any = {};
 
-class Plebbit extends EventEmitter {
+class PKC extends EventEmitter {
   async createSigner() {
     return {
       privateKey: "private key",
@@ -935,7 +930,7 @@ class Plebbit extends EventEmitter {
     const signer = await this.createSigner();
     const community = new Community({ signer, ...createCommunityOptions });
 
-    // keep a list of communities the user probably created himself to use with plebbit.communities
+    // keep a list of communities the user probably created himself to use with pkc.communities
     if (!createCommunityOptions?.address) {
       createdCommunities[community.address || ""] = community;
     }
@@ -1039,18 +1034,17 @@ class Plebbit extends EventEmitter {
 
   clients = (() => {
     const pkcRpcClients = {
-      "http://localhost:9138": new PlebbitRpcClient(),
+      "http://localhost:9138": new PkcRpcClient(),
     };
     return {
       pkcRpcClients,
-      plebbitRpcClients: pkcRpcClients,
     };
   })();
 
   async validateComment(comment: any, validateCommentOptions: any) {}
 }
 
-class PlebbitRpcClient extends EventEmitter {
+class PkcRpcClient extends EventEmitter {
   state = "connecting";
   settings: any = undefined;
   constructor() {
@@ -1212,7 +1206,7 @@ class Community extends EventEmitter {
     this._getCommunityOnFirstUpdate = false;
 
     // @ts-ignore
-    const community = await new Plebbit().getCommunity({ address: this.address });
+    const community = await new PKC().getCommunity({ address: this.address });
     const props = JSON.parse(JSON.stringify(community));
     for (const prop in props) {
       if (prop.startsWith("_")) {
@@ -1427,7 +1421,7 @@ class Comment extends Publication {
     this._getCommentOnFirstUpdate = false;
 
     // @ts-ignore
-    const comment = await new Plebbit().getComment({ cid: this.cid });
+    const comment = await new PKC().getComment({ cid: this.cid });
     if (!this.updating) {
       return;
     }
@@ -1465,11 +1459,11 @@ class CommentEdit extends Publication {
 
 class CommunityEdit extends Publication {}
 
-const createPlebbit: any = async (...args: any) => {
-  return new Plebbit(...args);
+const createPkc: any = async (...args: any) => {
+  return new PKC(...args);
 };
 
-createPlebbit.getShortAddress = (options: { address: string }) => {
+createPkc.getShortAddress = (options: { address: string }) => {
   const address = options?.address;
   if (address.includes(".")) {
     return address;
@@ -1477,9 +1471,9 @@ createPlebbit.getShortAddress = (options: { address: string }) => {
   return address.substring(0, 12);
 };
 
-createPlebbit.getShortCid = (options: { cid: string }) => {
+createPkc.getShortCid = (options: { cid: string }) => {
   const cid = options?.cid;
   return cid.substring(0, 12);
 };
 
-export default createPlebbit;
+export default createPkc;

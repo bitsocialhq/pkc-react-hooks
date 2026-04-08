@@ -1,16 +1,14 @@
 import assert from "assert";
 
-export const getProtocolClient = (account: any) => account?.pkc || account?.plebbit;
+export const getProtocolClient = (account: any) => account?.pkc;
 
-export const getProtocolOptions = (account: any) => account?.pkcOptions || account?.plebbitOptions;
+export const getProtocolOptions = (account: any) => account?.pkcOptions;
 
 export const getChainProviders = (account: any) => getProtocolOptions(account)?.chainProviders;
 
-export const getRpcClients = (protocolClient: any) =>
-  protocolClient?.clients?.pkcRpcClients || protocolClient?.clients?.plebbitRpcClients || {};
+export const getRpcClients = (protocolClient: any) => protocolClient?.clients?.pkcRpcClients || {};
 
-export const getPageRpcClients = (clients: any) =>
-  clients?.pkcRpcClients || clients?.plebbitRpcClients || {};
+export const getPageRpcClients = (clients: any) => clients?.pkcRpcClients || {};
 
 export const resolveAuthorNameWithProtocol = (
   protocolClient: any,
@@ -34,14 +32,10 @@ export const normalizeOptionsForPkcClient = <T extends Record<string, any> | und
 
   const normalized: Record<string, any> = { ...options };
 
-  if (normalized.pkcRpcClientsOptions == null && normalized.plebbitRpcClientsOptions != null) {
-    normalized.pkcRpcClientsOptions = normalized.plebbitRpcClientsOptions;
-  }
   if (normalized.resolveAuthorNames == null && normalized.resolveAuthorAddresses != null) {
     normalized.resolveAuthorNames = normalized.resolveAuthorAddresses;
   }
 
-  delete normalized.plebbitRpcClientsOptions;
   delete normalized.resolveAuthorAddresses;
   delete normalized.chainProviders;
 
@@ -53,19 +47,16 @@ export const withProtocolAliases = <T extends Record<string, any>>(
   protocolClient?: any,
   protocolOptions?: any,
 ): T => {
-  const aliasedAccount: Record<string, any> = { ...account };
-  const resolvedProtocolClient = protocolClient ?? aliasedAccount.pkc ?? aliasedAccount.plebbit;
-  const resolvedProtocolOptions =
-    protocolOptions ?? aliasedAccount.pkcOptions ?? aliasedAccount.plebbitOptions;
+  const nextAccount: Record<string, any> = { ...account };
 
-  if (resolvedProtocolClient !== undefined) {
-    aliasedAccount.pkc = resolvedProtocolClient;
-    aliasedAccount.plebbit = resolvedProtocolClient;
+  if (protocolClient !== undefined) {
+    nextAccount.pkc = protocolClient;
   }
-  if (resolvedProtocolOptions !== undefined) {
-    aliasedAccount.pkcOptions = resolvedProtocolOptions;
-    aliasedAccount.plebbitOptions = resolvedProtocolOptions;
+  if (protocolOptions !== undefined) {
+    nextAccount.pkcOptions = protocolOptions;
   }
 
-  return aliasedAccount as T;
+  return nextAccount as T;
 };
+
+export * from "./protocol-compat";

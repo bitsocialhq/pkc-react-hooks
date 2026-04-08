@@ -1,4 +1,4 @@
-// test plebbit-js mock content https://github.com/bitsocialnet/bitsocial-react-hooks/blob/master/docs/mock-content.md
+// test pkc-js mock content https://github.com/bitsocialnet/bitsocial-react-hooks/blob/master/docs/mock-content.md
 
 window.process = { env: {} };
 window.process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT = "1";
@@ -10,11 +10,11 @@ import {
   useFeed,
   useAccountCommunities,
   useAccount,
-  setPlebbitJs,
+  setPkcJs,
 } from "../../dist";
-import PlebbitJsMockContent from "../../dist/lib/plebbit-js/plebbit-js-mock-content";
+import PkcJsMockContent from "../../dist/lib/pkc-js/pkc-js-mock-content";
 // mock right after importing or sometimes fails to mock
-setPlebbitJs(PlebbitJsMockContent);
+setPkcJs(PkcJsMockContent);
 
 import * as accountsActions from "../../dist/stores/accounts/accounts-actions";
 import { act } from "@testing-library/react";
@@ -202,8 +202,8 @@ describe("mock content", () => {
     const rendered = renderHook(() => useAccount());
     const waitFor = testUtils.createWaitFor(rendered, { timeout });
 
-    await waitFor(() => typeof rendered.result.current.plebbit?.createComment === "function");
-    expect(typeof rendered.result.current.plebbit?.createComment).to.equal("function");
+    await waitFor(() => typeof rendered.result.current.pkc?.createComment === "function");
+    expect(typeof rendered.result.current.pkc?.createComment).to.equal("function");
 
     console.log("publishing comment");
     let onChallengeVerificationCalled = false;
@@ -249,9 +249,9 @@ describe("mock content", () => {
     });
     const waitFor = testUtils.createWaitFor(rendered, { timeout });
     await waitFor(
-      () => typeof rendered.result.current.account?.plebbit?.createCommunity === "function",
+      () => typeof rendered.result.current.account?.pkc?.createCommunity === "function",
     );
-    expect(typeof rendered.result.current.account?.plebbit?.createCommunity).to.equal("function");
+    expect(typeof rendered.result.current.account?.pkc?.createCommunity).to.equal("function");
 
     console.log("creating community");
     const community = await rendered.result.current.createCommunity({

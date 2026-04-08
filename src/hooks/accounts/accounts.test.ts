@@ -17,25 +17,25 @@ import {
   useFeed,
   useCommunity,
   usePubsubSubscribe,
-  setPlebbitJs,
+  setPkcJs,
 } from "../..";
 import commentsStore from "../../stores/comments";
 import * as accountsActions from "../../stores/accounts/accounts-actions";
-import PlebbitJsMock, {
-  Plebbit,
+import PkcJsMock, {
+  PKC,
   Comment,
   Community,
   Pages,
-  resetPlebbitJsMock,
-  debugPlebbitJsMock,
-} from "../../lib/plebbit-js/plebbit-js-mock";
+  resetPkcJsMock,
+  debugPkcJsMock,
+} from "../../lib/pkc-js/pkc-js-mock";
 import accountsStore from "../../stores/accounts";
 import chain from "../../lib/chain";
 
 describe("accounts", () => {
   beforeAll(async () => {
-    // set plebbit-js mock and reset dbs
-    setPlebbitJs(PlebbitJsMock);
+    // set pkc-js mock and reset dbs
+    setPkcJs(PkcJsMock);
     await testUtils.resetDatabasesAndStores();
 
     testUtils.silenceReactWarnings();
@@ -64,19 +64,19 @@ describe("accounts", () => {
       expect(Array.isArray(account.subscriptions)).toBe(true);
       expect(account.blockedAddresses && typeof account.blockedAddresses === "object").toBe(true);
       expect(account.blockedCids && typeof account.blockedCids === "object").toBe(true);
-      expect(account.plebbit && typeof account.plebbit === "object").toBe(true);
-      expect(account.plebbitOptions && typeof account.plebbitOptions === "object").toBe(true);
-      expect(account.plebbitOptions.ipfsGatewayUrls?.length).toBeGreaterThan(0);
-      expect(account.plebbitOptions.pubsubKuboRpcClientsOptions?.length).toBeGreaterThan(0);
-      expect(account.plebbitOptions.kuboRpcClientsOptions).toBe(undefined);
+      expect(account.pkc && typeof account.pkc === "object").toBe(true);
+      expect(account.pkcOptions && typeof account.pkcOptions === "object").toBe(true);
+      expect(account.pkcOptions.ipfsGatewayUrls?.length).toBeGreaterThan(0);
+      expect(account.pkcOptions.pubsubKuboRpcClientsOptions?.length).toBeGreaterThan(0);
+      expect(account.pkcOptions.kuboRpcClientsOptions).toBe(undefined);
     });
 
-    test(`default plebbit options are not saved to database`, async () => {
-      const plebbitOptions = { kuboRpcClientsOptions: ["http://one:5001/api/v0"] };
+    test(`default pkc options are not saved to database`, async () => {
+      const pkcOptions = { kuboRpcClientsOptions: ["http://one:5001/api/v0"] };
       // @ts-ignore
-      window.defaultPlebbitOptions = plebbitOptions;
+      window.defaultPkcOptions = pkcOptions;
 
-      // re-init accounts after changing plebbit defaults
+      // re-init accounts after changing pkc defaults
       await testUtils.resetDatabasesAndStores();
 
       const rendered = renderHook(() => {
@@ -86,32 +86,32 @@ describe("accounts", () => {
       });
       const waitFor = testUtils.createWaitFor(rendered);
 
-      // reloaded accounts have new default plebbit options
+      // reloaded accounts have new default pkc options
       await waitFor(
         () =>
-          rendered.result.current.account.plebbitOptions.kuboRpcClientsOptions[0] ===
-          plebbitOptions.kuboRpcClientsOptions[0],
+          rendered.result.current.account.pkcOptions.kuboRpcClientsOptions[0] ===
+          pkcOptions.kuboRpcClientsOptions[0],
       );
-      expect(rendered.result.current.account.plebbitOptions.kuboRpcClientsOptions[0]).toBe(
-        plebbitOptions.kuboRpcClientsOptions[0],
+      expect(rendered.result.current.account.pkcOptions.kuboRpcClientsOptions[0]).toBe(
+        pkcOptions.kuboRpcClientsOptions[0],
       );
 
-      // set account with new default plebbit options
+      // set account with new default pkc options
       await act(async () => {
         const author = { ...rendered.result.current.account.author, displayName: "john" };
         const account = { ...rendered.result.current.account, author };
         await rendered.result.current.setAccount(account);
       });
 
-      // account has new default plebbit options
+      // account has new default pkc options
       await waitFor(() => rendered.result.current.account.author.displayName === "john");
       expect(rendered.result.current.account.author.displayName).toBe("john");
-      expect(rendered.result.current.account.plebbitOptions.kuboRpcClientsOptions[0]).toBe(
-        plebbitOptions.kuboRpcClientsOptions[0],
+      expect(rendered.result.current.account.pkcOptions.kuboRpcClientsOptions[0]).toBe(
+        pkcOptions.kuboRpcClientsOptions[0],
       );
 
-      // change default plebbit options and reload accounts
-      plebbitOptions.kuboRpcClientsOptions = ["http://two:5001/api/v0"];
+      // change default pkc options and reload accounts
+      pkcOptions.kuboRpcClientsOptions = ["http://two:5001/api/v0"];
       await testUtils.resetStores();
 
       // on second render get the account from database
@@ -122,17 +122,17 @@ describe("accounts", () => {
       const waitFor2 = testUtils.createWaitFor(rendered2);
       await waitFor2(() => rendered2.result.current.account);
 
-      // account plebbit options were not saved, has new default plebbit options
-      expect(rendered2.result.current.account.plebbitOptions.kuboRpcClientsOptions[0]).toBe(
-        plebbitOptions.kuboRpcClientsOptions[0],
+      // account pkc options were not saved, has new default pkc options
+      expect(rendered2.result.current.account.pkcOptions.kuboRpcClientsOptions[0]).toBe(
+        pkcOptions.kuboRpcClientsOptions[0],
       );
       expect(rendered2.result.current.account.author.displayName).toBe("john");
 
       // @ts-ignore
-      delete window.defaultPlebbitOptions;
+      delete window.defaultPkcOptions;
     });
 
-    // test.todo('default generated account has all the data defined in schema, like signer, author, plebbitOptions, etc')
+    // test.todo('default generated account has all the data defined in schema, like signer, author, pkcOptions, etc')
 
     test("create new accounts", async () => {
       const rendered = renderHook<any, any>((accountName) => {
@@ -216,8 +216,8 @@ describe("accounts", () => {
     });
 
     test("usePubsubSubscribe pubsubSubscribe error", async () => {
-      const originalPubsubSubscribe = Plebbit.prototype.pubsubSubscribe;
-      Plebbit.prototype.pubsubSubscribe = async () => {
+      const originalPubsubSubscribe = PKC.prototype.pubsubSubscribe;
+      PKC.prototype.pubsubSubscribe = async () => {
         throw Error("pubsub subscribe error");
       };
       try {
@@ -230,13 +230,13 @@ describe("accounts", () => {
         expect(rendered.result.current.state).toBe("failed");
         expect(rendered.result.current.error?.message).toBe("pubsub subscribe error");
       } finally {
-        Plebbit.prototype.pubsubSubscribe = originalPubsubSubscribe;
+        PKC.prototype.pubsubSubscribe = originalPubsubSubscribe;
       }
     });
 
     test("usePubsubSubscribe pubsubUnsubscribe error on unmount", async () => {
-      const originalPubsubUnsubscribe = Plebbit.prototype.pubsubUnsubscribe;
-      Plebbit.prototype.pubsubUnsubscribe = async () => {
+      const originalPubsubUnsubscribe = PKC.prototype.pubsubUnsubscribe;
+      PKC.prototype.pubsubUnsubscribe = async () => {
         throw Error("pubsub unsubscribe error");
       };
       try {
@@ -249,7 +249,7 @@ describe("accounts", () => {
         rendered.unmount();
         await new Promise((r) => setTimeout(r, 50));
       } finally {
-        Plebbit.prototype.pubsubUnsubscribe = originalPubsubUnsubscribe;
+        PKC.prototype.pubsubUnsubscribe = originalPubsubUnsubscribe;
       }
     });
 
@@ -507,8 +507,8 @@ describe("accounts", () => {
         expect(typeof exported?.account?.signer?.privateKey).toBe("string");
         expect(exported?.account?.author?.wallets?.sol).toBeUndefined();
 
-        // account.plebbit has been removed
-        expect(exported?.account.plebbit).toBe(undefined);
+        // account.pkc has been removed
+        expect(exported?.account.pkc).toBe(undefined);
 
         // exported account comments
         expect(exported?.accountComments?.[0]?.content).toBe("content 1");
@@ -532,8 +532,8 @@ describe("accounts", () => {
         });
         expect(typeof exported?.account?.id).toBe("string");
         expect(typeof exported?.account?.signer?.privateKey).toBe("string");
-        // account.plebbit has been removed
-        expect(exported?.account.plebbit).toBe(undefined);
+        // account.pkc has been removed
+        expect(exported?.account.pkc).toBe(undefined);
 
         exported.account.author.name = "imported author name";
         exported.account.name = "imported account name";
@@ -551,8 +551,8 @@ describe("accounts", () => {
         // account.id has been reset
         expect(typeof rendered.result.current.account?.id).toBe("string");
         expect(rendered.result.current.account?.id).not.toBe(exported?.account.id);
-        // account.plebbit has been initialized
-        expect(typeof rendered.result.current.account?.plebbit?.getCommunity).toBe("function");
+        // account.pkc has been initialized
+        expect(typeof rendered.result.current.account?.pkc?.getCommunity).toBe("function");
 
         // has account comments, votes, edits
         await waitFor(() => rendered.result.current.accountComments?.[0]?.content === "content 1");
@@ -587,8 +587,8 @@ describe("accounts", () => {
         // account.id has been reset
         expect(typeof rendered2.result.current.account.id).toBe("string");
         expect(rendered2.result.current.account.id).not.toBe(exported?.account.id);
-        // account.plebbit has been initialized
-        expect(typeof rendered2.result.current.account.plebbit?.getCommunity).toBe("function");
+        // account.pkc has been initialized
+        expect(typeof rendered2.result.current.account.pkc?.getCommunity).toBe("function");
 
         // has account comments, votes, edits
         await waitFor2(
@@ -1159,8 +1159,8 @@ describe("accounts", () => {
 
       test("useComment can use the published account comment", async () => {
         // make sure we use the account comment and not get comment
-        const getComment = Plebbit.prototype.getComment;
-        Plebbit.prototype.getComment = async () => {
+        const getComment = PKC.prototype.getComment;
+        PKC.prototype.getComment = async () => {
           throw Error("failed getting comment");
         };
 
@@ -1186,7 +1186,7 @@ describe("accounts", () => {
         expect(rendered3.result.current.index).toBe(0);
 
         // restore mock
-        Plebbit.prototype.getComment = getComment;
+        PKC.prototype.getComment = getComment;
       });
     });
 
@@ -1780,10 +1780,10 @@ describe("accounts", () => {
         expect(rendered.result.current[1].cid).toBe(undefined);
         expectAccountCommentsToHaveIndexAndAccountId(rendered.result.current);
 
-        // mock the comment to get from plebbit.getComment()
+        // mock the comment to get from pkc.getComment()
         // to simulate getting a comment that the account published
-        const commentToGet = Plebbit.prototype.commentToGet;
-        Plebbit.prototype.commentToGet = () => ({
+        const commentToGet = PKC.prototype.commentToGet;
+        PKC.prototype.commentToGet = () => ({
           author: rendered.result.current[0].author,
           timestamp: rendered.result.current[0].timestamp,
           content: rendered.result.current[0].content,
@@ -1802,8 +1802,8 @@ describe("accounts", () => {
         await waitFor(() => typeof rendered.result.current[0].upvoteCount === "number");
         expect(rendered.result.current[0].upvoteCount).toBe(3);
 
-        // mock the second comment to get from plebbit.getComment()
-        Plebbit.prototype.commentToGet = () => ({
+        // mock the second comment to get from pkc.getComment()
+        PKC.prototype.commentToGet = () => ({
           author: rendered.result.current[1].author,
           timestamp: rendered.result.current[1].timestamp,
           content: rendered.result.current[1].content,
@@ -1819,7 +1819,7 @@ describe("accounts", () => {
         expectAccountCommentsToHaveIndexAndAccountId(rendered.result.current);
 
         // restore mock
-        Plebbit.prototype.commentToGet = commentToGet;
+        PKC.prototype.commentToGet = commentToGet;
 
         // reset stores to force using the db
         await testUtils.resetStores();
@@ -2614,11 +2614,11 @@ describe("accounts", () => {
       const activeAccount = state.accounts[state.activeAccountId];
       const account2 = state.accounts[state.accountNamesToAccountIds["Account 2"]];
 
-      Object.defineProperty(activeAccount.plebbit, "communities", {
+      Object.defineProperty(activeAccount.pkc, "communities", {
         configurable: true,
         get: () => ["active owner community"],
       });
-      Object.defineProperty(account2.plebbit, "communities", {
+      Object.defineProperty(account2.pkc, "communities", {
         configurable: true,
         get: () => ["account 2 owner community"],
       });
@@ -2641,8 +2641,8 @@ describe("accounts", () => {
           rendered.result.current.accountCommunities["active owner community"],
         ).toBeUndefined();
       } finally {
-        delete (activeAccount.plebbit as any).communities;
-        delete (account2.plebbit as any).communities;
+        delete (activeAccount.pkc as any).communities;
+        delete (account2.pkc as any).communities;
       }
     });
 
@@ -2752,15 +2752,15 @@ describe("accounts", () => {
       test("useAccountCommunities reflects in-flight community fetches", async () => {
         await waitFor(() => rendered.result.current.accountCommunities["community address 1"]);
         const { account, setAccount } = rendered.result.current;
-        const createCommunityOrig = Plebbit.prototype.createCommunity;
-        const slowCommunity = await createCommunityOrig.call(account.plebbit, {
+        const createCommunityOrig = PKC.prototype.createCommunity;
+        const slowCommunity = await createCommunityOrig.call(account.pkc, {
           address: "slow community address",
         });
         let resolveSlowCommunity: ((community: any) => void) | undefined;
         const slowCommunityPromise = new Promise((resolve) => {
           resolveSlowCommunity = resolve;
         });
-        Plebbit.prototype.createCommunity = vi.fn(async function (options: any) {
+        PKC.prototype.createCommunity = vi.fn(async function (options: any) {
           if (options.address === "slow community address") {
             return slowCommunityPromise;
           }
@@ -2788,15 +2788,15 @@ describe("accounts", () => {
           resolveSlowCommunity?.(slowCommunity);
           await waitFor(() => rendered.result.current.state === "succeeded");
         } finally {
-          Plebbit.prototype.createCommunity = createCommunityOrig;
+          PKC.prototype.createCommunity = createCommunityOrig;
         }
       });
 
       test("useAccountCommunities propagates failed community fetches", async () => {
         await waitFor(() => rendered.result.current.accountCommunities["community address 1"]);
         const { account, setAccount } = rendered.result.current;
-        const createCommunityOrig = Plebbit.prototype.createCommunity;
-        Plebbit.prototype.createCommunity = vi.fn(async function (options: any) {
+        const createCommunityOrig = PKC.prototype.createCommunity;
+        PKC.prototype.createCommunity = vi.fn(async function (options: any) {
           if (options.address === "failing community address") {
             throw new Error("community fetch failed");
           }
@@ -2820,7 +2820,7 @@ describe("accounts", () => {
             "community fetch failed",
           );
         } finally {
-          Plebbit.prototype.createCommunity = createCommunityOrig;
+          PKC.prototype.createCommunity = createCommunityOrig;
         }
       });
     });
@@ -2885,7 +2885,7 @@ describe("accounts", () => {
     let waitFor: Function;
 
     beforeAll(() => {
-      resetPlebbitJsMock();
+      resetPkcJsMock();
     });
 
     beforeEach(async () => {
@@ -2900,7 +2900,7 @@ describe("accounts", () => {
     });
 
     afterEach(() => {
-      resetPlebbitJsMock();
+      resetPkcJsMock();
     });
 
     test("create owner community and edit it", async () => {
@@ -3861,9 +3861,9 @@ describe("accounts", () => {
   });
 
   describe("wallets", () => {
-    const createSigner = Plebbit.prototype.createSigner;
+    const createSigner = PKC.prototype.createSigner;
     beforeAll(() => {
-      Plebbit.prototype.createSigner = async () => ({
+      PKC.prototype.createSigner = async () => ({
         type: "ed25519",
         privateKey: "mV8GRU5TGScen7UYZOuNQQ1CKe2G46DCc60moM1yLF4",
         publicKey: "lF41sWk/JHHdfQSH5VAR55uGZp0/Cv9/xXxwS+vOOVI",
@@ -3872,7 +3872,7 @@ describe("accounts", () => {
       });
     });
     afterAll(() => {
-      Plebbit.prototype.createSigner = createSigner;
+      PKC.prototype.createSigner = createSigner;
     });
     beforeEach(async () => {
       await testUtils.resetDatabasesAndStores();

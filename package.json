@@ -32,9 +32,9 @@
     "test:e2e:chrome": "vitest run --config config/vitest-e2e.config.js",
     "test:e2e:firefox": "cross-env FIREFOX=1 vitest run --config config/vitest-e2e.config.js",
     "test:e2e:browser": "yarn test:e2e:chrome",
-    "test:server": "rm -rf .pkc/ .plebbit/ && node test/test-server",
+    "test:server": "rm -rf .pkc/ .pkc/ && node test/test-server",
     "test:server:wait-on": "wait-on http://localhost:59281 --timeout 120000",
-    "test:mock-content": "vitest run --config config/vitest.config.ts src/lib/plebbit-js/plebbit-js-mock-content.donttest.ts",
+    "test:mock-content": "vitest run --config config/vitest.config.ts src/lib/pkc-js/pkc-js-mock-content.donttest.ts",
     "lint": "oxlint src/**/*.{js,ts,tsx}",
     "prettier": "oxfmt src/**/*.{js,ts,tsx} test/**/*.{js,ts,tsx} config/**/*.{js,ts,tsx}",
     "type-check": "node ./node_modules/typescript/bin/tsc --noEmit --project config/tsconfig.json",
@@ -141,9 +141,9 @@
       "scripts/coverage-gaps.mjs",
       "scripts/coverage-triage.mjs",
       "src/global.d.ts",
-      "src/lib/plebbit-js/plebbit-js-mock-content.donttest.ts",
-      "test/browser-plebbit-js-mock/**/*.test.js",
-      "test/browser-plebbit-js-mock-content/**/*.test.js"
+      "src/lib/pkc-js/pkc-js-mock-content.donttest.ts",
+      "test/browser-pkc-js-mock/**/*.test.js",
+      "test/browser-pkc-js-mock-content/**/*.test.js"
     ],
     "ignoreIssues": {
       "src/lib/debug-utils.ts": [

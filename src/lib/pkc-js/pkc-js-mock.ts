@@ -9,15 +9,15 @@ let createdOwnerCommunities: any = {};
 let editedOwnerCommunities: any = {};
 
 // reset the pkc-js global state in between tests
-export const resetPlebbitJsMock = () => {
+export const resetPkcJsMock = () => {
   createdOwnerCommunities = {};
   editedOwnerCommunities = {};
 };
-export const debugPlebbitJsMock = () => {
+export const debugPkcJsMock = () => {
   console.log({ createdOwnerCommunities, editedOwnerCommunities });
 };
 
-export class Plebbit extends EventEmitter {
+export class PKC extends EventEmitter {
   async resolveAuthorAddress(options: { address: string }) {
     return "resolved author address";
   }
@@ -162,18 +162,17 @@ export class Plebbit extends EventEmitter {
 
   clients = (() => {
     const pkcRpcClients = {
-      "http://localhost:9138": new PlebbitRpcClient(),
+      "http://localhost:9138": new PkcRpcClient(),
     };
     return {
       pkcRpcClients,
-      plebbitRpcClients: pkcRpcClients,
     };
   })();
 
   async validateComment(comment: any, validateCommentOptions: any) {}
 }
 
-class PlebbitRpcClient extends EventEmitter {
+class PkcRpcClient extends EventEmitter {
   state = "connecting";
   settings: any = undefined;
   constructor() {
@@ -417,7 +416,7 @@ export class Community extends EventEmitter {
     }
 
     // keep a list of edited communities to reinitialize
-    // them with plebbit.createCommunity()
+    // them with pkc.createCommunity()
     editedOwnerCommunities[this.address] = {
       address: this.address,
       title: this.title,
@@ -619,8 +618,8 @@ export class Comment extends Publication {
     if (!this.updating) {
       return;
     }
-    // use plebbit.getComment() so mocking Plebbit.prototype.getComment works
-    const commentIpfs = await new Plebbit().getComment({ cid: this.cid || "" });
+    // use pkc.getComment() so mocking PKC.prototype.getComment works
+    const commentIpfs = await new PKC().getComment({ cid: this.cid || "" });
     if (!this.updating) {
       return;
     }
@@ -648,11 +647,11 @@ export class CommentModeration extends Publication {}
 
 export class CommunityEdit extends Publication {}
 
-const createPlebbit: any = async (...args: any) => {
-  return new Plebbit(...args);
+const createPkc: any = async (...args: any) => {
+  return new PKC(...args);
 };
 
-createPlebbit.getShortAddress = (options: { address: string }) => {
+createPkc.getShortAddress = (options: { address: string }) => {
   const address = options?.address;
   if (address.includes(".")) {
     return address;
@@ -660,9 +659,9 @@ createPlebbit.getShortAddress = (options: { address: string }) => {
   return address.substring(2, 14);
 };
 
-createPlebbit.getShortCid = (options: { cid: string }) => {
+createPkc.getShortCid = (options: { cid: string }) => {
   const cid = options?.cid;
   return cid.substring(2, 14);
 };
 
-export default createPlebbit;
+export default createPkc;

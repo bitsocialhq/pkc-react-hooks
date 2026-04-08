@@ -1,7 +1,7 @@
 import assert from "assert";
 import localForageLru from "../../lib/localforage-lru";
 const communitiesDatabase = localForageLru.createInstance({
-  name: "plebbitReactHooks-communities",
+  name: "bitsocialReactHooks-communities",
   size: 500,
 });
 import Logger from "@pkc/pkc-logger";
@@ -12,14 +12,14 @@ import createStore from "zustand";
 import accountsStore from "../accounts";
 import communitiesPagesStore from "../communities-pages";
 import {
-  createPlebbitCommunity,
-  getPlebbitCommunity,
-  getPlebbitCommunityAddresses,
-  getPlebbitCreateCommunity,
-  getPlebbitGetCommunity,
-} from "../../lib/plebbit-compat";
+  createPkcCommunity,
+  getPkcCommunity,
+  getPkcCommunityAddresses,
+  getPkcCreateCommunity,
+  getPkcGetCommunity,
+} from "../../lib/pkc-compat";
 
-let plebbitGetCommunityPending: { [key: string]: boolean } = {};
+let pkcGetCommunityPending: { [key: string]: boolean } = {};
 
 // reset all event listeners in between tests
 const listeners: any = [];
@@ -45,7 +45,7 @@ const communitiesStore = createStore<CommunitiesState>(
         `communitiesStore.addCommunityToStore invalid communityAddress argument '${communityAddress}'`,
       );
       assert(
-        typeof getPlebbitCreateCommunity(account?.plebbit) === "function",
+        typeof getPkcCreateCommunity(account?.pkc) === "function",
         `communitiesStore.addCommunityToStore invalid account argument '${account}'`,
       );
 
@@ -53,18 +53,18 @@ const communitiesStore = createStore<CommunitiesState>(
       const { communities } = getState();
       let community: Community | undefined = communities[communityAddress];
       const pendingKey = communityAddress + account.id;
-      if (community || plebbitGetCommunityPending[pendingKey]) {
+      if (community || pkcGetCommunityPending[pendingKey]) {
         return;
       }
 
       // start trying to get community
-      plebbitGetCommunityPending[pendingKey] = true;
+      pkcGetCommunityPending[pendingKey] = true;
       let errorGettingCommunity: any;
       try {
         // try to find community in owner communities
-        if (getPlebbitCommunityAddresses(account.plebbit).includes(communityAddress)) {
+        if (getPkcCommunityAddresses(account.pkc).includes(communityAddress)) {
           try {
-            community = await createPlebbitCommunity(account.plebbit, {
+            community = await createPkcCommunity(account.pkc, {
               address: communityAddress,
             });
           } catch (e) {
@@ -78,13 +78,13 @@ const communitiesStore = createStore<CommunitiesState>(
           const communityData: any = await communitiesDatabase.getItem(communityAddress);
           if (communityData) {
             fetchedAt = communityData.fetchedAt;
-            delete communityData.fetchedAt; // not part of plebbit-js schema
+            delete communityData.fetchedAt; // not part of pkc-js schema
             try {
-              community = await createPlebbitCommunity(account.plebbit, communityData);
+              community = await createPkcCommunity(account.pkc, communityData);
             } catch (e) {
               fetchedAt = undefined;
               // need to log this always or it could silently fail in production and cache never be used
-              console.error("failed plebbit.createCommunity(cachedCommunity)", {
+              console.error("failed pkc.createCommunity(cachedCommunity)", {
                 cachedCommunity: communityData,
                 error: e,
               });
@@ -96,10 +96,10 @@ const communitiesStore = createStore<CommunitiesState>(
           }
         }
 
-        // community not in database, try to fetch from plebbit-js
+        // community not in database, try to fetch from pkc-js
         if (!community) {
           try {
-            community = await createPlebbitCommunity(account.plebbit, {
+            community = await createPkcCommunity(account.pkc, {
               address: communityAddress,
             });
           } catch (e) {
@@ -209,7 +209,7 @@ const communitiesStore = createStore<CommunitiesState>(
           .update()
           .catch((error: unknown) => log.trace("community.update error", { community, error }));
       } finally {
-        plebbitGetCommunityPending[pendingKey] = false;
+        pkcGetCommunityPending[pendingKey] = false;
       }
     },
 
@@ -219,12 +219,12 @@ const communitiesStore = createStore<CommunitiesState>(
         `communitiesStore.refreshCommunity invalid communityAddress argument '${communityAddress}'`,
       );
       assert(
-        typeof getPlebbitGetCommunity(account?.plebbit) === "function",
+        typeof getPkcGetCommunity(account?.pkc) === "function",
         `communitiesStore.refreshCommunity invalid account argument '${account}'`,
       );
 
       const refreshedCommunity = utils.clone(
-        await getPlebbitCommunity(account.plebbit, { address: communityAddress }),
+        await getPkcCommunity(account.pkc, { address: communityAddress }),
       );
       refreshedCommunity.fetchedAt = Math.floor(Date.now() / 1000);
 
@@ -254,7 +254,7 @@ const communitiesStore = createStore<CommunitiesState>(
         `communitiesStore.editCommunity invalid communityEditOptions argument '${communityEditOptions}'`,
       );
       assert(
-        typeof getPlebbitCreateCommunity(account?.plebbit) === "function",
+        typeof getPkcCreateCommunity(account?.pkc) === "function",
         `communitiesStore.editCommunity invalid account argument '${account}'`,
       );
 
@@ -262,7 +262,7 @@ const communitiesStore = createStore<CommunitiesState>(
       await getState().addCommunityToStore(communityAddress, account);
 
       // `communityAddress` is different from  `communityEditOptions.address` when editing the community address
-      const community = await createPlebbitCommunity(account.plebbit, {
+      const community = await createPkcCommunity(account.pkc, {
         address: communityAddress,
       });
 
@@ -304,11 +304,11 @@ const communitiesStore = createStore<CommunitiesState>(
         );
       }
       assert(
-        typeof getPlebbitCreateCommunity(account?.plebbit) === "function",
+        typeof getPkcCreateCommunity(account?.pkc) === "function",
         `communitiesStore.createCommunity invalid account argument '${account}'`,
       );
 
-      const community = await createPlebbitCommunity(account.plebbit, createCommunityOptions);
+      const community = await createPkcCommunity(account.pkc, createCommunityOptions);
 
       // could fix some test issues
       community.on("error", console.log);
@@ -331,11 +331,11 @@ const communitiesStore = createStore<CommunitiesState>(
         `communitiesStore.deleteCommunity invalid communityAddress argument '${communityAddress}'`,
       );
       assert(
-        typeof getPlebbitCreateCommunity(account?.plebbit) === "function",
+        typeof getPkcCreateCommunity(account?.pkc) === "function",
         `communitiesStore.deleteCommunity invalid account argument '${account}'`,
       );
 
-      const community = await createPlebbitCommunity(account.plebbit, {
+      const community = await createPkcCommunity(account.pkc, {
         address: communityAddress,
       });
 
@@ -356,7 +356,7 @@ const communitiesStore = createStore<CommunitiesState>(
 const originalState = communitiesStore.getState();
 // async function because some stores have async init
 export const resetCommunitiesStore = async () => {
-  plebbitGetCommunityPending = {};
+  pkcGetCommunityPending = {};
   // remove all event listeners
   listeners.forEach((listener: any) => listener.removeAllListeners());
   // destroy all component subscriptions to the store
@@ -367,7 +367,7 @@ export const resetCommunitiesStore = async () => {
 
 // reset database and store in between tests
 export const resetCommunitiesDatabaseAndStore = async () => {
-  await localForageLru.createInstance({ name: "plebbitReactHooks-communities" }).clear();
+  await localForageLru.createInstance({ name: "bitsocialReactHooks-communities" }).clear();
   await resetCommunitiesStore();
 };
 

@@ -17,15 +17,15 @@ if (process.env.FIREFOX_BIN) {
 }
 
 let include = ["test/browser-e2e/**/*.test.js"];
-// test the plebbit-js-mock files
+// test the pkc-js-mock files
 // launch the mock tests separately because it sometimes wrongly mocks all files
 if (process.env.MOCK) {
-  include = ["test/browser-plebbit-js-mock/**/*.test.js"];
+  include = ["test/browser-pkc-js-mock/**/*.test.js"];
 }
-// test the plebbit-js-mock-content files
+// test the pkc-js-mock-content files
 // launch the mock tests separately because it sometimes wrongly mocks all files
 if (process.env.MOCK_CONTENT) {
-  include = ["test/browser-plebbit-js-mock-content/**/*.test.js"];
+  include = ["test/browser-pkc-js-mock-content/**/*.test.js"];
 }
 
 export default defineConfig({

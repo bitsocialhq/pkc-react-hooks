@@ -7,7 +7,7 @@ export const useAuthorCommentsName = (accountId, authorAddress, filter) => {
 };
 const protobufPublicKeyPrefix = new Uint8Array([8, 1, 18, 32]);
 const multihashIdentityCode = 0;
-const getPlebbitAddressFromPublicKey = (publicKeyBase64) => {
+const getPkcAddressFromPublicKey = (publicKeyBase64) => {
     const publicKeyBuffer = uint8ArrayFromString(publicKeyBase64, "base64");
     const publicKeyBufferWithPrefix = new Uint8Array(protobufPublicKeyPrefix.length + publicKeyBuffer.length);
     publicKeyBufferWithPrefix.set(protobufPublicKeyPrefix, 0);
@@ -15,6 +15,6 @@ const getPlebbitAddressFromPublicKey = (publicKeyBase64) => {
     const multihash = createMultihash(multihashIdentityCode, publicKeyBufferWithPrefix).bytes;
     return uint8ArrayToString(multihash, "base58btc");
 };
-export const usePlebbitAddress = (publicKeyBase64) => {
-    return useMemo(() => (publicKeyBase64 ? getPlebbitAddressFromPublicKey(publicKeyBase64) : undefined), [publicKeyBase64]);
+export const usePkcAddress = (publicKeyBase64) => {
+    return useMemo(() => (publicKeyBase64 ? getPkcAddressFromPublicKey(publicKeyBase64) : undefined), [publicKeyBase64]);
 };

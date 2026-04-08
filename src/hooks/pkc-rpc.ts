@@ -1,12 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useAccount } from "./accounts";
 import assert from "assert";
-import {
-  UsePkcRpcSettingsResult,
-  UsePlebbitRpcSettingsOptions,
-  UsePlebbitRpcSettingsResult,
-  PlebbitRpcSettings,
-} from "../types";
+import { UsePkcRpcSettingsOptions, UsePkcRpcSettingsResult, PkcRpcSettings } from "../types";
 import { getProtocolClient, getRpcClients } from "../lib/pkc-compat";
 
 const getFirstRpcClient = (protocolClient: any) =>
@@ -16,18 +11,16 @@ const getFirstRpcClient = (protocolClient: any) =>
  * @param acountName - The nickname of the account, e.g. 'Account 1'. If no accountName is provided, use
  * the active account.
  */
-export function usePlebbitRpcSettings(
-  options?: UsePlebbitRpcSettingsOptions,
-): UsePlebbitRpcSettingsResult {
+export function usePkcRpcSettings(options?: UsePkcRpcSettingsOptions): UsePkcRpcSettingsResult {
   assert(
     !options || typeof options === "object",
-    `usePlebbitRpcSettings options argument '${options}' not an object`,
+    `usePkcRpcSettings options argument '${options}' not an object`,
   );
   const { accountName } = options ?? {};
   const account = useAccount({ accountName });
   const protocolClient = getProtocolClient(account);
   const rpcClient = getFirstRpcClient(protocolClient);
-  const [plebbitRpcSettingsState, setPlebbitRpcSettingsState] = useState<PlebbitRpcSettings>();
+  const [pkcRpcSettingsState, setPkcRpcSettingsState] = useState<PkcRpcSettings>();
   const [state, setState] = useState<string>("initializing");
   const [errors, setErrors] = useState<Error[]>([]);
 
@@ -35,12 +28,12 @@ export function usePlebbitRpcSettings(
     if (!account || !protocolClient) return;
     if (!rpcClient) return;
 
-    if (rpcClient.settings != null) setPlebbitRpcSettingsState(rpcClient.settings);
+    if (rpcClient.settings != null) setPkcRpcSettingsState(rpcClient.settings);
     const rpcState = rpcClient.state;
     if (rpcState != null && rpcState !== "") setState(rpcState);
 
-    const onRpcSettingsChange = (plebbitRpcSettings: PlebbitRpcSettings) => {
-      setPlebbitRpcSettingsState(plebbitRpcSettings);
+    const onRpcSettingsChange = (pkcRpcSettings: PkcRpcSettings) => {
+      setPkcRpcSettingsState(pkcRpcSettings);
     };
     const onRpcStateChange = (rpcState: string) => {
       setState(rpcState);
@@ -61,20 +54,20 @@ export function usePlebbitRpcSettings(
     };
   }, [account?.id, rpcClient, protocolClient]);
 
-  const setPlebbitRpcSettings = async (plebbitRpcSettings: PlebbitRpcSettings) => {
-    assert(account, `can't use usePlebbitRpcSettings.setPlebbitRpcSettings before initialized`);
+  const updatePkcRpcSettings = async (pkcRpcSettings: PkcRpcSettings) => {
+    assert(account, `can't use usePkcRpcSettings.setPkcRpcSettings before initialized`);
     assert(
-      plebbitRpcSettings && typeof plebbitRpcSettings === "object",
-      `usePlebbitRpcSettings.setPlebbitRpcSettings plebbitRpcSettings argument '${plebbitRpcSettings}' not an object`,
+      pkcRpcSettings && typeof pkcRpcSettings === "object",
+      `usePkcRpcSettings.setPkcRpcSettings pkcRpcSettings argument '${pkcRpcSettings}' not an object`,
     );
     const currentRpcClient = getFirstRpcClient(getProtocolClient(account));
     assert(
       currentRpcClient,
-      `can't use usePlebbitRpcSettings.setPlebbitRpcSettings no account.plebbit.clients.plebbitRpcClients`,
+      `can't use usePkcRpcSettings.setPkcRpcSettings no account.pkc.clients.pkcRpcClients`,
     );
 
     try {
-      await currentRpcClient.setSettings(plebbitRpcSettings);
+      await currentRpcClient.setSettings(pkcRpcSettings);
       setState("succeeded");
     } catch (e: any) {
       setErrors((prevErrors) => [...prevErrors, e]);
@@ -92,22 +85,14 @@ export function usePlebbitRpcSettings(
     }, 10000);
   };
 
-  const setPkcRpcSettings = setPlebbitRpcSettings;
-
   return useMemo(
     () => ({
-      pkcRpcSettings: plebbitRpcSettingsState,
-      plebbitRpcSettings: plebbitRpcSettingsState,
-      setPkcRpcSettings,
-      setPlebbitRpcSettings,
+      pkcRpcSettings: pkcRpcSettingsState,
+      setPkcRpcSettings: updatePkcRpcSettings,
       state,
       error: errors?.[errors.length - 1],
       errors,
     }),
-    [plebbitRpcSettingsState, account?.id, state, errors],
+    [pkcRpcSettingsState, account?.id, state, errors],
   );
 }
-
-export const usePkcRpcSettings = (
-  options?: UsePlebbitRpcSettingsOptions,
-): UsePkcRpcSettingsResult => usePlebbitRpcSettings(options);

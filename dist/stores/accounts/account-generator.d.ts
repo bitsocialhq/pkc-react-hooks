@@ -1,9 +1,13 @@
 import { AccountCommunity } from "../../types";
-export declare const overwritePlebbitOptions: {
+export declare const overwritePkcOptions: {
+    resolveAuthorNames: boolean;
     resolveAuthorAddresses: boolean;
     validatePages: boolean;
 };
-export declare const getDefaultPlebbitOptions: () => any;
+export declare const getDefaultPkcOptions: () => {
+    resolveAuthorNames: any;
+    resolveAuthorAddresses: any;
+};
 declare const accountGenerator: {
     generateDefaultAccount: () => Promise<{
         id: string;
@@ -23,8 +27,10 @@ declare const accountGenerator: {
             };
         };
         signer: any;
-        plebbitOptions: any;
-        plebbit: any;
+        pkcOptions: {
+            resolveAuthorNames: any;
+            resolveAuthorAddresses: any;
+        };
         subscriptions: never[];
         blockedAddresses: {};
         blockedCids: {};
@@ -33,6 +39,9 @@ declare const accountGenerator: {
         };
         mediaIpfsGatewayUrl: string;
     }>;
-    getDefaultPlebbitOptions: () => any;
+    getDefaultPkcOptions: () => {
+        resolveAuthorNames: any;
+        resolveAuthorAddresses: any;
+    };
 };
 export default accountGenerator;

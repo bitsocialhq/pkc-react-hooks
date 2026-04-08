@@ -169,7 +169,7 @@ export const getLoadedFeeds = async (
       continue;
     }
 
-    const plebbit = accounts[accountId]?.plebbit;
+    const pkc = accounts[accountId]?.pkc;
     const loadedFeedReplyCount = pageNumber * repliesPerPage;
     const currentLoadedFeed = loadedFeeds[feedName] || [];
     // don't count account replies
@@ -185,7 +185,7 @@ export const getLoadedFeeds = async (
         missingReplies = await removeInvalidComments(
           missingReplies,
           { validateReplies: false },
-          plebbit,
+          pkc,
         );
         // only stop if there were no invalid comments
         if (missingReplies.length >= missingRepliesCount) {
@@ -376,7 +376,7 @@ export const getUpdatedFeeds = async (
     ...Object.keys(updatedFeeds || {}),
   ]);
   for (const feedName of feedNames) {
-    const plebbit = accounts[feedsOptions[feedName]?.accountId]?.plebbit;
+    const pkc = accounts[feedsOptions[feedName]?.accountId]?.pkc;
     const loadedFeed = loadedFeeds[feedName] || [];
     const previousUpdatedFeed = updatedFeeds[feedName] || [];
     const updatedFeed = [...loadedFeed];
@@ -417,7 +417,7 @@ export const getUpdatedFeeds = async (
       if ((candidateReply.updatedAt || 0) <= (updatedFeed[i]?.updatedAt || 0)) {
         continue;
       }
-      if (!(await commentIsValid(candidateReply, { validateReplies: false }, plebbit))) {
+      if (!(await commentIsValid(candidateReply, { validateReplies: false }, pkc))) {
         continue;
       }
       updatedFeed[i] = candidateReply;

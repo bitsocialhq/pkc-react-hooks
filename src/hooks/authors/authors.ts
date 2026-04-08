@@ -25,9 +25,9 @@ import {
   useAuthorAvatarIsWhitelisted,
 } from "./author-avatars";
 import { useComment, useComments } from "../comments";
-import { useAuthorCommentsName, usePlebbitAddress } from "./utils";
+import { useAuthorCommentsName, usePkcAddress } from "./utils";
 import useAuthorsCommentsStore from "../../stores/authors-comments";
-import PlebbitJs from "../../lib/plebbit-js";
+import PkcJs from "../../lib/pkc-js";
 import { normalizeEthAliasDomain } from "../../lib/community-address";
 import {
   getChainProviders,
@@ -300,7 +300,7 @@ export function useAuthorAddress(options?: UseAuthorAddressOptions): UseAuthorAd
   const [resolvedAddress, setResolvedAddress] = useState<string | undefined>(
     isCryptoName ? resolvedAuthorAddressCache.get(comment?.author?.address) : undefined,
   );
-  const signerAddress = usePlebbitAddress(isCryptoName ? comment?.signature?.publicKey : undefined);
+  const signerAddress = usePkcAddress(isCryptoName ? comment?.signature?.publicKey : undefined);
 
   // useful for triggering css animation when the address changes from unverified to verified
   const [authorAddressChanged, setAuthorAddressChanged] = useState(false);
@@ -352,8 +352,7 @@ export function useAuthorAddress(options?: UseAuthorAddressOptions): UseAuthorAd
     authorAddress = comment?.author?.address;
   }
 
-  let shortAuthorAddress =
-    authorAddress && PlebbitJs.Plebbit.getShortAddress({ address: authorAddress });
+  let shortAuthorAddress = authorAddress && PkcJs.PKC.getShortAddress({ address: authorAddress });
 
   // if shortAddress is smaller than crypto name, give a longer
   // shortAddress to cause the least UI displacement as possible

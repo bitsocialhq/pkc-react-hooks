@@ -18,7 +18,7 @@ export declare function useCommunityStats(options?: UseCommunityStatsOptions): U
  */
 export declare function useCommunities(options?: UseCommunitiesOptions): UseCommunitiesResult;
 /**
- * Returns all the owner communities created by plebbit-js by calling plebbit.listCommunities()
+ * Returns all the owner communities created by pkc-js by calling pkc.listCommunities()
  */
 export declare function useListCommunities(accountName?: string): string[];
 /**

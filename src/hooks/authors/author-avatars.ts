@@ -138,10 +138,7 @@ export function useVerifiedAuthorAvatarSignature(author?: Author, accountName?: 
   }, [author?.avatar, author?.address, chainProviders]);
 
   // don't verify nft signature when using mock content during development
-  if (
-    process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT ||
-    process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT
-  ) {
+  if (process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT) {
     return { verified: true, error: undefined };
   }
 
@@ -182,7 +179,7 @@ export const setAuthorAvatarsWhitelistedTokenAddresses =
 setAuthorAvatarsWhitelistedTokenAddresses(defaultWhitelistedTokenAddresses); // init default
 
 export function useAuthorAvatarIsWhitelisted(nft?: Nft) {
-  // TODO: make a list that a dao can vote it, get the list from plebbit.getDefaults()
+  // TODO: make a list that a dao can vote it, get the list from pkc.getDefaults()
   // TODO: make community owners able to whitelist their own nfts in their communities
   // TODO: make each user able to whitelist/blacklist any nft they want for their own client
   // TODO: make hook to list which default nfts are whitelisted to display to the user
@@ -205,7 +202,7 @@ export const getNftMessageToSign = (
 ) => {
   // use plain JSON so the user can read what he's signing
   // property names must always be in this order for signature to match so don't use JSON.stringify
-  return `{"domainSeparator":"plebbit-author-avatar","authorAddress":"${authorAddress}","timestamp":${timestamp},"tokenAddress":"${tokenAddress}","tokenId":"${tokenId}"}`;
+  return `{"domainSeparator":"pkc-author-avatar","authorAddress":"${authorAddress}","timestamp":${timestamp},"tokenAddress":"${tokenAddress}","tokenId":"${tokenId}"}`;
 };
 
 // NOTE: verifyAuthorAvatarSignature tests are skipped, if changes are made they must be tested manually

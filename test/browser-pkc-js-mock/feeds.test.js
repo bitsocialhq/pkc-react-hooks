@@ -1,15 +1,15 @@
 import { act } from "@testing-library/react";
 import { renderHook } from "../test-utils";
-import { useFeed, setPlebbitJs, restorePlebbitJs } from "../../dist";
+import { useFeed, setPkcJs, restorePkcJs } from "../../dist";
 import debugUtils from "../../dist/lib/debug-utils";
-import PlebbitJsMock from "../../dist/lib/plebbit-js/plebbit-js-mock";
+import PkcJsMock from "../../dist/lib/pkc-js/pkc-js-mock";
 // mock right after importing or sometimes fails to mock
-setPlebbitJs(PlebbitJsMock);
+setPkcJs(PkcJsMock);
 import testUtils from "../../dist/lib/test-utils";
 
 const timeout = 10000;
 
-describe("feeds (plebbit-js mock)", () => {
+describe("feeds (pkc-js mock)", () => {
   beforeAll(async () => {
     console.log("before feeds tests");
     testUtils.silenceReactWarnings();

@@ -1,27 +1,23 @@
 import { act } from "@testing-library/react";
 import testUtils, { renderHook } from "../lib/test-utils";
-import { useComment, useReplies, setPlebbitJs } from "..";
+import { useComment, useReplies, setPkcJs } from "..";
 import { appendErrorToErrors } from "./replies";
 import repliesCommentsStore from "../stores/replies/replies-comments-store";
-import PlebbitJsMock, {
-  Comment,
-  Pages,
-  simulateLoadingTime,
-} from "../lib/plebbit-js/plebbit-js-mock";
+import PkcJsMock, { Comment, Pages, simulateLoadingTime } from "../lib/pkc-js/pkc-js-mock";
 import repliesStore, { defaultRepliesPerPage as repliesPerPage } from "../stores/replies";
 import repliesPagesStore from "../stores/replies-pages";
 import accountsStore from "../stores/accounts";
 import * as accountsActions from "../stores/accounts/accounts-actions";
 import { getCommentCidsToAccountsComments } from "../stores/accounts/utils";
 
-const plebbitJsMockRepliesPageLength = 100;
+const pkcJsMockRepliesPageLength = 100;
 
 describe("replies", () => {
   let simulateUpdateEvent;
 
   beforeAll(async () => {
-    // set plebbit-js mock and reset dbs
-    setPlebbitJs(PlebbitJsMock);
+    // set pkc-js mock and reset dbs
+    setPkcJs(PkcJsMock);
     await testUtils.resetDatabasesAndStores();
 
     testUtils.silenceReactWarnings();
@@ -515,7 +511,7 @@ describe("replies", () => {
         rendered.result.current.replies.length,
       );
       expect(rendered.result.current.bufferedReplies.length).toBe(
-        plebbitJsMockRepliesPageLength - repliesPerPage,
+        pkcJsMockRepliesPageLength - repliesPerPage,
       );
       expect(rendered.result.current.hasMore).toBe(true);
       // default sort, shouldnt fetch a page because included in comment.replies.pages
@@ -529,7 +525,7 @@ describe("replies", () => {
         rendered.result.current.replies.length,
       );
       expect(rendered.result.current.bufferedReplies.length).toBe(
-        plebbitJsMockRepliesPageLength - repliesPerPage * 2,
+        pkcJsMockRepliesPageLength - repliesPerPage * 2,
       );
       expect(rendered.result.current.hasMore).toBe(true);
       // still shouldnt fetch a page yet because commentRepliesLeftBeforeNextPage not reached
@@ -545,10 +541,10 @@ describe("replies", () => {
       await waitFor(
         () =>
           rendered.result.current.bufferedReplies.length ===
-          plebbitJsMockRepliesPageLength * 2 - repliesPerPage * 3,
+          pkcJsMockRepliesPageLength * 2 - repliesPerPage * 3,
       );
       expect(rendered.result.current.bufferedReplies.length).toBe(
-        plebbitJsMockRepliesPageLength * 2 - repliesPerPage * 3,
+        pkcJsMockRepliesPageLength * 2 - repliesPerPage * 3,
       );
       expect(rendered.result.current.hasMore).toBe(true);
       // should fetch a page yet because commentRepliesLeftBeforeNextPage reached
@@ -565,7 +561,7 @@ describe("replies", () => {
         rendered.result.current.replies.length,
       );
       expect(rendered.result.current.bufferedReplies.length).toBe(
-        plebbitJsMockRepliesPageLength - repliesPerPage,
+        pkcJsMockRepliesPageLength - repliesPerPage,
       );
       expect(rendered.result.current.replies.length).toBe(repliesPerPage);
       expect(rendered.result.current.replies[0].cid).toBe(
@@ -588,10 +584,10 @@ describe("replies", () => {
       await waitFor(
         () =>
           rendered.result.current.bufferedReplies.length ===
-          plebbitJsMockRepliesPageLength * 2 - repliesPerPage * 3,
+          pkcJsMockRepliesPageLength * 2 - repliesPerPage * 3,
       );
       expect(rendered.result.current.bufferedReplies.length).toBe(
-        plebbitJsMockRepliesPageLength * 2 - repliesPerPage * 3,
+        pkcJsMockRepliesPageLength * 2 - repliesPerPage * 3,
       );
       expect(rendered.result.current.hasMore).toBe(true);
       expect(Object.keys(repliesPagesStore.getState().repliesPages).length).toBe(1);
@@ -675,7 +671,7 @@ describe("replies", () => {
         rendered.result.current.replies.length,
       );
       expect(rendered.result.current.bufferedReplies.length).toBe(
-        plebbitJsMockRepliesPageLength - repliesPerPage,
+        pkcJsMockRepliesPageLength - repliesPerPage,
       );
       expect(rendered.result.current.hasMore).toBe(true);
       // should only fetch 1 page because no next cid
@@ -688,7 +684,7 @@ describe("replies", () => {
         rendered.result.current.replies.length,
       );
       expect(rendered.result.current.bufferedReplies.length).toBe(
-        plebbitJsMockRepliesPageLength - repliesPerPage * 2,
+        pkcJsMockRepliesPageLength - repliesPerPage * 2,
       );
       expect(rendered.result.current.hasMore).toBe(true);
       // should only fetch 1 page because no next cid
@@ -701,7 +697,7 @@ describe("replies", () => {
         rendered.result.current.replies.length,
       );
       expect(rendered.result.current.bufferedReplies.length).toBe(
-        plebbitJsMockRepliesPageLength - repliesPerPage * 3,
+        pkcJsMockRepliesPageLength - repliesPerPage * 3,
       );
       expect(rendered.result.current.hasMore).toBe(true);
       // should only fetch 1 page because no next cid
@@ -714,7 +710,7 @@ describe("replies", () => {
         rendered.result.current.replies.length,
       );
       expect(rendered.result.current.bufferedReplies.length).toBe(
-        plebbitJsMockRepliesPageLength - repliesPerPage * 4,
+        pkcJsMockRepliesPageLength - repliesPerPage * 4,
       );
       expect(rendered.result.current.hasMore).toBe(false);
       // should only fetch 1 page because no next cid

@@ -26,12 +26,12 @@ import {
 import * as accountsActionsInternal from "./accounts-actions-internal";
 import {
   backfillPublicationCommunityAddress,
-  createPlebbitCommunityEdit,
-  getPlebbitCommunityAddresses,
-  normalizeCommunityEditOptionsForPlebbit,
+  createPkcCommunityEdit,
+  getPkcCommunityAddresses,
+  normalizeCommunityEditOptionsForPkc,
   normalizePublicationOptionsForStore,
-  normalizePublicationOptionsForPlebbit,
-} from "../../lib/plebbit-compat";
+  normalizePublicationOptionsForPkc,
+} from "../../lib/pkc-compat";
 import {
   getAccountCommentsIndex,
   getAccountCommunities,
@@ -102,7 +102,7 @@ const syncCommentClientsSnapshot = (
 };
 
 const accountOwnsCommunityLocally = (account: Account, communityAddress: string) => {
-  const localCommunityAddresses = getPlebbitCommunityAddresses(account.plebbit);
+  const localCommunityAddresses = getPkcCommunityAddresses(account.pkc);
   if (localCommunityAddresses.includes(communityAddress)) {
     return true;
   }
@@ -213,9 +213,9 @@ const accountEditNonPropertyNames = new Set([
   "clientId",
   "commentCid",
   "communityAddress",
-  "subplebbitAddress",
+  "communityAddress",
   "communityEdit",
-  "subplebbitEdit",
+  "communityEdit",
   "timestamp",
 ]);
 
@@ -223,19 +223,19 @@ const normalizeStoredAccountEditForSummary = (storedAccountEdit: any) => {
   const normalizedEdit = storedAccountEdit.commentModeration
     ? { ...storedAccountEdit, ...storedAccountEdit.commentModeration, commentModeration: undefined }
     : { ...storedAccountEdit };
-  const communityEdit = normalizedEdit.communityEdit ?? normalizedEdit.subplebbitEdit;
+  const communityEdit = normalizedEdit.communityEdit ?? normalizedEdit.communityEdit;
   if (communityEdit && typeof communityEdit === "object") {
     Object.assign(normalizedEdit, communityEdit);
   }
   delete normalizedEdit.communityEdit;
-  delete normalizedEdit.subplebbitEdit;
+  delete normalizedEdit.communityEdit;
   return normalizedEdit;
 };
 
 const getStoredAccountEditTarget = (storedAccountEdit: any) =>
   storedAccountEdit.commentCid ||
   storedAccountEdit.communityAddress ||
-  storedAccountEdit.subplebbitAddress;
+  storedAccountEdit.communityAddress;
 
 export const addStoredAccountEditSummaryToState = (
   accountsEditsSummaries: Record<string, Record<string, any>>,
@@ -529,15 +529,15 @@ export const setAccount = async (account: Account) => {
 
     // wallet.signature changes if author.address changes
     if (account.author.wallets?.eth) {
-      const plebbitSignerWalletWithNewAuthorAddress = await chain.getEthWalletFromPlebbitPrivateKey(
+      const pkcSignerWalletWithNewAuthorAddress = await chain.getEthWalletFromPkcPrivateKey(
         account.signer.privateKey,
         account.author.address,
       );
-      // wallet is using plebbit signer, redo signature with new author.address
-      if (account.author.wallets.eth.address === plebbitSignerWalletWithNewAuthorAddress?.address) {
+      // wallet is using pkc signer, redo signature with new author.address
+      if (account.author.wallets.eth.address === pkcSignerWalletWithNewAuthorAddress?.address) {
         account.author.wallets = {
           ...account.author.wallets,
-          eth: plebbitSignerWalletWithNewAuthorAddress,
+          eth: pkcSignerWalletWithNewAuthorAddress,
         };
       }
     }
@@ -609,7 +609,7 @@ export const importAccount = async (serializedAccount: string) => {
 
   // generate new account
   const generatedAccount = await accountGenerator.generateDefaultAccount();
-  // use generatedAccount to init properties like .plebbit and .id on a new account
+  // use generatedAccount to init properties like .pkc and .id on a new account
   // overwrite account.id to avoid duplicate ids
   const newAccount = {
     ...generatedAccount,
@@ -956,7 +956,7 @@ export const publishComment = async (
     author.previousCommentCid = previousCommentCid;
   }
 
-  let createCommentOptions: any = normalizePublicationOptionsForPlebbit(account.plebbit, {
+  let createCommentOptions: any = normalizePublicationOptionsForPkc(account.pkc, {
     timestamp: Math.floor(Date.now() / 1000),
     author,
     signer: account.signer,
@@ -970,7 +970,7 @@ export const publishComment = async (
   const storedCreateCommentOptions = normalizePublicationOptionsForStore(createCommentOptions);
 
   // make sure the options dont throw
-  await account.plebbit.createComment(createCommentOptions);
+  await account.pkc.createComment(createCommentOptions);
 
   // try to get comment depth needed for custom depth flat account replies
   const depth = getAccountCommentDepth(createCommentOptions);
@@ -1057,7 +1057,7 @@ export const publishComment = async (
       return;
     }
     comment = backfillPublicationCommunityAddress(
-      await account.plebbit.createComment(createCommentOptions),
+      await account.pkc.createComment(createCommentOptions),
       createCommentOptions,
     );
     syncCommentClientsSnapshot(publishSessionId, account.id, comment);
@@ -1141,7 +1141,7 @@ export const publishComment = async (
             return;
           }
           comment = backfillPublicationCommunityAddress(
-            await account.plebbit.createComment(createCommentOptions),
+            await account.pkc.createComment(createCommentOptions),
             createCommentOptions,
           );
           syncCommentClientsSnapshot(publishSessionId, account.id, comment);
@@ -1201,8 +1201,8 @@ export const publishComment = async (
             );
 
             // clone the comment or it bugs publishing callbacks
-            const updatingComment = await account.plebbit.createComment(
-              normalizePublicationOptionsForPlebbit(account.plebbit, { ...comment }),
+            const updatingComment = await account.pkc.createComment(
+              normalizePublicationOptionsForPkc(account.pkc, { ...comment }),
             );
             accountsActionsInternal
               .startUpdatingAccountCommentOnCommentUpdateEvents(
@@ -1378,7 +1378,7 @@ export const publishVote = async (publishVoteOptions: PublishVoteOptions, accoun
     account,
   });
 
-  let createVoteOptions: any = normalizePublicationOptionsForPlebbit(account.plebbit, {
+  let createVoteOptions: any = normalizePublicationOptionsForPkc(account.pkc, {
     timestamp: Math.floor(Date.now() / 1000),
     author: account.author,
     signer: account.signer,
@@ -1391,7 +1391,7 @@ export const publishVote = async (publishVoteOptions: PublishVoteOptions, accoun
   const storedCreateVoteOptions = normalizePublicationOptionsForStore(createVoteOptions);
 
   let vote = backfillPublicationCommunityAddress(
-    await account.plebbit.createVote(createVoteOptions),
+    await account.pkc.createVote(createVoteOptions),
     createVoteOptions,
   );
   let lastChallenge: Challenge | undefined;
@@ -1406,7 +1406,7 @@ export const publishVote = async (publishVoteOptions: PublishVoteOptions, accoun
         // publish again automatically on fail
         createVoteOptions = { ...createVoteOptions, timestamp: Math.floor(Date.now() / 1000) };
         vote = backfillPublicationCommunityAddress(
-          await account.plebbit.createVote(createVoteOptions),
+          await account.pkc.createVote(createVoteOptions),
           createVoteOptions,
         );
         lastChallenge = undefined;
@@ -1464,7 +1464,7 @@ export const publishCommentEdit = async (
     account,
   });
 
-  let createCommentEditOptions: any = normalizePublicationOptionsForPlebbit(account.plebbit, {
+  let createCommentEditOptions: any = normalizePublicationOptionsForPkc(account.pkc, {
     timestamp: Math.floor(Date.now() / 1000),
     author: account.author,
     signer: account.signer,
@@ -1481,7 +1481,7 @@ export const publishCommentEdit = async (
   const storedCommentEdit = sanitizeStoredAccountEdit(storedCreateCommentEditOptions);
 
   let commentEdit = backfillPublicationCommunityAddress(
-    await account.plebbit.createCommentEdit(createCommentEditOptions),
+    await account.pkc.createCommentEdit(createCommentEditOptions),
     createCommentEditOptions,
   );
   let lastChallenge: Challenge | undefined;
@@ -1550,7 +1550,7 @@ export const publishCommentEdit = async (
             timestamp: Math.floor(Date.now() / 1000),
           };
           commentEdit = backfillPublicationCommunityAddress(
-            await account.plebbit.createCommentEdit(createCommentEditOptions),
+            await account.pkc.createCommentEdit(createCommentEditOptions),
             createCommentEditOptions,
           );
           lastChallenge = undefined;
@@ -1600,7 +1600,7 @@ export const publishCommentModeration = async (
     account,
   });
 
-  let createCommentModerationOptions: any = normalizePublicationOptionsForPlebbit(account.plebbit, {
+  let createCommentModerationOptions: any = normalizePublicationOptionsForPkc(account.pkc, {
     timestamp: Math.floor(Date.now() / 1000),
     author: account.author,
     signer: account.signer,
@@ -1615,7 +1615,7 @@ export const publishCommentModeration = async (
   );
 
   let commentModeration = backfillPublicationCommunityAddress(
-    await account.plebbit.createCommentModeration(createCommentModerationOptions),
+    await account.pkc.createCommentModeration(createCommentModerationOptions),
     createCommentModerationOptions,
   );
   let lastChallenge: Challenge | undefined;
@@ -1638,7 +1638,7 @@ export const publishCommentModeration = async (
             timestamp: Math.floor(Date.now() / 1000),
           };
           commentModeration = backfillPublicationCommunityAddress(
-            await account.plebbit.createCommentModeration(createCommentModerationOptions),
+            await account.pkc.createCommentModeration(createCommentModerationOptions),
             createCommentModerationOptions,
           );
           lastChallenge = undefined;
@@ -1720,14 +1720,13 @@ export const publishCommunityEdit = async (
   delete communityEditOptions.onChallengeVerification;
   delete communityEditOptions.onError;
   delete communityEditOptions.onPublishingStateChange;
-  let createCommunityEditOptions: any = normalizeCommunityEditOptionsForPlebbit(account.plebbit, {
+  let createCommunityEditOptions: any = normalizeCommunityEditOptionsForPkc(account.pkc, {
     timestamp: Math.floor(Date.now() / 1000),
     author: account.author,
     signer: account.signer,
     // not possible to edit community.address over pubsub, only locally
     communityAddress,
     communityEdit: communityEditOptions,
-    subplebbitEdit: communityEditOptions,
   });
   const storedCreateCommunityEditOptions = {
     ...normalizePublicationOptionsForStore(createCommunityEditOptions),
@@ -1793,7 +1792,7 @@ export const publishCommunityEdit = async (
     `accountsActions.publishCommunityEdit can't edit address of a remote community`,
   );
   let communityEdit = backfillPublicationCommunityAddress(
-    await createPlebbitCommunityEdit(account.plebbit, createCommunityEditOptions),
+    await createPkcCommunityEdit(account.pkc, createCommunityEditOptions),
     createCommunityEditOptions,
   );
   let lastChallenge: Challenge | undefined;
@@ -1821,7 +1820,7 @@ export const publishCommunityEdit = async (
             timestamp: Math.floor(Date.now() / 1000),
           };
           communityEdit = backfillPublicationCommunityAddress(
-            await createPlebbitCommunityEdit(account.plebbit, createCommunityEditOptions),
+            await createPkcCommunityEdit(account.pkc, createCommunityEditOptions),
             createCommunityEditOptions,
           );
           lastChallenge = undefined;

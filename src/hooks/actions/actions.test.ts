@@ -10,7 +10,7 @@ import {
   useBlock,
   useAccount,
   useCreateCommunity,
-  setPlebbitJs,
+  setPkcJs,
   useAccountVote,
   useAccountComments,
 } from "../..";
@@ -19,8 +19,8 @@ import {
   handlePublishVoteError,
   withGuardActive,
 } from "./actions";
-import PlebbitJsMock, {
-  Plebbit,
+import PkcJsMock, {
+  PKC,
   Comment,
   CommentEdit,
   CommentModeration,
@@ -28,9 +28,9 @@ import PlebbitJsMock, {
   Vote,
   Community,
   Pages,
-  resetPlebbitJsMock,
-  debugPlebbitJsMock,
-} from "../../lib/plebbit-js/plebbit-js-mock";
+  resetPkcJsMock,
+  debugPkcJsMock,
+} from "../../lib/pkc-js/pkc-js-mock";
 import useAccountsStore from "../../stores/accounts";
 
 describe("actions", () => {
@@ -96,8 +96,8 @@ describe("actions", () => {
   });
 
   beforeAll(async () => {
-    // set plebbit-js mock and reset dbs
-    setPlebbitJs(PlebbitJsMock);
+    // set pkc-js mock and reset dbs
+    setPkcJs(PkcJsMock);
     await testUtils.resetDatabasesAndStores();
 
     testUtils.silenceReactWarnings();
@@ -506,8 +506,8 @@ describe("actions", () => {
 
     test(`can error`, async () => {
       // mock the comment publish to error out
-      const createCommunity = Plebbit.prototype.createCommunity;
-      Plebbit.prototype.createCommunity = async () => {
+      const createCommunity = PKC.prototype.createCommunity;
+      PKC.prototype.createCommunity = async () => {
         throw Error("create community error");
       };
 
@@ -533,12 +533,12 @@ describe("actions", () => {
       expect(rendered.result.current[0].errors.length).toBe(1);
 
       // restore mock
-      Plebbit.prototype.createCommunity = createCommunity;
+      PKC.prototype.createCommunity = createCommunity;
     });
 
     test("useCreateCommunity onError callback when create fails", async () => {
-      const createCommunity = Plebbit.prototype.createCommunity;
-      Plebbit.prototype.createCommunity = async () => {
+      const createCommunity = PKC.prototype.createCommunity;
+      PKC.prototype.createCommunity = async () => {
         throw Error("create community error");
       };
 
@@ -552,7 +552,7 @@ describe("actions", () => {
       await waitFor(() => rendered.result.current[0].error);
       expect(onError).toHaveBeenCalledWith(expect.any(Error));
 
-      Plebbit.prototype.createCommunity = createCommunity;
+      PKC.prototype.createCommunity = createCommunity;
     });
   });
 

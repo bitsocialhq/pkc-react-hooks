@@ -3,12 +3,12 @@ import testUtils from "../../lib/test-utils";
 import * as accountsActionsInternal from "./accounts-actions-internal";
 import accountsStore, { listeners } from "./accounts-store";
 import accountsDatabase from "./accounts-database";
-import PlebbitJsMock, { Comment } from "../../lib/plebbit-js/plebbit-js-mock";
-import { setPlebbitJs } from "../../lib/plebbit-js";
+import PkcJsMock, { Comment } from "../../lib/pkc-js/pkc-js-mock";
+import { setPkcJs } from "../../lib/pkc-js";
 
 describe("accounts-actions-internal", () => {
   beforeAll(async () => {
-    setPlebbitJs(PlebbitJsMock);
+    setPkcJs(PkcJsMock);
     await testUtils.resetDatabasesAndStores();
     testUtils.silenceReactWarnings();
   });
@@ -84,7 +84,7 @@ describe("accounts-actions-internal", () => {
       expect(accountsStore.getState().accountsCommentsUpdating).toEqual({});
     });
 
-    test("comment without .on: creates Comment via plebbit.createComment", async () => {
+    test("comment without .on: creates Comment via pkc.createComment", async () => {
       const account = Object.values(accountsStore.getState().accounts)[0];
       const plainComment = {
         cid: "plain-cid",
@@ -110,8 +110,8 @@ describe("accounts-actions-internal", () => {
       }));
 
       let createdComment: any;
-      const origCreate = account.plebbit.createComment.bind(account.plebbit);
-      vi.spyOn(account.plebbit, "createComment").mockImplementation(async (opts: any) => {
+      const origCreate = account.pkc.createComment.bind(account.pkc);
+      vi.spyOn(account.pkc, "createComment").mockImplementation(async (opts: any) => {
         createdComment = await origCreate(opts);
         return createdComment;
       });
@@ -122,11 +122,11 @@ describe("accounts-actions-internal", () => {
         0,
       );
 
-      expect(account.plebbit.createComment).toHaveBeenCalledWith(
+      expect(account.pkc.createComment).toHaveBeenCalledWith(
         expect.objectContaining({
           cid: "plain-cid",
           author: expect.objectContaining({ address: account.author.address }),
-          subplebbitAddress: "sub.eth",
+          communityAddress: "sub.eth",
           depth: 0,
         }),
       );
@@ -662,7 +662,7 @@ describe("accounts-actions-internal", () => {
       expect(replies["reply-1"]).toBeDefined();
     });
 
-    test("update backfills root communityAddress and normalizes legacy reply fields", async () => {
+    test("update backfills root communityAddress and preserves reply community fields", async () => {
       const account = Object.values(accountsStore.getState().accounts)[0];
       const comment = new Comment({
         cid: "cid-legacy-replies",
@@ -672,7 +672,7 @@ describe("accounts-actions-internal", () => {
       const legacyReply = {
         cid: "reply-legacy",
         author: { address: "r1" },
-        subplebbitAddress: "sub.eth",
+        communityAddress: "sub.eth",
         depth: 1,
         parentCid: "cid-legacy-replies",
         timestamp: 2,
@@ -732,12 +732,10 @@ describe("accounts-actions-internal", () => {
 
       const storedComment = accountsStore.getState().accountsComments[account.id]?.[0];
       expect(storedComment?.communityAddress).toBe("sub.eth");
-      expect(storedComment?.subplebbitAddress).toBeUndefined();
 
       const replies = accountsStore.getState().accountsCommentsReplies[account.id] || {};
       expect(replies["reply-legacy"]).toBeDefined();
       expect(replies["reply-legacy"].communityAddress).toBe("sub.eth");
-      expect(replies["reply-legacy"].subplebbitAddress).toBeUndefined();
     });
 
     test("update with hasReplies but accountsCommentsReplies[account.id] missing: logs error", async () => {
@@ -1116,7 +1114,7 @@ describe("accounts-actions-internal", () => {
         author: { address: account.author.address },
         timestamp: ts,
       };
-      vi.spyOn(account.plebbit, "createComment").mockRejectedValueOnce(
+      vi.spyOn(account.pkc, "createComment").mockRejectedValueOnce(
         new Error("createComment failed"),
       );
 

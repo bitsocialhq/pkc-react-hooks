@@ -14,6 +14,7 @@ const log = Logger("bitsocial-react-hooks:authors:hooks");
 import assert from "assert";
 import { ethers } from "ethers";
 import { getNftMetadataUrl, getNftImageUrl, getNftOwner } from "../../lib/chain";
+import { getChainProviders } from "../../lib/pkc-compat";
 import createStore from "zustand";
 const noMediaIpfsGatewayUrl = "http://no-media-ipfs-gateway-url";
 /**
@@ -23,19 +24,18 @@ const noMediaIpfsGatewayUrl = "http://no-media-ipfs-gateway-url";
  */
 // NOTE: useNftMetadataUrl tests are skipped, if changes are made they must be tested manually
 export function useNftMetadataUrl(nft, accountName) {
-    var _a, _b, _c, _d;
+    var _a, _b, _c;
     const account = useAccount({ accountName });
-    // possible to use account.plebbit instead of account.plebbitOptions
     const ipfsGatewayUrl = (account === null || account === void 0 ? void 0 : account.mediaIpfsGatewayUrl) || noMediaIpfsGatewayUrl;
-    const chainProviders = (_a = account === null || account === void 0 ? void 0 : account.plebbitOptions) === null || _a === void 0 ? void 0 : _a.chainProviders;
+    const chainProviders = getChainProviders(account);
     const [nftMetadataUrl, setNftMetadataUrl] = useState();
     const [error, setError] = useState();
     const getNftMetadataUrlArgs = [
         nft === null || nft === void 0 ? void 0 : nft.address,
         nft === null || nft === void 0 ? void 0 : nft.id,
         nft === null || nft === void 0 ? void 0 : nft.chainTicker,
-        (_c = (_b = chainProviders === null || chainProviders === void 0 ? void 0 : chainProviders[nft === null || nft === void 0 ? void 0 : nft.chainTicker]) === null || _b === void 0 ? void 0 : _b.urls) === null || _c === void 0 ? void 0 : _c[0],
-        (_d = chainProviders === null || chainProviders === void 0 ? void 0 : chainProviders[nft === null || nft === void 0 ? void 0 : nft.chainTicker]) === null || _d === void 0 ? void 0 : _d.chainId,
+        (_b = (_a = chainProviders === null || chainProviders === void 0 ? void 0 : chainProviders[nft === null || nft === void 0 ? void 0 : nft.chainTicker]) === null || _a === void 0 ? void 0 : _a.urls) === null || _b === void 0 ? void 0 : _b[0],
+        (_c = chainProviders === null || chainProviders === void 0 ? void 0 : chainProviders[nft === null || nft === void 0 ? void 0 : nft.chainTicker]) === null || _c === void 0 ? void 0 : _c.chainId,
         ipfsGatewayUrl,
     ];
     useEffect(() => {
@@ -73,7 +73,6 @@ export function useNftMetadataUrl(nft, accountName) {
 export function useNftImageUrl(nftMetadataUrl, accountName) {
     assert(!nftMetadataUrl || typeof nftMetadataUrl === "string", `useNftImageUrl invalid argument nftMetadataUrl '${nftMetadataUrl}' not a string`);
     const account = useAccount({ accountName });
-    // possible to use account.plebbit instead of account.plebbitOptions
     const ipfsGatewayUrl = (account === null || account === void 0 ? void 0 : account.mediaIpfsGatewayUrl) || noMediaIpfsGatewayUrl;
     const [imageUrl, setImageUrl] = useState();
     const [error, setError] = useState();
@@ -100,10 +99,8 @@ export function useNftImageUrl(nftMetadataUrl, accountName) {
 }
 // NOTE: useVerifiedAuthorAvatarSignature tests are skipped, if changes are made they must be tested manually
 export function useVerifiedAuthorAvatarSignature(author, accountName) {
-    var _a;
     const account = useAccount({ accountName });
-    // possible to use account.plebbit instead of account.plebbitOptions
-    const chainProviders = (_a = account === null || account === void 0 ? void 0 : account.plebbitOptions) === null || _a === void 0 ? void 0 : _a.chainProviders;
+    const chainProviders = getChainProviders(account);
     const [verified, setVerified] = useState();
     const [error, setError] = useState();
     useEffect(() => {
@@ -129,7 +126,7 @@ export function useVerifiedAuthorAvatarSignature(author, accountName) {
         }))();
     }, [author === null || author === void 0 ? void 0 : author.avatar, author === null || author === void 0 ? void 0 : author.address, chainProviders]);
     // don't verify nft signature when using mock content during development
-    if (process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT) {
+    if (process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT) {
         return { verified: true, error: undefined };
     }
     // log('useVerifiedAuthorAvatarSignature', {author, verified, chainProviders})
@@ -157,7 +154,7 @@ export const setAuthorAvatarsWhitelistedTokenAddresses = useAuthorAvatarsWhiteli
     .setAuthorAvatarsWhitelistedTokenAddresses;
 setAuthorAvatarsWhitelistedTokenAddresses(defaultWhitelistedTokenAddresses); // init default
 export function useAuthorAvatarIsWhitelisted(nft) {
-    // TODO: make a list that a dao can vote it, get the list from plebbit.getDefaults()
+    // TODO: make a list that a dao can vote it, get the list from pkc.getDefaults()
     // TODO: make community owners able to whitelist their own nfts in their communities
     // TODO: make each user able to whitelist/blacklist any nft they want for their own client
     // TODO: make hook to list which default nfts are whitelisted to display to the user
@@ -169,7 +166,7 @@ export function useAuthorAvatarIsWhitelisted(nft) {
 export const getNftMessageToSign = (authorAddress, timestamp, tokenAddress, tokenId) => {
     // use plain JSON so the user can read what he's signing
     // property names must always be in this order for signature to match so don't use JSON.stringify
-    return `{"domainSeparator":"plebbit-author-avatar","authorAddress":"${authorAddress}","timestamp":${timestamp},"tokenAddress":"${tokenAddress}","tokenId":"${tokenId}"}`;
+    return `{"domainSeparator":"pkc-author-avatar","authorAddress":"${authorAddress}","timestamp":${timestamp},"tokenAddress":"${tokenAddress}","tokenId":"${tokenId}"}`;
 };
 // NOTE: verifyAuthorAvatarSignature tests are skipped, if changes are made they must be tested manually
 export const verifyAuthorAvatarSignature = (nft, authorAddress, chainProviders) => __awaiter(void 0, void 0, void 0, function* () {

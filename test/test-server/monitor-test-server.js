@@ -19,10 +19,10 @@ const startMonitoring = async () => {
 
 // make sure only one instance is running in karma
 try {
-  if (!window.PLEBBIT_MONITOR_TEST_SERVER_STARTED) {
+  if (!window.BITSOCIAL_MONITOR_TEST_SERVER_STARTED) {
     startMonitoring();
   }
-  window.PLEBBIT_MONITOR_TEST_SERVER_STARTED = true;
+  window.BITSOCIAL_MONITOR_TEST_SERVER_STARTED = true;
 } catch (e) {}
 startMonitoring();
 

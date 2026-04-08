@@ -1,6 +1,6 @@
 import localForageLru from "../../lib/localforage-lru";
 const commentsDatabase = localForageLru.createInstance({
-  name: "plebbitReactHooks-comments",
+  name: "bitsocialReactHooks-comments",
   size: 5000,
 });
 import Logger from "@pkc/pkc-logger";
@@ -10,9 +10,9 @@ import utils from "../../lib/utils";
 import createStore from "zustand";
 import accountsStore from "../accounts";
 import repliesPagesStore from "../replies-pages";
-import { normalizeCommentCommunityAddress } from "../../lib/plebbit-compat";
+import { normalizeCommentCommunityAddress } from "../../lib/pkc-compat";
 
-let plebbitGetCommentPending: { [key: string]: boolean } = {};
+let pkcGetCommentPending: { [key: string]: boolean } = {};
 const liveComments: { [commentCid: string]: Comment } = {};
 const liveCommentPromises: { [commentCid: string]: Promise<Comment> | undefined } = {};
 const commentAutoUpdateSubscribers: {
@@ -213,7 +213,7 @@ const commentsStore = createStore<CommentsState>((setState: Function, getState: 
         normalizeCommentCommunityAddress(utils.clone(commentData || { cid: commentCid })) ||
         ({ cid: commentCid } as Comment);
       const liveComment = normalizeCommentCommunityAddress(
-        await account.plebbit.createComment(initialComment),
+        await account.pkc.createComment(initialComment),
       ) as Comment;
       initializeComment(commentCid, liveComment, account);
       return liveComment;
@@ -283,10 +283,10 @@ const commentsStore = createStore<CommentsState>((setState: Function, getState: 
 
       // comment is in store already, do nothing
       let comment: Comment | undefined = comments[commentCid];
-      if (comment || plebbitGetCommentPending[pendingKey]) {
+      if (comment || pkcGetCommentPending[pendingKey]) {
         return;
       }
-      plebbitGetCommentPending[pendingKey] = true;
+      pkcGetCommentPending[pendingKey] = true;
 
       try {
         // try to find comment in database
@@ -311,12 +311,14 @@ const commentsStore = createStore<CommentsState>((setState: Function, getState: 
           comment = await ensureLiveComment(commentCid, account, comment);
         }
 
-        requestCommentUpdate(commentCid, comment, { stopAfterNextUpdate: true });
+        if (comment) {
+          requestCommentUpdate(commentCid, comment, { stopAfterNextUpdate: true });
+        }
       } catch (e: any) {
         addCommentError(commentCid, e);
         throw e;
       } finally {
-        plebbitGetCommentPending[pendingKey] = false;
+        pkcGetCommentPending[pendingKey] = false;
       }
     },
 
@@ -401,13 +403,11 @@ const getCommentFromDatabase = async (commentCid: string, account: Account) => {
     return;
   }
   try {
-    const comment = normalizeCommentCommunityAddress(
-      await account.plebbit.createComment(commentData),
-    );
+    const comment = normalizeCommentCommunityAddress(await account.pkc.createComment(commentData));
     return comment;
   } catch (e) {
     // need to log this always or it could silently fail in production and cache never be used
-    console.error("failed plebbit.createComment(cachedComment)", {
+    console.error("failed pkc.createComment(cachedComment)", {
       cachedComment: commentData,
       error: e,
     });
@@ -418,7 +418,7 @@ const getCommentFromDatabase = async (commentCid: string, account: Account) => {
 const originalState = commentsStore.getState();
 // async function because some stores have async init
 export const resetCommentsStore = async () => {
-  plebbitGetCommentPending = {};
+  pkcGetCommentPending = {};
   for (const commentCid in commentAutoUpdateSubscribers) {
     delete commentAutoUpdateSubscribers[commentCid];
   }
@@ -453,7 +453,7 @@ export const resetCommentsStore = async () => {
 
 // reset database and store in between tests
 export const resetCommentsDatabaseAndStore = async () => {
-  await localForageLru.createInstance({ name: "plebbitReactHooks-comments" }).clear();
+  await localForageLru.createInstance({ name: "bitsocialReactHooks-comments" }).clear();
   await resetCommentsStore();
 };
 

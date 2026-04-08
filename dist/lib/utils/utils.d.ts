@@ -1,8 +1,8 @@
 import { Comment } from "../../types";
 export declare const flattenCommentsPages: (pageInstanceOrPagesInstance: any) => any[];
 export declare const communityPostsCacheExpired: (community: any) => boolean;
-export declare const removeInvalidComments: (comments: Comment[], { validateReplies, blockCommunity }: any, plebbit: any) => Promise<Comment[]>;
-export declare const commentIsValid: (comment: Comment, { validateReplies, blockCommunity }: any | undefined, plebbit: any) => Promise<boolean>;
+export declare const removeInvalidComments: (comments: Comment[], { validateReplies, blockCommunity }: any, pkc: any) => Promise<Comment[]>;
+export declare const commentIsValid: (comment: Comment, { validateReplies, blockCommunity }: any | undefined, pkc: any) => Promise<boolean>;
 declare const utils: {
     merge: (...args: any) => any;
     clone: (obj: any) => any;
@@ -15,8 +15,8 @@ declare const utils: {
     clientsOnStateChange: (clients: any, onStateChange: Function) => void;
     pageClientsOnStateChange: (clients: any, onStateChange: Function) => void;
     communityPostsCacheExpired: (community: any) => boolean;
-    commentIsValid: (comment: Comment, { validateReplies, blockCommunity }: any | undefined, plebbit: any) => Promise<boolean>;
-    removeInvalidComments: (comments: Comment[], { validateReplies, blockCommunity }: any, plebbit: any) => Promise<Comment[]>;
-    repliesAreValid: (comment: Comment, { validateReplies, blockCommunity }: any | undefined, plebbit: any) => Promise<boolean>;
+    commentIsValid: (comment: Comment, { validateReplies, blockCommunity }: any | undefined, pkc: any) => Promise<boolean>;
+    removeInvalidComments: (comments: Comment[], { validateReplies, blockCommunity }: any, pkc: any) => Promise<Comment[]>;
+    repliesAreValid: (comment: Comment, { validateReplies, blockCommunity }: any | undefined, pkc: any) => Promise<boolean>;
 };
 export default utils;

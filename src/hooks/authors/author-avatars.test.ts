@@ -11,8 +11,8 @@ import {
   getNftMessageToSign,
 } from "./author-avatars";
 import { useAuthorAvatar } from "./authors";
-import { setPlebbitJs } from "../..";
-import PlebbitJsMock from "../../lib/plebbit-js/plebbit-js-mock";
+import { setPkcJs } from "../..";
+import PkcJsMock from "../../lib/pkc-js/pkc-js-mock";
 import { Nft, Author } from "../../types";
 import { ethers } from "ethers";
 
@@ -37,7 +37,7 @@ const nft: Nft = {
 
 describe("author-avatars", () => {
   beforeAll(async () => {
-    setPlebbitJs(PlebbitJsMock);
+    setPkcJs(PkcJsMock);
     await testUtils.resetDatabasesAndStores();
     testUtils.silenceReactWarnings();
   });
@@ -51,7 +51,6 @@ describe("author-avatars", () => {
     vi.mocked(getNftImageUrl).mockReset();
     vi.mocked(getNftOwner).mockReset();
     delete process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT;
-    delete process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT;
   });
 
   afterEach(async () => {
@@ -181,7 +180,6 @@ describe("author-avatars", () => {
 
     it("returns undefined when no account", async () => {
       delete process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT;
-      delete process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT;
       const rendered = renderHook(() => useVerifiedAuthorAvatarSignature(author, "nonexistent"));
       await act(() => {});
       expect(rendered.result.current.verified).toBe(undefined);
@@ -190,7 +188,6 @@ describe("author-avatars", () => {
 
     it("returns undefined when no author avatar", async () => {
       delete process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT;
-      delete process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT;
       const rendered = renderHook(() =>
         useVerifiedAuthorAvatarSignature({ ...author, avatar: undefined }),
       );
@@ -329,7 +326,7 @@ describe("author-avatars", () => {
     it("returns correctly formatted message", () => {
       const msg = getNftMessageToSign("0xauthor", 123, "0xtoken", "1");
       const parsed = JSON.parse(msg);
-      expect(parsed.domainSeparator).toBe("plebbit-author-avatar");
+      expect(parsed.domainSeparator).toBe("pkc-author-avatar");
       expect(parsed.authorAddress).toBe("0xauthor");
       expect(parsed.timestamp).toBe(123);
       expect(parsed.tokenAddress).toBe("0xtoken");

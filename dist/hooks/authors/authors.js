@@ -15,10 +15,11 @@ const log = Logger("bitsocial-react-hooks:authors:hooks");
 import assert from "assert";
 import { useNftMetadataUrl, useNftImageUrl, useVerifiedAuthorAvatarSignature, useAuthorAvatarIsWhitelisted, } from "./author-avatars";
 import { useComment } from "../comments";
-import { useAuthorCommentsName, usePlebbitAddress } from "./utils";
+import { useAuthorCommentsName, usePkcAddress } from "./utils";
 import useAuthorsCommentsStore from "../../stores/authors-comments";
-import PlebbitJs from "../../lib/plebbit-js";
+import PkcJs from "../../lib/pkc-js";
 import { normalizeEthAliasDomain } from "../../lib/community-address";
+import { getChainProviders, getProtocolClient, resolveAuthorNameWithProtocol, } from "../../lib/pkc-compat";
 import QuickLRU from "quick-lru";
 export { setAuthorAvatarsWhitelistedTokenAddresses } from "./author-avatars";
 const cacheResolveAuthorAddressPromise = (address, promise) => {
@@ -170,7 +171,7 @@ export function useAuthor(options) {
  */
 // NOTE: useAuthorAvatar tests are skipped, if changes are made they must be tested manually
 export function useAuthorAvatar(options) {
-    var _a, _b, _c;
+    var _a, _b;
     assert(!options || typeof options === "object", `useAuthorAvatar options argument '${options}' not an object`);
     const { author, accountName } = options || {};
     const account = useAccount({ accountName });
@@ -183,7 +184,7 @@ export function useAuthorAvatar(options) {
     const avatar = verified && isWhitelisted ? author === null || author === void 0 ? void 0 : author.avatar : undefined;
     const { metadataUrl, error: nftMetadataError } = useNftMetadataUrl(avatar, accountName);
     const { imageUrl, error: nftImageUrlError } = useNftImageUrl(metadataUrl, accountName);
-    const chainProvider = (_c = (_b = account === null || account === void 0 ? void 0 : account.plebbitOptions) === null || _b === void 0 ? void 0 : _b.chainProviders) === null || _c === void 0 ? void 0 : _c[avatar === null || avatar === void 0 ? void 0 : avatar.chainTicker];
+    const chainProvider = (_b = getChainProviders(account)) === null || _b === void 0 ? void 0 : _b[avatar === null || avatar === void 0 ? void 0 : avatar.chainTicker];
     const error = whitelistedError ||
         verifiedError ||
         signatureError ||
@@ -232,14 +233,15 @@ export function useAuthorAddress(options) {
     assert(!options || typeof options === "object", `useAuthorAddress options argument '${options}' not an object`);
     const { comment, accountName } = options || {};
     const account = useAccount({ accountName });
+    const protocolClient = getProtocolClient(account);
     const isCryptoName = !!((_c = (_b = (_a = comment === null || comment === void 0 ? void 0 : comment.author) === null || _a === void 0 ? void 0 : _a.address) === null || _b === void 0 ? void 0 : _b.includes) === null || _c === void 0 ? void 0 : _c.call(_b, "."));
     const [resolvedAddress, setResolvedAddress] = useState(isCryptoName ? resolvedAuthorAddressCache.get((_d = comment === null || comment === void 0 ? void 0 : comment.author) === null || _d === void 0 ? void 0 : _d.address) : undefined);
-    const signerAddress = usePlebbitAddress(isCryptoName ? (_e = comment === null || comment === void 0 ? void 0 : comment.signature) === null || _e === void 0 ? void 0 : _e.publicKey : undefined);
+    const signerAddress = usePkcAddress(isCryptoName ? (_e = comment === null || comment === void 0 ? void 0 : comment.signature) === null || _e === void 0 ? void 0 : _e.publicKey : undefined);
     // useful for triggering css animation when the address changes from unverified to verified
     const [authorAddressChanged, setAuthorAddressChanged] = useState(false);
     useEffect(() => {
         var _a, _b;
-        if (!(account === null || account === void 0 ? void 0 : account.plebbit) || !((_a = comment === null || comment === void 0 ? void 0 : comment.author) === null || _a === void 0 ? void 0 : _a.address) || !isCryptoName) {
+        if (!protocolClient || !((_a = comment === null || comment === void 0 ? void 0 : comment.author) === null || _a === void 0 ? void 0 : _a.address) || !isCryptoName) {
             return;
         }
         const addr = (_b = comment === null || comment === void 0 ? void 0 : comment.author) === null || _b === void 0 ? void 0 : _b.address;
@@ -247,8 +249,8 @@ export function useAuthorAddress(options) {
             const existing = resolveAuthorAddressPromises[addr];
             if (existing)
                 return existing;
-            log("useAuthorAddress plebbit.resolveAuthorAddress", { address: addr });
-            return cacheResolveAuthorAddressPromise(addr, account.plebbit.resolveAuthorAddress({ address: addr }));
+            log("useAuthorAddress protocol.resolveAuthorName", { address: addr });
+            return cacheResolveAuthorAddressPromise(addr, resolveAuthorNameWithProtocol(protocolClient, { address: addr }));
         };
         const resolveAuthorAddress = () => __awaiter(this, void 0, void 0, function* () {
             const cached = resolvedAuthorAddressCache.get(addr);
@@ -266,7 +268,7 @@ export function useAuthorAddress(options) {
             }
         })
             .catch((error) => log.error("useAuthorAddress error", { error, comment }));
-    }, [account === null || account === void 0 ? void 0 : account.plebbit, (_f = comment === null || comment === void 0 ? void 0 : comment.author) === null || _f === void 0 ? void 0 : _f.address, isCryptoName]);
+    }, [protocolClient, (_f = comment === null || comment === void 0 ? void 0 : comment.author) === null || _f === void 0 ? void 0 : _f.address, isCryptoName]);
     // use signer address by default
     let authorAddress = signerAddress;
     // if author address was resolved successfully, use author address
@@ -282,7 +284,7 @@ export function useAuthorAddress(options) {
     if (comment && !(comment === null || comment === void 0 ? void 0 : comment.signature)) {
         authorAddress = (_j = comment === null || comment === void 0 ? void 0 : comment.author) === null || _j === void 0 ? void 0 : _j.address;
     }
-    let shortAuthorAddress = authorAddress && PlebbitJs.Plebbit.getShortAddress({ address: authorAddress });
+    let shortAuthorAddress = authorAddress && PkcJs.PKC.getShortAddress({ address: authorAddress });
     // if shortAddress is smaller than crypto name, give a longer
     // shortAddress to cause the least UI displacement as possible
     // -4 chars because most fonts will make the address larger
@@ -318,7 +320,6 @@ export function resetAuthorAddressCacheForTesting() {
  */
 // NOTE: useResolvedAuthorAddress tests are skipped, if changes are made they must be tested manually
 export function useResolvedAuthorAddress(options) {
-    var _a;
     assert(!options || typeof options === "object", `useResolvedAuthorAddress options argument '${options}' not an object`);
     let { author, accountName, cache } = options || {};
     // cache by default
@@ -332,8 +333,8 @@ export function useResolvedAuthorAddress(options) {
         interval = 1000 * 60 * 60 * 25;
     }
     const account = useAccount({ accountName });
-    // possible to use account.plebbit instead of account.plebbitOptions
-    const chainProviders = (_a = account === null || account === void 0 ? void 0 : account.plebbitOptions) === null || _a === void 0 ? void 0 : _a.chainProviders;
+    const protocolClient = getProtocolClient(account);
+    const chainProviders = getChainProviders(account);
     const [resolvedAddress, setResolvedAddress] = useState();
     const [errors, setErrors] = useState([]);
     const [state, setState] = useState();
@@ -351,8 +352,8 @@ export function useResolvedAuthorAddress(options) {
         if (Boolean(resolveAuthorAddressPromises[author === null || author === void 0 ? void 0 : author.address])) {
             return resolveAuthorAddressPromises[author === null || author === void 0 ? void 0 : author.address];
         }
-        log("useResolvedAuthorAddress plebbit.resolveAuthorAddress", { address: author === null || author === void 0 ? void 0 : author.address });
-        return cacheResolveAuthorAddressPromise(author === null || author === void 0 ? void 0 : author.address, account.plebbit.resolveAuthorAddress({
+        log("useResolvedAuthorAddress protocol.resolveAuthorName", { address: author === null || author === void 0 ? void 0 : author.address });
+        return cacheResolveAuthorAddressPromise(author === null || author === void 0 ? void 0 : author.address, resolveAuthorNameWithProtocol(protocolClient, {
             address: author === null || author === void 0 ? void 0 : author.address,
         }));
     };
@@ -424,7 +425,7 @@ export function useResolvedAuthorAddress(options) {
                 });
             }
         }))();
-    }, interval, true, [author === null || author === void 0 ? void 0 : author.address, chainProviders]);
+    }, interval, true, [author === null || author === void 0 ? void 0 : author.address, chainProviders, protocolClient]);
     log("useResolvedAuthorAddress", { author, state, errors, resolvedAddress, chainProviders });
     const chainProvider = chainProviderKey ? chainProviders === null || chainProviders === void 0 ? void 0 : chainProviders[chainProviderKey] : undefined;
     return useMemo(() => ({

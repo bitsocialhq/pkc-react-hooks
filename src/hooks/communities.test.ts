@@ -4,7 +4,7 @@ import {
   useCommunity,
   useCommunityStats,
   useCommunities,
-  setPlebbitJs,
+  setPkcJs,
   useResolvedCommunityAddress,
 } from "..";
 import * as accountsHooks from "./accounts";
@@ -12,13 +12,13 @@ import accountsStore from "../stores/accounts";
 import communityStore from "../stores/communities";
 import communitiesPagesStore from "../stores/communities-pages";
 import { useListCommunities, resolveCommunityAddress } from "./communities";
-import PlebbitJsMock, { Plebbit, Community } from "../lib/plebbit-js/plebbit-js-mock";
+import PkcJsMock, { PKC, Community } from "../lib/pkc-js/pkc-js-mock";
 import * as chain from "../lib/chain";
 
 describe("communities", () => {
   beforeAll(async () => {
-    // set plebbit-js mock and reset dbs
-    setPlebbitJs(PlebbitJsMock);
+    // set pkc-js mock and reset dbs
+    setPkcJs(PkcJsMock);
     await testUtils.resetDatabasesAndStores();
 
     testUtils.silenceReactWarnings();
@@ -215,7 +215,7 @@ describe("communities", () => {
     });
 
     test("overlays local community edit summary from the active account", async () => {
-      vi.spyOn(accountsHooks, "useAccount").mockReturnValue({ id: "acc-1", plebbit: {} } as any);
+      vi.spyOn(accountsHooks, "useAccount").mockReturnValue({ id: "acc-1", pkc: {} } as any);
       try {
         communityStore.setState({
           communities: {
@@ -247,7 +247,7 @@ describe("communities", () => {
     });
 
     test("ignores stale rename summaries when a different live community now exists at that key", async () => {
-      vi.spyOn(accountsHooks, "useAccount").mockReturnValue({ id: "acc-1", plebbit: {} } as any);
+      vi.spyOn(accountsHooks, "useAccount").mockReturnValue({ id: "acc-1", pkc: {} } as any);
       try {
         communityStore.setState({
           communities: {
@@ -316,11 +316,11 @@ describe("communities", () => {
       Community.prototype.update = communityUpdate;
     });
 
-    test("plebbit.createCommunity throws adds useCommunity().error", async () => {
+    test("pkc.createCommunity throws adds useCommunity().error", async () => {
       // mock update to save community instance
-      const createCommunity = Plebbit.prototype.createCommunity;
-      Plebbit.prototype.createCommunity = async function () {
-        throw Error("plebbit.createCommunity error");
+      const createCommunity = PKC.prototype.createCommunity;
+      PKC.prototype.createCommunity = async function () {
+        throw Error("pkc.createCommunity error");
       };
 
       const rendered = renderHook<any, any>((communityAddress) =>
@@ -329,16 +329,14 @@ describe("communities", () => {
       const waitFor = testUtils.createWaitFor(rendered);
       rendered.rerender("community address");
 
-      // plebbit.createCommunity error
-      await waitFor(
-        () => rendered.result.current.error.message === "plebbit.createCommunity error",
-      );
-      expect(rendered.result.current.error.message).toBe("plebbit.createCommunity error");
-      expect(rendered.result.current.errors[0].message).toBe("plebbit.createCommunity error");
+      // pkc.createCommunity error
+      await waitFor(() => rendered.result.current.error.message === "pkc.createCommunity error");
+      expect(rendered.result.current.error.message).toBe("pkc.createCommunity error");
+      expect(rendered.result.current.errors[0].message).toBe("pkc.createCommunity error");
       expect(rendered.result.current.errors.length).toBe(1);
 
       // restore mock
-      Plebbit.prototype.createCommunity = createCommunity;
+      PKC.prototype.createCommunity = createCommunity;
     });
   });
 
@@ -372,7 +370,7 @@ describe("communities", () => {
     vi.useFakeTimers();
     try {
       const communities = ["addr-a", "addr-b"];
-      const mockAccount = { plebbit: { communities } };
+      const mockAccount = { pkc: { communities } };
       vi.spyOn(accountsHooks, "useAccount").mockReturnValue(mockAccount as any);
       const rendered = renderHook<any, any>(() => useListCommunities());
       await act(async () => {});
@@ -390,8 +388,8 @@ describe("communities", () => {
     try {
       vi.spyOn(accountsHooks, "useAccount").mockImplementation(({ accountName }: any = {}) =>
         accountName === "Account 2"
-          ? ({ plebbit: { communities: ["account 2 owner community"] } } as any)
-          : ({ plebbit: { communities: ["active owner community"] } } as any),
+          ? ({ pkc: { communities: ["account 2 owner community"] } } as any)
+          : ({ pkc: { communities: ["active owner community"] } } as any),
       );
       const rendered = renderHook<any, any>(() => useListCommunities("Account 2"));
       await act(async () => {});
@@ -420,10 +418,10 @@ describe("communities", () => {
     }
   });
 
-  test("useListCommunities treats missing plebbit.communities as empty", async () => {
+  test("useListCommunities treats missing pkc.communities as empty", async () => {
     vi.useFakeTimers();
     try {
-      vi.spyOn(accountsHooks, "useAccount").mockReturnValue({ plebbit: {} } as any);
+      vi.spyOn(accountsHooks, "useAccount").mockReturnValue({ pkc: {} } as any);
       const rendered = renderHook<any, any>(() => useListCommunities());
       await act(async () => {});
       vi.advanceTimersByTime(1100);
@@ -465,8 +463,8 @@ describe("communities", () => {
   });
 
   test("useCommunityStats fetchCid error logs (stmt 110)", async () => {
-    const origFetch = Plebbit.prototype.fetchCid;
-    (Plebbit.prototype as any).fetchCid = () => Promise.reject(new Error("fetchCid failed"));
+    const origFetch = PKC.prototype.fetchCid;
+    (PKC.prototype as any).fetchCid = () => Promise.reject(new Error("fetchCid failed"));
     const logSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const rendered = renderHook<any, any>(() =>
       useCommunityStats({ communityAddress: "community address 1" }),
@@ -475,7 +473,7 @@ describe("communities", () => {
     await waitFor(() => rendered.result.current.state === "failed");
     expect(rendered.result.current.error?.message).toBe("fetchCid failed");
     expect(rendered.result.current.errors).toHaveLength(1);
-    (Plebbit.prototype as any).fetchCid = origFetch;
+    (PKC.prototype as any).fetchCid = origFetch;
     logSpy.mockRestore();
   });
 
@@ -490,7 +488,7 @@ describe("communities", () => {
       const waitFor = testUtils.createWaitFor(rendered, { timeout });
       expect(rendered.result.current.resolvedAddress).toBe(undefined);
 
-      rendered.rerender("plebbit.eth");
+      rendered.rerender("pkc.eth");
       await waitFor(() => typeof rendered.result.current.resolvedAddress === "string");
       expect(rendered.result.current.resolvedAddress).toBe(
         "QmW5Zt7YXmtskSUjjenGNS3QNRbjqjUPaT35zw5RYUCtY1",
@@ -504,7 +502,7 @@ describe("communities", () => {
       const waitFor = testUtils.createWaitFor(rendered);
       expect(rendered.result.current.resolvedAddress).toBe(undefined);
 
-      rendered.rerender("plebbit.com");
+      rendered.rerender("pkc.com");
       await waitFor(() => rendered.result.current.error);
       expect(rendered.result.current.error.message).toBe("crypto domain type unsupported");
     });
@@ -630,7 +628,7 @@ describe("communities", () => {
   });
 
   test("resolveCommunityAddress throw for non-.eth", async () => {
-    await expect(resolveCommunityAddress("plebbit.com", {})).rejects.toThrow(
+    await expect(resolveCommunityAddress("pkc.com", {})).rejects.toThrow(
       "resolveCommunityAddress invalid communityAddress",
     );
   });

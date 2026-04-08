@@ -27,14 +27,14 @@ describe("utils", () => {
           },
         },
       };
-      const plebbit = {
+      const pkc = {
         validateComment: async () => true,
       };
 
-      await expect(utils.repliesAreValid(comment as any, {}, plebbit)).resolves.toBe(true);
+      await expect(utils.repliesAreValid(comment as any, {}, pkc)).resolves.toBe(true);
     });
 
-    test("accepts legacy reply pages that still use subplebbitAddress", async () => {
+    test("accepts legacy reply pages that still use communityAddress", async () => {
       const validateComment = vi.fn(async () => true);
       const comment = {
         cid: "comment-legacy",
@@ -48,16 +48,16 @@ describe("utils", () => {
                   cid: "reply-legacy",
                   depth: 1,
                   parentCid: "comment-legacy",
-                  subplebbitAddress: "music-posting.eth",
+                  communityAddress: "music-posting.eth",
                 },
               ],
             },
           },
         },
       };
-      const plebbit = { validateComment };
+      const pkc = { validateComment };
 
-      await expect(utils.repliesAreValid(comment as any, {}, plebbit)).resolves.toBe(true);
+      await expect(utils.repliesAreValid(comment as any, {}, pkc)).resolves.toBe(true);
       expect(validateComment).toHaveBeenCalledWith(
         expect.objectContaining({
           cid: "reply-legacy",

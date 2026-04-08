@@ -12,7 +12,7 @@ import accountsStore from "../accounts";
 import feedSorter from "./feed-sorter";
 import { communityPostsCacheExpired, commentIsValid, removeInvalidComments } from "../../lib/utils";
 import { areEquivalentCommunityAddresses } from "../../lib/community-address";
-import { getCommentCommunityAddress, normalizeCommentCommunityAddress, } from "../../lib/plebbit-compat";
+import { getCommentCommunityAddress, normalizeCommentCommunityAddress } from "../../lib/pkc-compat";
 import Logger from "@pkc/pkc-logger";
 const log = Logger("bitsocial-react-hooks:feeds:stores");
 const getCommentFreshness = (comment) => { var _a, _b; return Math.max((_a = comment === null || comment === void 0 ? void 0 : comment.updatedAt) !== null && _a !== void 0 ? _a : 0, (_b = comment === null || comment === void 0 ? void 0 : comment.timestamp) !== null && _b !== void 0 ? _b : 0, 0); };
@@ -214,7 +214,7 @@ export const getLoadedFeeds = (feedsOptions, filteredSortedFeeds, loadedFeeds, b
     let loadedFeedsChanged = false;
     for (const feedName in feedsOptions) {
         const { pageNumber, postsPerPage, accountId } = feedsOptions[feedName];
-        const plebbit = (_a = accounts[accountId]) === null || _a === void 0 ? void 0 : _a.plebbit;
+        const pkc = (_a = accounts[accountId]) === null || _a === void 0 ? void 0 : _a.pkc;
         const loadedFeedPostCount = pageNumber * postsPerPage;
         const currentLoadedFeed = reconcileLoadedModQueueFeed(feedsOptions[feedName], loadedFeeds[feedName] || [], filteredSortedFeeds[feedName] || []);
         if (currentLoadedFeed !== loadedFeeds[feedName]) {
@@ -227,7 +227,7 @@ export const getLoadedFeeds = (feedsOptions, filteredSortedFeeds, loadedFeeds, b
         let missingPosts = [];
         for (const post of bufferedFeed) {
             if (missingPosts.length >= missingPostsCount) {
-                missingPosts = yield removeInvalidComments(missingPosts, { validateReplies: false }, plebbit);
+                missingPosts = yield removeInvalidComments(missingPosts, { validateReplies: false }, pkc);
                 // only stop if there were no invalid comments
                 if (missingPosts.length >= missingPostsCount) {
                     break;
@@ -396,7 +396,7 @@ export const getUpdatedFeeds = (feedsOptions, filteredSortedFeeds, updatedFeeds,
     }
     const newUpdatedFeeds = Object.assign({}, updatedFeeds);
     for (const feedName in filteredSortedFeeds) {
-        const plebbit = (_b = accounts[(_a = feedsOptions[feedName]) === null || _a === void 0 ? void 0 : _a.accountId]) === null || _b === void 0 ? void 0 : _b.plebbit;
+        const pkc = (_b = accounts[(_a = feedsOptions[feedName]) === null || _a === void 0 ? void 0 : _a.accountId]) === null || _b === void 0 ? void 0 : _b.pkc;
         const updatedFeed = [...(updatedFeeds[feedName] || [])];
         const onlyHasNewPosts = updatedFeed.length === 0;
         let updatedFeedChanged = false;
@@ -414,7 +414,7 @@ export const getUpdatedFeeds = (feedsOptions, filteredSortedFeeds, updatedFeeds,
                     // faster to validate comments async
                     promises.push((() => __awaiter(void 0, void 0, void 0, function* () {
                         if ((post.updatedAt || 0) > (updatedPost.updatedAt || 0) &&
-                            (yield commentIsValid(post, { validateReplies: false }, plebbit))) {
+                            (yield commentIsValid(post, { validateReplies: false }, pkc))) {
                             updatedFeed[index] = post;
                             updatedFeedChanged = true;
                         }

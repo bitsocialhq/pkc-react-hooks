@@ -5,12 +5,12 @@ import {
   useAccountWithCalculatedProperties,
   useAccountsWithCalculatedProperties,
 } from "./utils";
-import { setPlebbitJs } from "../..";
-import PlebbitJsMock from "../../lib/plebbit-js/plebbit-js-mock";
+import { setPkcJs } from "../..";
+import PkcJsMock from "../../lib/pkc-js/pkc-js-mock";
 
 describe("accounts utils", () => {
   beforeAll(async () => {
-    setPlebbitJs(PlebbitJsMock);
+    setPkcJs(PkcJsMock);
     await testUtils.resetDatabasesAndStores();
   });
 

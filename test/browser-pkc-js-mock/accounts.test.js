@@ -4,19 +4,19 @@ import {
   useAccount,
   useAccountVotes,
   useAccountComments,
-  setPlebbitJs,
-  restorePlebbitJs,
+  setPkcJs,
+  restorePkcJs,
 } from "../../dist";
 import debugUtils from "../../dist/lib/debug-utils";
 import * as accountsActions from "../../dist/stores/accounts/accounts-actions";
 import testUtils from "../../dist/lib/test-utils";
-import PlebbitJsMock from "../../dist/lib/plebbit-js/plebbit-js-mock";
+import PkcJsMock from "../../dist/lib/pkc-js/pkc-js-mock";
 // mock right after importing or sometimes fails to mock
-setPlebbitJs(PlebbitJsMock);
+setPkcJs(PkcJsMock);
 
 const timeout = 2000;
 
-describe("accounts (plebbit-js mock)", () => {
+describe("accounts (pkc-js mock)", () => {
   beforeAll(async () => {
     console.log("before accounts tests");
     testUtils.silenceReactWarnings();
@@ -44,11 +44,11 @@ describe("accounts (plebbit-js mock)", () => {
       expect(account.blockedAddresses && typeof account.blockedAddresses === "object").to.equal(
         true,
       );
-      expect(account.plebbit && typeof account.plebbit === "object").to.equal(true);
-      expect(account.plebbitOptions && typeof account.plebbitOptions === "object").to.equal(true);
-      expect(account.plebbitOptions.ipfsGatewayUrls?.length).to.be.greaterThan(0);
-      expect(account.plebbitOptions.pubsubKuboRpcClientsOptions?.length).to.be.greaterThan(0);
-      expect(account.plebbitOptions.kuboRpcClientsOptions).to.equal(undefined);
+      expect(account.pkc && typeof account.pkc === "object").to.equal(true);
+      expect(account.pkcOptions && typeof account.pkcOptions === "object").to.equal(true);
+      expect(account.pkcOptions.ipfsGatewayUrls?.length).to.be.greaterThan(0);
+      expect(account.pkcOptions.pubsubKuboRpcClientsOptions?.length).to.be.greaterThan(0);
+      expect(account.pkcOptions.kuboRpcClientsOptions).to.equal(undefined);
     });
   });
 

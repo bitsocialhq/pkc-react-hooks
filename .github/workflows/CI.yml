@@ -79,10 +79,10 @@ jobs:
             command: CHROME_BIN=$(which chromium-browser) yarn test:e2e:mock
             browsers: chromium
           - suite: chrome
-            command: DEBUG="plebbit-js:*,bitsocial-react-hooks:*" CHROME_BIN=$(which chromium-browser) yarn test:e2e:chrome
+            command: DEBUG="pkc-js:*,bitsocial-react-hooks:*" CHROME_BIN=$(which chromium-browser) yarn test:e2e:chrome
             browsers: chromium
           - suite: firefox
-            command: DEBUG="plebbit-js:*,bitsocial-react-hooks:*" FIREFOX_BIN=$(which firefox) yarn test:e2e:firefox
+            command: DEBUG="pkc-js:*,bitsocial-react-hooks:*" FIREFOX_BIN=$(which firefox) yarn test:e2e:firefox
             browsers: firefox
           - suite: mock-content
             command: CHROME_BIN=$(which chromium-browser) yarn test:e2e:mock-content

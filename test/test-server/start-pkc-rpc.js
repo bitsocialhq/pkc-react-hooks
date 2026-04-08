@@ -5,15 +5,12 @@ import PKCRpc from "@pkcprotocol/pkc-js/rpc";
 import { directory as getTmpFolderPath } from "tempy";
 const pkcDataPath = getTmpFolderPath();
 
-const startPlebbitRpc = async ({ port, ipfsApiPort, pubsubApiPort }) => {
-  assert(typeof port === "number", `startPlebbitRpc port '${port}' not a number`);
-  assert(
-    typeof ipfsApiPort === "number",
-    `startPlebbitRpc ipfsApiPort '${ipfsApiPort}' not a number`,
-  );
+const startPkcRpc = async ({ port, ipfsApiPort, pubsubApiPort }) => {
+  assert(typeof port === "number", `startPkcRpc port '${port}' not a number`);
+  assert(typeof ipfsApiPort === "number", `startPkcRpc ipfsApiPort '${ipfsApiPort}' not a number`);
   assert(
     typeof pubsubApiPort === "number",
-    `startPlebbitRpc pubsubApiPort '${pubsubApiPort}' not a number`,
+    `startPkcRpc pubsubApiPort '${pubsubApiPort}' not a number`,
   );
 
   const pkcOptions = {
@@ -39,4 +36,4 @@ const startPlebbitRpc = async ({ port, ipfsApiPort, pubsubApiPort }) => {
   console.log(`pkc rpc: listening on port ${port}`);
 };
 
-export default startPlebbitRpc;
+export default startPkcRpc;

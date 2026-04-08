@@ -7,19 +7,19 @@ import * as accountsActions from "../../dist/stores/accounts/accounts-actions";
 import testUtils from "../../dist/lib/test-utils";
 import signers from "../fixtures/signers";
 const communityAddress = signers[0].address;
-import { offlineIpfs, pubsubIpfs, plebbitRpc } from "../test-server/config";
+import { offlineIpfs, pubsubIpfs, pkcRpc } from "../test-server/config";
 
 // large value for manual debugging
 const timeout = 600000;
 const isBase64 = (testString) =>
   /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}))?$/gm.test(testString);
 
-// run tests using plebbit options gateway and httpClient
+// run tests using pkc options gateway and httpClient
 const localGatewayUrl = `http://localhost:${offlineIpfs.gatewayPort}`;
 const localIpfsProviderUrl = `http://localhost:${offlineIpfs.apiPort}`;
 const localPubsubProviderUrl = `http://localhost:${pubsubIpfs.apiPort}/api/v0`;
-const localPlebbitRpcUrl = `ws://127.0.0.1:${plebbitRpc.port}`;
-const plebbitOptionsTypes = {
+const localPkcRpcUrl = `ws://127.0.0.1:${pkcRpc.port}`;
+const pkcOptionsTypes = {
   "kubo rpc client": {
     kuboRpcClientsOptions: [localIpfsProviderUrl],
     // define pubsubKuboRpcClientsOptions with localPubsubProviderUrl because
@@ -34,17 +34,17 @@ const plebbitOptionsTypes = {
     resolveAuthorAddresses: false,
     validatePages: false,
   },
-  "plebbit rpc client": {
-    plebbitRpcClientsOptions: [localPlebbitRpcUrl],
+  "pkc rpc client": {
+    pkcRpcClientsOptions: [localPkcRpcUrl],
     resolveAuthorAddresses: false,
     validatePages: false,
   },
 };
 
-for (const plebbitOptionsType in plebbitOptionsTypes) {
-  describe(`communities (${plebbitOptionsType})`, () => {
+for (const pkcOptionsType in pkcOptionsTypes) {
+  describe(`communities (${pkcOptionsType})`, () => {
     beforeAll(async () => {
-      console.log(`before communities tests (${plebbitOptionsType})`);
+      console.log(`before communities tests (${pkcOptionsType})`);
       testUtils.silenceReactWarnings();
       // reset before or init accounts sometimes fails
       await testUtils.resetDatabasesAndStores();
@@ -61,7 +61,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
       await assertTestServerDidntCrash();
     });
 
-    describe(`no communities in database (${plebbitOptionsType})`, () => {
+    describe(`no communities in database (${pkcOptionsType})`, () => {
       let rendered, waitFor, commentCid;
 
       beforeAll(async () => {
@@ -84,18 +84,18 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
         expect(typeof rendered.result.current.publishComment).to.equal("function");
         expect(typeof rendered.result.current.publishVote).to.equal("function");
 
-        const plebbitOptions = { ...plebbitOptionsTypes[plebbitOptionsType] };
+        const pkcOptions = { ...pkcOptionsTypes[pkcOptionsType] };
 
         console.log("before set account");
         await act(async () => {
-          const account = { ...rendered.result.current.account, plebbitOptions };
+          const account = { ...rendered.result.current.account, pkcOptions };
           await rendered.result.current.setAccount(account);
         });
-        expect(rendered.result.current.account.plebbitOptions).to.deep.equal(plebbitOptions);
+        expect(rendered.result.current.account.pkcOptions).to.deep.equal(pkcOptions);
         console.log("after set account");
       });
 
-      it(`get communities one at a time (${plebbitOptionsType})`, async () => {
+      it(`get communities one at a time (${pkcOptionsType})`, async () => {
         rendered.rerender({ communityAddress });
         await waitFor(() => typeof rendered.result.current.community.updatedAt === "number");
         expect(typeof rendered.result.current.community.updatedAt).to.equal("number");
@@ -125,7 +125,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
       };
       const onError = () => {};
 
-      it(`publish vote (${plebbitOptionsType})`, async () => {
+      it(`publish vote (${pkcOptionsType})`, async () => {
         const publishVoteOptions = {
           communityAddress,
           commentCid: commentCid,
@@ -141,7 +141,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
         console.log("after publish vote");
       });
 
-      it(`onChallenge gets called (${plebbitOptionsType})`, async () => {
+      it(`onChallenge gets called (${pkcOptionsType})`, async () => {
         // onChallenge gets call backed once
         await waitFor(() => onChallengeCalled > 0);
         expect(onChallengeCalled).to.equal(1);
@@ -150,7 +150,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
         expect(typeof vote.publishChallengeAnswers).to.equal("function");
       });
 
-      it(`onChallengeVerification gets called (${plebbitOptionsType})`, async () => {
+      it(`onChallengeVerification gets called (${pkcOptionsType})`, async () => {
         console.log("before publish challenge answers");
         // publish challenge answer and wait for verification
         vote.publishChallengeAnswers(["2"]);
@@ -161,7 +161,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
         expect(voteVerified.constructor.name).to.equal("Vote");
       });
 
-      it(`published vote is in account votes (${plebbitOptionsType})`, async () => {
+      it(`published vote is in account votes (${pkcOptionsType})`, async () => {
         // for unknown reason 'setAccountsVotes' in accountsActions.publishVote vote.once('challengeverification')
         // never gets triggered, so we can't test if the cid gets added to accounts comments
         console.log(`TODO: figure out why vote doesn't get added to accountVotes`);
@@ -171,7 +171,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
         // expect(rendered.result.current.accountVotes[0].commentCid).to.equal(commentCid)
       });
 
-      it(`get comment with updated vote count (${plebbitOptionsType})`, async () => {
+      it(`get comment with updated vote count (${pkcOptionsType})`, async () => {
         console.log("before getting comment");
         rendered.rerender({ communityAddress, commentCid });
 

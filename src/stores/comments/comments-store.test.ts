@@ -8,8 +8,8 @@ import commentsStore, {
   log,
 } from "./comments-store";
 import localForageLru from "../../lib/localforage-lru";
-import { setPlebbitJs } from "../..";
-import PlebbitJsMock from "../../lib/plebbit-js/plebbit-js-mock";
+import { setPkcJs } from "../..";
+import PkcJsMock from "../../lib/pkc-js/pkc-js-mock";
 import accountsStore from "../accounts";
 import repliesPagesStore from "../replies-pages";
 
@@ -18,10 +18,10 @@ let accountsGetState: typeof accountsStore.getState;
 
 describe("comments store", () => {
   beforeAll(async () => {
-    setPlebbitJs(PlebbitJsMock);
+    setPkcJs(PkcJsMock);
     testUtils.silenceReactWarnings();
-    const plebbit = await PlebbitJsMock();
-    mockAccount = { id: "mock-account-id", plebbit };
+    const pkc = await PkcJsMock();
+    mockAccount = { id: "mock-account-id", pkc };
     accountsGetState = accountsStore.getState;
   });
   afterAll(() => {
@@ -39,7 +39,7 @@ describe("comments store", () => {
     expect(typeof result.current.addCommentToStore).toBe("function");
   });
 
-  test("addCommentToStore adds comment from plebbit", async () => {
+  test("addCommentToStore adds comment from pkc", async () => {
     const commentCid = "test-comment-cid";
 
     await act(async () => {
@@ -52,7 +52,7 @@ describe("comments store", () => {
 
   test("addCommentToStore returns early when comment already in store", async () => {
     const commentCid = "existing-comment-cid";
-    const createSpy = vi.spyOn(mockAccount.plebbit, "createComment");
+    const createSpy = vi.spyOn(mockAccount.pkc, "createComment");
 
     await act(async () => {
       await commentsStore.getState().addCommentToStore(commentCid, mockAccount);
@@ -69,11 +69,11 @@ describe("comments store", () => {
 
   test("cached comment create failure logs to console", async () => {
     const commentCid = "cached-fail-cid";
-    const db = localForageLru.createInstance({ name: "plebbitReactHooks-comments" });
+    const db = localForageLru.createInstance({ name: "bitsocialReactHooks-comments" });
     await db.setItem(commentCid, { cid: commentCid, invalid: "data" });
 
-    const createCommentOriginal = mockAccount.plebbit.createComment;
-    mockAccount.plebbit.createComment = vi.fn().mockRejectedValue(new Error("create failed"));
+    const createCommentOriginal = mockAccount.pkc.createComment;
+    mockAccount.pkc.createComment = vi.fn().mockRejectedValue(new Error("create failed"));
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     await act(async () => {
@@ -85,27 +85,27 @@ describe("comments store", () => {
     });
 
     expect(consoleSpy).toHaveBeenCalledWith(
-      "failed plebbit.createComment(cachedComment)",
+      "failed pkc.createComment(cachedComment)",
       expect.objectContaining({
         cachedComment: expect.any(Object),
         error: expect.any(Error),
       }),
     );
     consoleSpy.mockRestore();
-    mockAccount.plebbit.createComment = createCommentOriginal;
+    mockAccount.pkc.createComment = createCommentOriginal;
   });
 
   test("addCommentToStore clears the pending gate when cached live comment creation fails", async () => {
     const commentCid = "cached-live-fail-cid";
-    const db = localForageLru.createInstance({ name: "plebbitReactHooks-comments" });
+    const db = localForageLru.createInstance({ name: "bitsocialReactHooks-comments" });
     await db.setItem(commentCid, {
       cid: commentCid,
       timestamp: 1,
       communityAddress: "community address 1",
     });
 
-    const createCommentOriginal = mockAccount.plebbit.createComment.bind(mockAccount.plebbit);
-    mockAccount.plebbit.createComment = vi
+    const createCommentOriginal = mockAccount.pkc.createComment.bind(mockAccount.pkc);
+    mockAccount.pkc.createComment = vi
       .fn()
       .mockImplementationOnce((commentData: any) => createCommentOriginal(commentData))
       .mockRejectedValueOnce(new Error("live create failed"))
@@ -129,7 +129,7 @@ describe("comments store", () => {
     });
 
     expect(commentsStore.getState().comments[commentCid]).toBeDefined();
-    mockAccount.plebbit.createComment = createCommentOriginal;
+    mockAccount.pkc.createComment = createCommentOriginal;
   });
 
   test("comment without timestamp registers once(update) for addCidToAccountComment", async () => {
@@ -182,12 +182,12 @@ describe("comments store", () => {
 
   test("comment.update catch logs when update rejects", async () => {
     const commentCid = "update-reject-cid";
-    const plebbit = await PlebbitJsMock();
-    const comment = await plebbit.createComment({ cid: commentCid });
+    const pkc = await PkcJsMock();
+    const comment = await pkc.createComment({ cid: commentCid });
     const updateSpy = vi.spyOn(comment, "update").mockRejectedValueOnce(new Error("update failed"));
 
-    const createCommentOrig = mockAccount.plebbit.createComment;
-    mockAccount.plebbit.createComment = vi.fn().mockResolvedValue(comment);
+    const createCommentOrig = mockAccount.pkc.createComment;
+    mockAccount.pkc.createComment = vi.fn().mockResolvedValue(comment);
 
     await act(async () => {
       await commentsStore.getState().addCommentToStore(commentCid, mockAccount);
@@ -195,7 +195,7 @@ describe("comments store", () => {
 
     await new Promise((r) => setTimeout(r, 100));
 
-    mockAccount.plebbit.createComment = createCommentOrig;
+    mockAccount.pkc.createComment = createCommentOrig;
     updateSpy.mockRestore();
   });
 
@@ -234,21 +234,21 @@ describe("comments store", () => {
     const liveComment = {
       cid: commentCid,
       timestamp: 1,
-      subplebbitAddress: "legacy-community-address",
+      communityAddress: "legacy-community-address",
       clients: {},
       on: onSpy,
       once: vi.fn(),
       update: updateSpy,
       removeAllListeners: vi.fn(),
     };
-    const createCommentOrig = mockAccount.plebbit.createComment;
-    mockAccount.plebbit.createComment = vi.fn().mockResolvedValue(liveComment);
+    const createCommentOrig = mockAccount.pkc.createComment;
+    mockAccount.pkc.createComment = vi.fn().mockResolvedValue(liveComment);
 
     await act(async () => {
       await commentsStore.getState().addCommentToStore(commentCid, mockAccount);
     });
 
-    expect(mockAccount.plebbit.createComment).toHaveBeenCalledWith({ cid: commentCid });
+    expect(mockAccount.pkc.createComment).toHaveBeenCalledWith({ cid: commentCid });
     expect(commentsStore.getState().comments[commentCid]).toEqual(
       expect.objectContaining({
         cid: commentCid,
@@ -259,15 +259,15 @@ describe("comments store", () => {
     expect(onSpy).toHaveBeenCalledTimes(3);
     expect(updateSpy).toHaveBeenCalledTimes(1);
 
-    mockAccount.plebbit.createComment = createCommentOrig;
+    mockAccount.pkc.createComment = createCommentOrig;
   });
 
   test("reusing the same live comment object skips duplicate listener registration", async () => {
     const commentCid = "reused-live-comment-cid";
-    const plebbit = await PlebbitJsMock();
-    const sharedLiveComment = await plebbit.createComment({ cid: commentCid });
-    const createCommentOrig = mockAccount.plebbit.createComment;
-    mockAccount.plebbit.createComment = vi.fn().mockResolvedValue(sharedLiveComment);
+    const pkc = await PkcJsMock();
+    const sharedLiveComment = await pkc.createComment({ cid: commentCid });
+    const createCommentOrig = mockAccount.pkc.createComment;
+    mockAccount.pkc.createComment = vi.fn().mockResolvedValue(sharedLiveComment);
 
     await act(async () => {
       await commentsStore.getState().addCommentToStore(commentCid, mockAccount);
@@ -279,10 +279,10 @@ describe("comments store", () => {
       await commentsStore.getState().refreshComment(commentCid, mockAccount);
     });
 
-    expect(mockAccount.plebbit.createComment).toHaveBeenCalledTimes(2);
+    expect(mockAccount.pkc.createComment).toHaveBeenCalledTimes(2);
     expect(listeners).not.toContain(sharedLiveComment);
 
-    mockAccount.plebbit.createComment = createCommentOrig;
+    mockAccount.pkc.createComment = createCommentOrig;
   });
 
   test("missing-comment client update guard returns empty object", async () => {
@@ -389,9 +389,9 @@ describe("comments store", () => {
 
   test("refreshComment updates the store once and stops again when auto-update is disabled", async () => {
     const commentCid = "refresh-comment-cid";
-    const createCommentOriginal = mockAccount.plebbit.createComment.bind(mockAccount.plebbit);
+    const createCommentOriginal = mockAccount.pkc.createComment.bind(mockAccount.pkc);
     const createdComments: any[] = [];
-    mockAccount.plebbit.createComment = vi.fn(async (commentData: any) => {
+    mockAccount.pkc.createComment = vi.fn(async (commentData: any) => {
       const comment = await createCommentOriginal(commentData);
       createdComments.push(comment);
       return comment;
@@ -411,7 +411,7 @@ describe("comments store", () => {
     expect(commentsStore.getState().comments[commentCid]?.upvoteCount).toBe(5);
     expect(createdComments[createdComments.length - 1].updatingState).toBe("stopped");
     expect(listeners).not.toContain(createdComments[createdComments.length - 1]);
-    mockAccount.plebbit.createComment = createCommentOriginal;
+    mockAccount.pkc.createComment = createCommentOriginal;
   });
 
   test("refreshComment cleans up legacy listeners and rejects on comment error", async () => {
@@ -428,14 +428,14 @@ describe("comments store", () => {
     });
     legacyComment.off = undefined;
 
-    const createCommentOrig = mockAccount.plebbit.createComment;
-    mockAccount.plebbit.createComment = vi.fn().mockResolvedValue(legacyComment);
+    const createCommentOrig = mockAccount.pkc.createComment;
+    mockAccount.pkc.createComment = vi.fn().mockResolvedValue(legacyComment);
 
     await expect(commentsStore.getState().refreshComment(commentCid, mockAccount)).rejects.toThrow(
       "legacy refresh failed",
     );
 
-    mockAccount.plebbit.createComment = createCommentOrig;
+    mockAccount.pkc.createComment = createCommentOrig;
   });
 
   test("refreshComment rejects with fallback failed-update error when no error event is emitted", async () => {
@@ -452,14 +452,14 @@ describe("comments store", () => {
     });
     failedComment.off = undefined;
 
-    const createCommentOrig = mockAccount.plebbit.createComment;
-    mockAccount.plebbit.createComment = vi.fn().mockResolvedValue(failedComment);
+    const createCommentOrig = mockAccount.pkc.createComment;
+    mockAccount.pkc.createComment = vi.fn().mockResolvedValue(failedComment);
 
     await expect(commentsStore.getState().refreshComment(commentCid, mockAccount)).rejects.toThrow(
       "comment update failed",
     );
 
-    mockAccount.plebbit.createComment = createCommentOrig;
+    mockAccount.pkc.createComment = createCommentOrig;
   });
 
   test("stopCommentAutoUpdate swallows comment.stop errors", async () => {
@@ -476,8 +476,8 @@ describe("comments store", () => {
       removeAllListeners: vi.fn(),
     };
 
-    const createCommentOrig = mockAccount.plebbit.createComment;
-    mockAccount.plebbit.createComment = vi.fn().mockResolvedValue(legacyComment);
+    const createCommentOrig = mockAccount.pkc.createComment;
+    mockAccount.pkc.createComment = vi.fn().mockResolvedValue(legacyComment);
 
     await act(async () => {
       await commentsStore.getState().startCommentAutoUpdate(commentCid, "sub-1", mockAccount);
@@ -485,7 +485,7 @@ describe("comments store", () => {
     });
 
     expect(legacyComment.stop).toHaveBeenCalled();
-    mockAccount.plebbit.createComment = createCommentOrig;
+    mockAccount.pkc.createComment = createCommentOrig;
   });
 
   test("startCommentAutoUpdate stops a late live comment when its subscriber already unsubscribed", async () => {
@@ -501,8 +501,8 @@ describe("comments store", () => {
     liveComment.stop = vi.fn().mockResolvedValue(undefined);
     liveComment.update = vi.fn().mockResolvedValue(undefined);
 
-    const createCommentOrig = mockAccount.plebbit.createComment;
-    mockAccount.plebbit.createComment = vi.fn().mockImplementation(
+    const createCommentOrig = mockAccount.pkc.createComment;
+    mockAccount.pkc.createComment = vi.fn().mockImplementation(
       () =>
         new Promise((resolve) => {
           resolveCreate = resolve;
@@ -525,7 +525,7 @@ describe("comments store", () => {
     expect(liveComment.stop).toHaveBeenCalledTimes(1);
     expect(liveComment.update).not.toHaveBeenCalled();
     expect(listeners).not.toContain(liveComment);
-    mockAccount.plebbit.createComment = createCommentOrig;
+    mockAccount.pkc.createComment = createCommentOrig;
   });
 
   test("stopCommentAutoUpdate keeps a re-subscribed live comment until the new subscriber stops", async () => {
@@ -549,8 +549,8 @@ describe("comments store", () => {
       .mockResolvedValue(undefined);
     liveComment.update = vi.fn().mockResolvedValue(undefined);
 
-    const createCommentOrig = mockAccount.plebbit.createComment;
-    mockAccount.plebbit.createComment = vi.fn().mockResolvedValue(liveComment);
+    const createCommentOrig = mockAccount.pkc.createComment;
+    mockAccount.pkc.createComment = vi.fn().mockResolvedValue(liveComment);
 
     await act(async () => {
       await commentsStore.getState().startCommentAutoUpdate(commentCid, "sub-1", mockAccount);
@@ -573,13 +573,13 @@ describe("comments store", () => {
     });
 
     expect(liveComment.stop).toHaveBeenCalledTimes(2);
-    mockAccount.plebbit.createComment = createCommentOrig;
+    mockAccount.pkc.createComment = createCommentOrig;
   });
 
   test("resetCommentsStore clears in-flight live comment promises", async () => {
     const commentCid = "reset-live-comment-promise-cid";
-    const createCommentOrig = mockAccount.plebbit.createComment.bind(mockAccount.plebbit);
-    mockAccount.plebbit.createComment = vi
+    const createCommentOrig = mockAccount.pkc.createComment.bind(mockAccount.pkc);
+    mockAccount.pkc.createComment = vi
       .fn()
       .mockImplementationOnce(() => new Promise(() => {}))
       .mockImplementation((commentData: any) => createCommentOrig(commentData));
@@ -594,6 +594,6 @@ describe("comments store", () => {
     });
 
     expect(commentsStore.getState().comments[commentCid]).toBeDefined();
-    mockAccount.plebbit.createComment = createCommentOrig;
+    mockAccount.pkc.createComment = createCommentOrig;
   });
 });

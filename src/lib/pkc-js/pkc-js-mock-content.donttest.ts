@@ -1,6 +1,6 @@
 // this file is not part of the tests
 // only use it to log the content mock and see if the outputs make sense
-// use `jest --testRegex plebbit-js-mock-content.donttest.ts` to run
+// use `jest --testRegex pkc-js-mock-content.donttest.ts` to run
 
 const timeout = 4000;
 
@@ -18,12 +18,12 @@ import {
   useAccountCommunities,
   useAccount,
   useReplies,
-  setPlebbitJs,
+  setPkcJs,
 } from "../../index";
 import * as accountsActions from "../../stores/accounts/accounts-actions";
-import PlebbitJsMockContent, { getImageUrl, SeedIncrementer } from "./plebbit-js-mock-content";
+import PkcJsMockContent, { getImageUrl, SeedIncrementer } from "./pkc-js-mock-content";
 
-describe.skip("PlebbitJsMockContent", () => {
+describe.skip("PkcJsMockContent", () => {
   test.skip(
     "SeedIncrementer",
     async () => {
@@ -44,10 +44,10 @@ describe.skip("PlebbitJsMockContent", () => {
   test(
     "comment updates",
     async () => {
-      const plebbit = await PlebbitJsMockContent();
+      const pkc = await PkcJsMockContent();
       let count = 10;
       const cid = "UYdJj598pR4VKi3yoKP4oR4UQAyyQBQWfCtL6fLegCFP8";
-      const comment: any = await plebbit.createComment({ cid });
+      const comment: any = await pkc.createComment({ cid });
       comment.update();
       await new Promise((r) =>
         comment.on("update", () => {
@@ -65,9 +65,9 @@ describe.skip("PlebbitJsMockContent", () => {
   test.skip(
     "new page",
     async () => {
-      const plebbit = await PlebbitJsMockContent();
+      const pkc = await PkcJsMockContent();
       const address = "news.eth";
-      const community: any = await plebbit.createCommunity({ address });
+      const community: any = await pkc.createCommunity({ address });
       console.log(community);
       community.update().catch(console.error);
       await new Promise((r) =>
@@ -80,7 +80,7 @@ describe.skip("PlebbitJsMockContent", () => {
             // console.log(page)
             // const comment = page.comments[0]
             // console.log({comment})
-            // const comment2 = await plebbit.getComment({cid: comment.cid})
+            // const comment2 = await pkc.getComment({cid: comment.cid})
             // console.log({comment2})
           } catch (e) {
             console.log(e);
@@ -95,10 +95,10 @@ describe.skip("PlebbitJsMockContent", () => {
   test.skip(
     "comment edit updates",
     async () => {
-      const plebbit = await PlebbitJsMockContent();
+      const pkc = await PkcJsMockContent();
       let count = 10;
       const cid = "UYdJj598pR4VKi3yoKP4oR4UQAyyQBQWfCtL6fLegCFP7";
-      const comment: any = await plebbit.createComment({ cid });
+      const comment: any = await pkc.createComment({ cid });
       comment.update();
       await new Promise((r) =>
         comment.on("update", () => {
@@ -116,7 +116,7 @@ describe.skip("PlebbitJsMockContent", () => {
   test.skip(
     "create comment",
     async () => {
-      const plebbit = await PlebbitJsMockContent();
+      const pkc = await PkcJsMockContent();
       let count = 100;
       let linkCount = 0;
       while (count--) {
@@ -127,7 +127,7 @@ describe.skip("PlebbitJsMockContent", () => {
           Math.random().toString() +
           Math.random().toString()
         ).replace(/0\./g, "");
-        const comment: any = await plebbit.createComment({ cid: random });
+        const comment: any = await pkc.createComment({ cid: random });
         comment.update();
         await new Promise((r) =>
           comment.on("update", () => {
@@ -150,9 +150,9 @@ describe.skip("PlebbitJsMockContent", () => {
   test.skip(
     "create comment with replies",
     async () => {
-      const plebbit = await PlebbitJsMockContent();
+      const pkc = await PkcJsMockContent();
       const cid = "QmXxWyFRBUReRNzyJueFLFh84Mtj7ycbySktRQ5ffZLVa65";
-      const comment: any = await plebbit.createComment({ cid });
+      const comment: any = await pkc.createComment({ cid });
       comment.update();
       await new Promise((r) =>
         comment.on("update", () => {
@@ -170,8 +170,8 @@ describe.skip("PlebbitJsMockContent", () => {
 
 describe("mock content", () => {
   beforeAll(async () => {
-    // set plebbit-js mock and reset dbs
-    setPlebbitJs(PlebbitJsMockContent);
+    // set pkc-js mock and reset dbs
+    setPkcJs(PkcJsMockContent);
     await testUtils.resetDatabasesAndStores();
   });
   afterAll(() => {
@@ -356,8 +356,8 @@ describe("mock content", () => {
     const rendered = renderHook<any, any>(() => useAccount());
     const waitFor = testUtils.createWaitFor(rendered, { timeout });
 
-    await waitFor(() => typeof rendered.result.current.plebbit?.createComment === "function");
-    expect(typeof rendered.result.current.plebbit?.createComment).toBe("function");
+    await waitFor(() => typeof rendered.result.current.pkc?.createComment === "function");
+    expect(typeof rendered.result.current.pkc?.createComment).toBe("function");
 
     console.log("publishing comment");
     let onChallengeVerificationCalled = false;
@@ -403,9 +403,9 @@ describe("mock content", () => {
     });
     const waitFor = testUtils.createWaitFor(rendered, { timeout });
     await waitFor(
-      () => typeof rendered.result.current.account?.plebbit?.createCommunity === "function",
+      () => typeof rendered.result.current.account?.pkc?.createCommunity === "function",
     );
-    expect(typeof rendered.result.current.account?.plebbit?.createCommunity).toBe("function");
+    expect(typeof rendered.result.current.account?.pkc?.createCommunity).toBe("function");
 
     console.log("creating community");
     const community = await rendered.result.current.createCommunity({

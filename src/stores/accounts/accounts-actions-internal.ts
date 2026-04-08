@@ -18,9 +18,9 @@ import utils from "../../lib/utils";
 import {
   backfillPublicationCommunityAddress,
   getCommentCommunityAddress,
-  normalizePublicationOptionsForPlebbit,
+  normalizePublicationOptionsForPkc,
   normalizePublicationOptionsForStore,
-} from "../../lib/plebbit-compat";
+} from "../../lib/pkc-compat";
 import {
   addShortAddressesToAccountComment,
   getAccountsCommentsIndexes,
@@ -127,9 +127,7 @@ export const startUpdatingAccountCommentOnCommentUpdateEvents = async (
   // comment is not a `Comment` instance
   if (!comment.on) {
     comment = backfillPublicationCommunityAddress(
-      await account.plebbit.createComment(
-        normalizePublicationOptionsForPlebbit(account.plebbit, comment),
-      ),
+      await account.pkc.createComment(normalizePublicationOptionsForPkc(account.pkc, comment)),
       comment,
     );
   }
@@ -140,7 +138,7 @@ export const startUpdatingAccountCommentOnCommentUpdateEvents = async (
     comment,
     getCommentCommunityAddress(commentArgument) ||
       initialStoredComment?.communityAddress ||
-      initialStoredComment?.subplebbitAddress,
+      initialStoredComment?.communityAddress,
   );
 
   comment.on("update", async (updatedComment: Comment) => {
@@ -165,7 +163,7 @@ export const startUpdatingAccountCommentOnCommentUpdateEvents = async (
     }
     const currentIndex = mapping.accountCommentIndex;
 
-    // merge should not be needed if plebbit-js is implemented properly, but no harm in fixing potential errors
+    // merge should not be needed if pkc-js is implemented properly, but no harm in fixing potential errors
     const storedComment = accountsStore.getState().accountsComments[account.id]?.[currentIndex];
     updatedComment = utils.merge(commentArgument, comment, updatedComment);
     updatedComment.communityAddress =
@@ -173,7 +171,7 @@ export const startUpdatingAccountCommentOnCommentUpdateEvents = async (
       getCommentCommunityAddress(comment) ||
       getCommentCommunityAddress(commentArgument) ||
       storedComment?.communityAddress ||
-      storedComment?.subplebbitAddress;
+      storedComment?.communityAddress;
     const normalizedUpdatedComment = addShortAddressesToAccountComment(
       normalizePublicationOptionsForStore(updatedComment) as Comment,
     ) as Comment;
@@ -230,7 +228,7 @@ export const startUpdatingAccountCommentOnCommentUpdateEvents = async (
     const repliesAreValid = await utils.repliesAreValid(
       normalizedUpdatedComment,
       { validateReplies: false, blockCommunity: true },
-      account.plebbit,
+      account.pkc,
     );
 
     if (hasReplies && repliesAreValid) {

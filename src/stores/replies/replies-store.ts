@@ -141,7 +141,7 @@ const repliesStore = createStore<RepliesState>((setState: Function, getState: Fu
     );
     const account = accountsStore.getState().accounts[feedOptions.accountId];
     assert(
-      typeof account?.plebbit?.createComment === "function",
+      typeof account?.pkc?.createComment === "function",
       `repliesStore.addFeedToStoreOrUpdateComment feedOptions.accountId '${feedOptions.accountId}' invalid`,
     );
     assert(
@@ -596,7 +596,7 @@ export const resetRepliesStore = async () => {
 
 // reset database and store in between tests
 export const resetRepliesDatabaseAndStore = async () => {
-  await localForageLru.createInstance({ name: "plebbitReactHooks-repliesPages" }).clear();
+  await localForageLru.createInstance({ name: "bitsocialReactHooks-repliesPages" }).clear();
   await resetRepliesStore();
 };
 

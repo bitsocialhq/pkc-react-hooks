@@ -1,12 +1,12 @@
 // script to start IPFS and pkc-js for testing
 
-import { offlineIpfs, pubsubIpfs, plebbitRpc } from "./config.js";
+import { offlineIpfs, pubsubIpfs, pkcRpc } from "./config.js";
 import startIpfs from "./start-ipfs.js";
-import startPlebbitRpc from "./start-plebbit-rpc.js";
+import startPkcRpc from "./start-pkc-rpc.js";
 import signers from "../fixtures/signers.js";
 import { directory as getTmpFolderPath } from "tempy";
 import http from "http";
-const plebbitDataPath = getTmpFolderPath();
+const pkcDataPath = getTmpFolderPath();
 
 // set up a community for testing
 (async () => {
@@ -16,8 +16,8 @@ const plebbitDataPath = getTmpFolderPath();
 
   await startIpfs(offlineIpfs);
   await startIpfs(pubsubIpfs);
-  await startPlebbitRpc({
-    port: plebbitRpc.port,
+  await startPkcRpc({
+    port: pkcRpc.port,
     ipfsApiPort: offlineIpfs.apiPort,
     pubsubApiPort: pubsubIpfs.apiPort,
   });
@@ -27,7 +27,7 @@ const plebbitDataPath = getTmpFolderPath();
     pubsubKuboRpcClientsOptions: [`http://127.0.0.1:${pubsubIpfs.apiPort}/api/v0`],
     httpRoutersOptions: [],
     // pubsubKuboRpcClientsOptions: [`https://pubsubprovider.xyz/api/v0`],
-    dataPath: plebbitDataPath,
+    dataPath: pkcDataPath,
     publishInterval: 1000,
     updateInterval: 1000,
   };

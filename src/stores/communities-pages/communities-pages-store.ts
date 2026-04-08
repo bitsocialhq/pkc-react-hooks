@@ -16,13 +16,13 @@ import localForageLru from "../../lib/localforage-lru";
 import createStore from "zustand";
 import assert from "assert";
 import {
-  createPlebbitCommunity,
-  getPlebbitCreateCommunity,
+  createPkcCommunity,
+  getPkcCreateCommunity,
   normalizeCommentCommunityAddress,
-} from "../../lib/plebbit-compat";
+} from "../../lib/pkc-compat";
 
 const communitiesPagesDatabase = localForageLru.createInstance({
-  name: "plebbitReactHooks-communitiesPages",
+  name: "bitsocialReactHooks-communitiesPages",
   size: 500,
 });
 
@@ -73,7 +73,7 @@ const communitiesPagesStore = createStore<CommunitiesPagesState>(
         `communitiesPagesStore.addNextCommunityPageToStore sortType '${sortType}' invalid`,
       );
       assert(
-        typeof getPlebbitCreateCommunity(account?.plebbit) === "function",
+        typeof getPkcCreateCommunity(account?.pkc) === "function",
         `communitiesPagesStore.addNextCommunityPageToStore account '${account}' invalid`,
       );
       assert(
@@ -317,7 +317,7 @@ const onCommunityPostsClientsStateChange =
   };
 
 const fetchPageCommunities: {
-  [accountId: string]: { plebbit: any; communities: { [communityAddress: string]: any } };
+  [accountId: string]: { pkc: any; communities: { [communityAddress: string]: any } };
 } = {}; // cache created community clients per account because creating them can be slow
 let fetchPagePending: { [key: string]: boolean } = {};
 const fetchPage = async (
@@ -332,15 +332,12 @@ const fetchPage = async (
   if (cachedCommunityPage) {
     return cachedCommunityPage;
   }
-  if (
-    !fetchPageCommunities[account.id] ||
-    fetchPageCommunities[account.id].plebbit !== account.plebbit
-  ) {
-    fetchPageCommunities[account.id] = { plebbit: account.plebbit, communities: {} };
+  if (!fetchPageCommunities[account.id] || fetchPageCommunities[account.id].pkc !== account.pkc) {
+    fetchPageCommunities[account.id] = { pkc: account.pkc, communities: {} };
   }
   const accountCommunities = fetchPageCommunities[account.id].communities;
   if (!accountCommunities[communityAddress]) {
-    accountCommunities[communityAddress] = await createPlebbitCommunity(account.plebbit, {
+    accountCommunities[communityAddress] = await createPkcCommunity(account.pkc, {
       address: communityAddress,
     });
     listeners.push(accountCommunities[communityAddress]);
@@ -444,7 +441,7 @@ export const resetCommunitiesPagesStore = async () => {
 
 // reset database and store in between tests
 export const resetCommunitiesPagesDatabaseAndStore = async () => {
-  await localForageLru.createInstance({ name: "plebbitReactHooks-communitiesPages" }).clear();
+  await localForageLru.createInstance({ name: "bitsocialReactHooks-communitiesPages" }).clear();
   await resetCommunitiesPagesStore();
 };
 

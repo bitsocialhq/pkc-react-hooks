@@ -44,7 +44,7 @@ disable-model-invocation: true
 
   | Pattern | Example |
   |---------|---------|
-  | `type(scope): description` | `fix(feeds): handle empty subplebbit addresses array` |
+  | `type(scope): description` | `fix(feeds): handle empty community addresses array` |
 
 - **Never omit the scope.** `feat: add hook` is wrong. `feat(replies): add flat mode to useReplies` is correct.
 - **Keep titles short.** If more context is needed, add a commit body — but don't repeat the title.

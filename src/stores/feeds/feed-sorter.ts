@@ -20,7 +20,7 @@ const sortByTop = (feed: any[]) => {
 const sortByControversial = (feed: any[]) => {
   const postScores: { [key: string]: number } = {};
   for (const post of feed) {
-    let upvoteCount = n(post.upvoteCount) + 1; // reddit initial upvotes is 1, plebbit is 0
+    let upvoteCount = n(post.upvoteCount) + 1; // reddit initial upvotes is 1, pkc is 0
     const downvoteCount = n(post.downvoteCount);
     const magnitude = upvoteCount + downvoteCount;
     const balance =

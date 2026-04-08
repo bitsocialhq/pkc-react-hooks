@@ -6,8 +6,8 @@ import communitiesStore from "../communities";
 import communitiesPagesStore from "../communities-pages";
 import EventEmitter from "events";
 import accountsStore from "../accounts";
-import { setPlebbitJs } from "../..";
-import PlebbitJsMock from "../../lib/plebbit-js/plebbit-js-mock";
+import { setPkcJs } from "../..";
+import PkcJsMock from "../../lib/pkc-js/pkc-js-mock";
 
 const communityGetPageCommentCount = 100;
 
@@ -62,7 +62,7 @@ class MockCommunity extends EventEmitter {
 
 const mockAccount: any = {
   id: "mock account id",
-  plebbit: {
+  pkc: {
     createCommunity: async ({ address }: any) => new MockCommunity({ address }),
     getCommunity: async (options: { address: string }) =>
       new MockCommunity({ address: options?.address }),
@@ -76,8 +76,8 @@ const mockAccount: any = {
 describe("feeds store", () => {
   let accountsStoreGetState = accountsStore.getState;
   beforeAll(() => {
-    // set plebbit-js mock
-    setPlebbitJs(PlebbitJsMock);
+    // set pkc-js mock
+    setPkcJs(PkcJsMock);
 
     testUtils.silenceReactWarnings();
 
@@ -465,7 +465,7 @@ describe("feeds store", () => {
     const communityAddresses = ["community address reset-feed"];
     const sortType = "new";
     const feedName = JSON.stringify([mockAccount?.id, sortType, communityAddresses]);
-    const getCommunitySpy = vi.spyOn(mockAccount.plebbit, "getCommunity");
+    const getCommunitySpy = vi.spyOn(mockAccount.pkc, "getCommunity");
 
     act(() => {
       rendered.result.current.addFeedToStore(feedName, communityAddresses, sortType, mockAccount);

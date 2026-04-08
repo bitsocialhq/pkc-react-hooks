@@ -17,7 +17,7 @@ import {
 import createStore from "zustand";
 import localForageLru from "../../lib/localforage-lru";
 import { communityPostsCacheExpired } from "../../lib/utils";
-import { getPlebbitGetCommunity } from "../../lib/plebbit-compat";
+import { getPkcGetCommunity } from "../../lib/pkc-compat";
 import accountsStore from "../accounts";
 import communitiesStore from "../communities";
 import communitiesPagesStore from "../communities-pages";
@@ -104,7 +104,7 @@ const feedsStore = createStore<FeedsState>((setState: Function, getState: Functi
       `addFeedToStore.addFeedToStore sortType '${sortType}' invalid`,
     );
     assert(
-      typeof getPlebbitGetCommunity(account?.plebbit) === "function",
+      typeof getPkcGetCommunity(account?.pkc) === "function",
       `addFeedToStore.addFeedToStore account '${account}' invalid`,
     );
     assert(
@@ -667,7 +667,7 @@ export const resetFeedsStore = async () => {
 
 // reset database and store in between tests
 export const resetFeedsDatabaseAndStore = async () => {
-  await localForageLru.createInstance({ name: "plebbitReactHooks-communitiesPages" }).clear();
+  await localForageLru.createInstance({ name: "bitsocialReactHooks-communitiesPages" }).clear();
   await resetFeedsStore();
 };
 

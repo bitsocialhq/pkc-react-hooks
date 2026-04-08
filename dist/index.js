@@ -28,12 +28,12 @@ import { useSubscribe, useBlock, usePublishComment, usePublishVote, useCreateCom
 import { createAccount, deleteAccount, deleteComment, setAccount, setActiveAccount, setAccountsOrder, importAccount, exportAccount, deleteCommunity, } from "./stores/accounts/accounts-actions";
 // states
 import { useClientsStates, useCommunitiesStates } from "./hooks/states";
-// plebbit-rpc
-import { usePlebbitRpcSettings } from "./hooks/plebbit-rpc";
+// pkc-rpc
+import { usePkcRpcSettings } from "./hooks/pkc-rpc";
 // chain
-import { getEthWalletFromPlebbitPrivateKey, getSolWalletFromPlebbitPrivateKey, getEthPrivateKeyFromPlebbitPrivateKey, getSolPrivateKeyFromPlebbitPrivateKey, validateEthWallet, validateSolWallet, } from "./lib/chain";
+import { getEthWalletFromPkcPrivateKey, getSolWalletFromPkcPrivateKey, getEthPrivateKeyFromPkcPrivateKey, getSolPrivateKeyFromPkcPrivateKey, validateEthWallet, validateSolWallet, } from "./lib/chain";
 // utils
-import { setPlebbitJs, restorePlebbitJs } from "./lib/plebbit-js";
+import { setPkcJs, restorePkcJs } from "./lib/pkc-js";
 import { deleteDatabases, deleteCaches } from "./lib/debug-utils";
 // types
 export * from "./types";
@@ -57,12 +57,12 @@ useSubscribe, useBlock, usePublishComment, usePublishVote, usePublishCommentEdit
 createAccount, deleteAccount, deleteComment, setAccount, setActiveAccount, setAccountsOrder, importAccount, exportAccount, deleteCommunity, 
 // states
 useClientsStates, useCommunitiesStates, 
-// plebbit-rpc
-usePlebbitRpcSettings, 
+// pkc-rpc
+usePkcRpcSettings, 
 // chain
-getEthWalletFromPlebbitPrivateKey, getSolWalletFromPlebbitPrivateKey, getEthPrivateKeyFromPlebbitPrivateKey, getSolPrivateKeyFromPlebbitPrivateKey, validateEthWallet, validateSolWallet, 
+getEthWalletFromPkcPrivateKey, getSolWalletFromPkcPrivateKey, getEthPrivateKeyFromPkcPrivateKey, getSolPrivateKeyFromPkcPrivateKey, validateEthWallet, validateSolWallet, 
 // utils
-setPlebbitJs, restorePlebbitJs, deleteDatabases, deleteCaches, };
+setPkcJs, restorePkcJs, deleteDatabases, deleteCaches, };
 // IMPORTANT: should be the same as 'export {}'
 const hooks = {
     // accounts
@@ -122,18 +122,18 @@ const hooks = {
     // states
     useClientsStates,
     useCommunitiesStates,
-    // plebbit-rpc
-    usePlebbitRpcSettings,
+    // pkc-rpc
+    usePkcRpcSettings,
     // chain
-    getEthWalletFromPlebbitPrivateKey,
-    getSolWalletFromPlebbitPrivateKey,
-    getEthPrivateKeyFromPlebbitPrivateKey,
-    getSolPrivateKeyFromPlebbitPrivateKey,
+    getEthWalletFromPkcPrivateKey,
+    getSolWalletFromPkcPrivateKey,
+    getEthPrivateKeyFromPkcPrivateKey,
+    getSolPrivateKeyFromPkcPrivateKey,
     validateEthWallet,
     validateSolWallet,
     // utils
-    setPlebbitJs,
-    restorePlebbitJs,
+    setPkcJs,
+    restorePkcJs,
     deleteDatabases,
     deleteCaches,
 };

@@ -1,4 +1,4 @@
-// script to start IPFS and plebbit-js for testing
+// script to start IPFS and pkc-js for testing
 
 import { exec, execSync } from "child_process";
 import { directory as getTmpFolderPath } from "tempy";
@@ -12,7 +12,7 @@ const startIpfs = ({ apiPort, gatewayPort, swarmPort, args = "" } = {}) => {
   assert.equal(typeof swarmPort, "number");
 
   const ipfsDataPath = getTmpFolderPath();
-  const plebbitDataPath = getTmpFolderPath();
+  const pkcDataPath = getTmpFolderPath();
   // init ipfs binary
   try {
     execSync(`IPFS_PATH="${ipfsDataPath}" "${ipfsPath}" init`, { stdio: "inherit" });

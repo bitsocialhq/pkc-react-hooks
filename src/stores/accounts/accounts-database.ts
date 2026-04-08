@@ -1,4 +1,4 @@
-import PlebbitJs from "../../lib/plebbit-js";
+import PkcJs from "../../lib/pkc-js";
 import validator from "../../lib/validator";
 import chain from "../../lib/chain";
 import assert from "assert";
@@ -18,13 +18,13 @@ import {
   AccountEditsSummary,
 } from "../../types";
 import utils from "../../lib/utils";
-import { getDefaultPlebbitOptions, overwritePlebbitOptions } from "./account-generator";
+import { getDefaultPkcOptions, overwritePkcOptions } from "./account-generator";
 import { getAccountsEditsSummary, sanitizeStoredAccountComment } from "./utils";
 import { normalizeOptionsForPkcClient, withProtocolAliases } from "../../lib/pkc-compat";
 import Logger from "@pkc/pkc-logger";
 const log = Logger("bitsocial-react-hooks:accounts:stores");
-// Storage keeps the legacy namespace so existing installs reuse the same IndexedDB data.
-const accountsDatabaseNamespace = "plebbitReactHooks";
+// Storage keeps the existing namespace so current installs reuse the same IndexedDB data.
+const accountsDatabaseNamespace = "bitsocialReactHooks";
 const getAccountsDatabaseName = (databaseName: string) =>
   `${accountsDatabaseNamespace}-${databaseName}`;
 const getPerAccountDatabaseName = (databaseName: string, accountId: string) =>
@@ -107,14 +107,14 @@ const getAccounts = async (accountIds: string[]) => {
     assert(accountsArray[i], `accountId '${accountId}' not found in database`);
     accounts[accountId] = await migrateAccount(accountsArray[i]);
     // protocol options aren't saved to database if they are default
-    if (!accounts[accountId].pkcOptions && !accounts[accountId].plebbitOptions) {
-      accounts[accountId].pkcOptions = getDefaultPlebbitOptions();
+    if (!accounts[accountId].pkcOptions && !accounts[accountId].pkcOptions) {
+      accounts[accountId].pkcOptions = getDefaultPkcOptions();
     }
     const protocolOptions = {
-      ...(accounts[accountId].pkcOptions || accounts[accountId].plebbitOptions),
-      ...overwritePlebbitOptions,
+      ...(accounts[accountId].pkcOptions || accounts[accountId].pkcOptions),
+      ...overwritePkcOptions,
     };
-    const pkc = await PlebbitJs.PKC(normalizeOptionsForPkcClient(protocolOptions));
+    const pkc = await PkcJs.PKC(normalizeOptionsForPkcClient(protocolOptions));
     // handle errors or error events are uncaught
     // no need to log them because pkc-js already logs them
     pkc.on("error", (error: any) =>
@@ -127,11 +127,11 @@ const getAccounts = async (accountIds: string[]) => {
 
 const accountVersion = 4;
 const migrateAccount = async (account: any) => {
-  if (account?.pkcOptions && !account?.plebbitOptions) {
-    account.plebbitOptions = account.pkcOptions;
+  if (account?.pkcOptions && !account?.pkcOptions) {
+    account.pkcOptions = account.pkcOptions;
   }
-  if (account?.plebbitOptions && !account?.pkcOptions) {
-    account.pkcOptions = account.plebbitOptions;
+  if (account?.pkcOptions && !account?.pkcOptions) {
+    account.pkcOptions = account.pkcOptions;
   }
 
   let version = account.version || 1;
@@ -139,14 +139,13 @@ const migrateAccount = async (account: any) => {
   // version 2
   if (version === 1) {
     version++;
-    if (account.plebbitOptions?.ipfsHttpClientsOptions) {
-      account.plebbitOptions.kuboRpcClientsOptions = account.plebbitOptions.ipfsHttpClientsOptions;
-      delete account.plebbitOptions.ipfsHttpClientsOptions;
+    if (account.pkcOptions?.ipfsHttpClientsOptions) {
+      account.pkcOptions.kuboRpcClientsOptions = account.pkcOptions.ipfsHttpClientsOptions;
+      delete account.pkcOptions.ipfsHttpClientsOptions;
     }
-    if (account.plebbitOptions?.pubsubHttpClientsOptions) {
-      account.plebbitOptions.pubsubKuboRpcClientsOptions =
-        account.plebbitOptions.pubsubHttpClientsOptions;
-      delete account.plebbitOptions.pubsubHttpClientsOptions;
+    if (account.pkcOptions?.pubsubHttpClientsOptions) {
+      account.pkcOptions.pubsubKuboRpcClientsOptions = account.pkcOptions.pubsubHttpClientsOptions;
+      delete account.pkcOptions.pubsubHttpClientsOptions;
     }
   }
 
@@ -157,7 +156,7 @@ const migrateAccount = async (account: any) => {
       account.author.wallets = {};
     }
     if (!account.author.wallets.eth) {
-      account.author.wallets.eth = await chain.getEthWalletFromPlebbitPrivateKey(
+      account.author.wallets.eth = await chain.getEthWalletFromPkcPrivateKey(
         account.signer.privateKey,
         account.address,
       );
@@ -168,7 +167,7 @@ const migrateAccount = async (account: any) => {
     version++;
     // in version 3, wallets had timestamps in ms, should be seconds
     if (account.author?.wallets?.eth?.timestamp > 1e12) {
-      account.author.wallets.eth = await chain.getEthWalletFromPlebbitPrivateKey(
+      account.author.wallets.eth = await chain.getEthWalletFromPkcPrivateKey(
         account.signer.privateKey,
         account.address,
       );
@@ -275,20 +274,16 @@ const addAccount = async (account: Account) => {
   const accountToPutInDatabase: any = {
     ...account,
     pkc: undefined,
-    plebbit: undefined,
   };
-  const protocolOptions =
-    accountToPutInDatabase.pkcOptions || accountToPutInDatabase.plebbitOptions;
+  const protocolOptions = accountToPutInDatabase.pkcOptions;
   accountToPutInDatabase.pkcOptions = protocolOptions;
-  accountToPutInDatabase.plebbitOptions = protocolOptions;
   // don't save default protocol options in database in case they change
-  if (JSON.stringify(protocolOptions) === JSON.stringify(getDefaultPlebbitOptions())) {
+  if (JSON.stringify(protocolOptions) === JSON.stringify(getDefaultPkcOptions())) {
     delete accountToPutInDatabase.pkcOptions;
-    delete accountToPutInDatabase.plebbitOptions;
   }
   // make sure accountToPutInDatabase protocol options are valid
   if (protocolOptions) {
-    const pkc = await PlebbitJs.PKC(normalizeOptionsForPkcClient(protocolOptions));
+    const pkc = await PkcJs.PKC(normalizeOptionsForPkcClient(protocolOptions));
     pkc.on("error", () => {});
     void pkc.destroy?.(); // gc; errors intentionally unhandled to avoid uncounted callback
   }
@@ -657,7 +652,7 @@ const getAccountEditsDatabase = (accountId: string) => {
 };
 
 const getAccountEditTarget = (edit: AccountEdit) =>
-  edit?.commentCid || edit?.communityAddress || edit?.subplebbitAddress;
+  edit?.commentCid || edit?.communityAddress || edit?.communityAddress;
 
 const persistAccountEditsIndexes = async (accountId: string, edits: AccountEdit[]) => {
   const accountEditsDatabase = getAccountEditsDatabase(accountId);

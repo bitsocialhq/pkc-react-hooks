@@ -2,12 +2,12 @@ import { vi } from "vitest";
 import testUtils from "../../lib/test-utils";
 import accountsStore, { resetAccountsStore, resetAccountsDatabaseAndStore } from "./accounts-store";
 import accountsDatabase from "./accounts-database";
-import { setPlebbitJs } from "../../lib/plebbit-js";
-import PlebbitJsMock from "../../lib/plebbit-js/plebbit-js-mock";
+import { setPkcJs } from "../../lib/pkc-js";
+import PkcJsMock from "../../lib/pkc-js/pkc-js-mock";
 
 describe("accounts-store", () => {
   beforeAll(async () => {
-    setPlebbitJs(PlebbitJsMock);
+    setPkcJs(PkcJsMock);
     await testUtils.resetDatabasesAndStores();
     testUtils.silenceReactWarnings();
   });
@@ -17,18 +17,18 @@ describe("accounts-store", () => {
   });
 
   describe("init and reset", () => {
-    test("resetAccountsStore waits for init when PLEBBIT_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZING is set", async () => {
+    test("resetAccountsStore waits for init when BITSOCIAL_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZING is set", async () => {
       // @ts-ignore
-      window.PLEBBIT_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZING = true;
+      window.BITSOCIAL_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZING = true;
 
       const resetPromise = resetAccountsStore();
 
       await new Promise((r) => setTimeout(r, 50));
       // @ts-ignore
-      expect(window.PLEBBIT_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZING).toBe(true);
+      expect(window.BITSOCIAL_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZING).toBe(true);
 
       // @ts-ignore
-      delete window.PLEBBIT_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZING;
+      delete window.BITSOCIAL_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZING;
 
       await resetPromise;
       expect(
@@ -38,13 +38,13 @@ describe("accounts-store", () => {
 
     test("resetAccountsDatabaseAndStore waits for init when initializing", async () => {
       // @ts-ignore
-      window.PLEBBIT_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZING = true;
+      window.BITSOCIAL_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZING = true;
 
       const resetPromise = resetAccountsDatabaseAndStore();
 
       await new Promise((r) => setTimeout(r, 50));
       // @ts-ignore
-      delete window.PLEBBIT_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZING;
+      delete window.BITSOCIAL_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZING;
 
       await resetPromise;
       expect(accountsStore.getState().accountIds?.length).toBeGreaterThan(0);
@@ -120,11 +120,11 @@ describe("accounts-store", () => {
   });
 
   describe("init edge cases", () => {
-    test("IIFE returns early when PLEBBIT_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZED_ONCE is set", async () => {
+    test("IIFE returns early when BITSOCIAL_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZED_ONCE is set", async () => {
       // Flag is set from first init; reset modules and re-import to exercise early-return branch
       vi.resetModules();
       // @ts-ignore
-      expect(window.PLEBBIT_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZED_ONCE).toBe(true);
+      expect(window.BITSOCIAL_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZED_ONCE).toBe(true);
 
       const mod = await import("./accounts-store");
       const freshStore = mod.default;

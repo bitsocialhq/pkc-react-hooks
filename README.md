@@ -178,7 +178,7 @@ useCommunitiesStates({communityAddresses: string[]}): {states, peers}
 #### RPC Hooks
 
 ```
-usePkcRpcSettings(): {pkcRpcSettings: {pkcOptions, challenges}, setPkcRpcSettings: Function} // legacy usePlebbitRpcSettings aliases still work
+usePkcRpcSettings(): {pkcRpcSettings: {pkcOptions, challenges}, setPkcRpcSettings: Function}
 ```
 
 #### Actions with no hooks implementations yet
@@ -198,7 +198,7 @@ deleteComment(commentCidOrAccountCommentIndex: string | number, accountName?: st
 #### Utility functions
 
 ```
-setPkcJs(PKC) // swap the underlying protocol client implementation, e.g. for mocks or Electron; legacy setPlebbitJs alias still works
+setPkcJs(PKC) // swap the underlying protocol client implementation, e.g. for mocks or Electron
 deleteDatabases() // delete all databases, including all caches and accounts data
 deleteCaches() // delete the cached comments, cached communities and cached pages only, no accounts data
 ```
@@ -1196,7 +1196,7 @@ console.log(editedComment.editedComment.commentModeration?.removed);
 console.log(editedComment.state); // 'unedited' | 'succeeded' | 'pending' | 'failed'
 ```
 
-Moderation fields are mirrored on both the legacy top-level keys like `comment.removed` and the nested `comment.commentModeration.removed` shape.
+Moderation fields are mirrored on both the top-level keys like `comment.removed` and the nested `comment.commentModeration.removed` shape.
 
 #### List all comment and community edits the account has performed
 

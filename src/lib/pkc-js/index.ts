@@ -1,6 +1,6 @@
 // NOTE: don't import pkc-js directly to be able to replace the implementation
 
-import PlebbitJsMockContent from "./plebbit-js-mock-content";
+import PkcJsMockContent from "./pkc-js-mock-content";
 import Logger from "@pkc/pkc-logger";
 import assert from "assert";
 const log = Logger("bitsocial-react-hooks:pkc-js");
@@ -52,7 +52,6 @@ let defaultPkc = createLazyDefaultPkc();
 
 const protocolClient: any = {
   PKC: defaultPkc,
-  Plebbit: defaultPkc,
 };
 
 /**
@@ -64,28 +63,19 @@ const protocolClient: any = {
 export function setPkcJs(_PKC: any) {
   assert(typeof _PKC === "function", `setPkcJs invalid PKC argument '${_PKC}' not a function`);
   protocolClient.PKC = _PKC;
-  protocolClient.Plebbit = _PKC;
   log("setPkcJs", _PKC?.name);
 }
-
-export const setPlebbitJs = setPkcJs;
 
 export function restorePkcJs() {
   defaultPkc = createLazyDefaultPkc();
   protocolClient.PKC = defaultPkc;
-  protocolClient.Plebbit = defaultPkc;
   log("restorePkcJs");
 }
 
-export const restorePlebbitJs = restorePkcJs;
-
 try {
   // mock content for front-end dev with this env var
-  if (
-    process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT ||
-    process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT
-  ) {
-    setPlebbitJs(PlebbitJsMockContent);
+  if (process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT) {
+    setPkcJs(PkcJsMockContent);
   }
 } catch (e) {}
 

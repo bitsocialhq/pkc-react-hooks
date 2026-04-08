@@ -1,5 +1,5 @@
 if (typeof window !== "undefined") {
-  // inject env var e.g. DEBUG=plebbit*
+  // inject env var e.g. DEBUG=pkc*
   if (localStorageDebug) {
     window.localStorage.setItem("debug", localStorageDebug);
   }

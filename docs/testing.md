@@ -6,7 +6,7 @@
 
 #### Unit tests
 
-> Unit tests use jest and jsom and are placed next to the file they are testing, e.g. accounts.ts and accounts.test.ts. They also use a mock of plebbit-js because it doesn't work in jsdom.
+> Unit tests use jest and jsom and are placed next to the file they are testing, e.g. accounts.ts and accounts.test.ts. They also use a mock of pkc-js because it doesn't work in jsdom.
 
 - `yarn test`
 
@@ -22,7 +22,7 @@ DEBUG=bitsocial-react-hooks:hooks:accounts DEBUG_DEPTH=6 yarn test feeds
 
 #### Preapre for E2E tests
 
-> E2E tests use karma and mocha and are placed in /test/browser (for mocked plebbit-js) and /test/e2e (for real plebbit-js).
+> E2E tests use karma and mocha and are placed in /test/browser (for mocked pkc-js) and /test/e2e (for real pkc-js).
 
 - Create a `.env` file and add `CHROME_BIN=/usr/bin/chromium` (replace the path with your chrome path)
 - In a new terminal run `yarn build:watch` to compile typescript

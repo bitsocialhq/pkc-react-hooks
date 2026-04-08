@@ -14,7 +14,7 @@ import { useMemo, useState, useEffect } from "react";
 // @ts-ignore
 import memoize from "memoizee";
 import utils from "../../lib/utils";
-import PlebbitJs from "../../lib/plebbit-js";
+import PkcJs from "../../lib/pkc-js";
 import Logger from "@pkc/pkc-logger";
 const log = Logger("bitsocial-react-hooks:accounts:hooks");
 
@@ -167,8 +167,7 @@ export const useAccountWithCalculatedProperties = (
     accountCommentsReplies,
   );
   const shortAddress =
-    account?.author?.address &&
-    PlebbitJs.Plebbit.getShortAddress({ address: account?.author?.address });
+    account?.author?.address && PkcJs.PKC.getShortAddress({ address: account?.author?.address });
   return useMemo(() => {
     if (!account) {
       return;
@@ -284,7 +283,7 @@ const useAccountsAuthorShortAddresses = (accounts?: Accounts) => {
       for (const accountId in accounts || {}) {
         const address: string | undefined = accounts?.[accountId]?.author?.address;
         if (!address) continue;
-        newShortAddresses[accountId] = PlebbitJs.Plebbit.getShortAddress({ address });
+        newShortAddresses[accountId] = PkcJs.PKC.getShortAddress({ address });
         if (shortAddresses[accountId] !== newShortAddresses[accountId]) {
           shouldUpdate = true;
         }

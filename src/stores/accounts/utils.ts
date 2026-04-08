@@ -17,7 +17,7 @@ const log = Logger("bitsocial-react-hooks:accounts:stores");
 import commentsStore from "../comments";
 import repliesPagesStore from "../replies-pages";
 import communitiesPagesStore from "../communities-pages";
-import PlebbitJs from "../../lib/plebbit-js";
+import PkcJs from "../../lib/pkc-js";
 
 const getAuthorAddressRolesFromCommunities = (authorAddress: string, communities: Communities) => {
   const roles: { [communityAddress: string]: Role } = {};
@@ -127,7 +127,6 @@ const compactStoredOriginalComment = (originalComment: any) => {
     parentCid: originalComment.parentCid,
     postCid: originalComment.postCid,
     communityAddress: originalComment.communityAddress,
-    subplebbitAddress: originalComment.subplebbitAddress,
     timestamp: originalComment.timestamp,
     author: compactStoredCommentAuthor(originalComment.author),
   });
@@ -238,7 +237,7 @@ const accountEditNonPropertyNames = new Set([
   "clientId",
   "commentCid",
   "communityAddress",
-  "subplebbitAddress",
+  "communityAddress",
   "timestamp",
 ]);
 
@@ -248,12 +247,12 @@ const normalizeAccountEditForSummary = (accountEdit: AccountEdit) => {
     Object.assign(normalizedAccountEdit, normalizedAccountEdit.commentModeration);
     delete normalizedAccountEdit.commentModeration;
   }
-  const communityEdit = normalizedAccountEdit.communityEdit ?? normalizedAccountEdit.subplebbitEdit;
+  const communityEdit = normalizedAccountEdit.communityEdit ?? normalizedAccountEdit.communityEdit;
   if (communityEdit && typeof communityEdit === "object") {
     Object.assign(normalizedAccountEdit, communityEdit);
   }
   delete normalizedAccountEdit.communityEdit;
-  delete normalizedAccountEdit.subplebbitEdit;
+  delete normalizedAccountEdit.communityEdit;
   return normalizedAccountEdit;
 };
 
@@ -480,13 +479,13 @@ export const getAccountCommentDepth = (comment: Comment) => {
 export const addShortAddressesToAccountComment = (comment: Comment) => {
   comment = { ...comment };
   try {
-    comment.shortCommunityAddress = PlebbitJs.Plebbit.getShortAddress({
+    comment.shortCommunityAddress = PkcJs.PKC.getShortAddress({
       address: comment.communityAddress,
     });
   } catch (e) {}
   try {
     comment.author = { ...comment.author };
-    comment.author.shortAddress = PlebbitJs.Plebbit.getShortAddress({
+    comment.author.shortAddress = PkcJs.PKC.getShortAddress({
       address: comment.author.address,
     });
   } catch (e) {}

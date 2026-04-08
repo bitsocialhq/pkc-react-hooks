@@ -33,7 +33,7 @@ If uncertain, ask the developer before adding an entry.
 - **Date:** 2026-03-04
 - **Observed by:** Codex
 - **Context:** reviewing unexpected untracked PNG files after browser test runs
-- **What was surprising:** Vitest browser tests can generate screenshot artifacts under `test/browser-plebbit-js-mock/__screenshots__/`, but the repo did not ignore them.
+- **What was surprising:** Vitest browser tests can generate screenshot artifacts under `test/browser-pkc-js-mock/__screenshots__/`, but the repo did not ignore them.
 - **Impact:** agents may mistake generated screenshots for intended source files or leave noisy untracked changes behind.
 - **Mitigation:** treat `test/**/__screenshots__/` as generated output and keep it gitignored.
 - **Status:** confirmed
@@ -42,7 +42,7 @@ If uncertain, ask the developer before adding an entry.
 
 - **Date:** 2026-03-05
 - **Observed by:** agent
-- **Context:** replies-pages and subplebbits-pages stores; indexing comments by `updatedAt` only
+- **Context:** replies-pages and communities-pages stores; indexing comments by `updatedAt` only
 - **What was surprising:** indexing page comments solely by `updatedAt` can drop pending comments that have not yet received an `updatedAt` value.
 - **Impact:** pending comments may be omitted from page results or overwritten.
 - **Mitigation:** use missing-or-fresher logic with timestamp fallback when merging/indexing page comments.

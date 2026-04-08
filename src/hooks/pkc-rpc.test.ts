@@ -1,7 +1,7 @@
 import { act } from "@testing-library/react";
 import testUtils, { renderHook } from "../lib/test-utils";
-import { usePlebbitRpcSettings, setPlebbitJs } from "..";
-import PlebbitJsMock from "../lib/plebbit-js/plebbit-js-mock";
+import { usePkcRpcSettings, setPkcJs } from "..";
+import PkcJsMock from "../lib/pkc-js/pkc-js-mock";
 import accountsStore from "../stores/accounts";
 import * as accountsHooks from "./accounts";
 
@@ -10,10 +10,10 @@ vi.mock("./accounts", async (importOriginal) => {
   return { ...actual };
 });
 
-describe("plebbit-rpc", () => {
+describe("pkc-rpc", () => {
   beforeAll(async () => {
-    // set plebbit-js mock and reset dbs
-    setPlebbitJs(PlebbitJsMock);
+    // set pkc-js mock and reset dbs
+    setPkcJs(PkcJsMock);
     await testUtils.resetDatabasesAndStores();
 
     testUtils.silenceReactWarnings();
@@ -25,84 +25,80 @@ describe("plebbit-rpc", () => {
     await testUtils.resetDatabasesAndStores();
   });
 
-  test("usePlebbitRpcSettings with no options (branch 31)", async () => {
-    const rendered = renderHook<any, any>(() => usePlebbitRpcSettings(undefined));
+  test("usePkcRpcSettings with no options (branch 31)", async () => {
+    const rendered = renderHook<any, any>(() => usePkcRpcSettings(undefined));
     await act(async () => {});
     expect(rendered.result.current.state).toBeDefined();
   });
 
-  test("usePlebbitRpcSettings setPlebbitRpcSettings with account.plebbit undefined asserts (branch 66)", async () => {
-    const accountNoPlebbit = { id: "test-id", plebbit: undefined };
-    vi.spyOn(accountsHooks, "useAccount").mockReturnValue(accountNoPlebbit as any);
-    const rendered = renderHook<any, any>(() => usePlebbitRpcSettings());
+  test("usePkcRpcSettings setPkcRpcSettings with account.pkc undefined asserts (branch 66)", async () => {
+    const accountNoPkc = { id: "test-id", pkc: undefined };
+    vi.spyOn(accountsHooks, "useAccount").mockReturnValue(accountNoPkc as any);
+    const rendered = renderHook<any, any>(() => usePkcRpcSettings());
     await act(async () => {});
-    await expect(rendered.result.current.setPlebbitRpcSettings({ challenges: {} })).rejects.toThrow(
-      /no account.plebbit.clients.plebbitRpcClients/,
+    await expect(rendered.result.current.setPkcRpcSettings({ challenges: {} })).rejects.toThrow(
+      /no account.pkc.clients.pkcRpcClients/,
     );
     vi.mocked(accountsHooks.useAccount).mockRestore();
   });
 
-  test("usePlebbitRpcSettings with explicit options (branch 31)", async () => {
-    const rendered = renderHook<any, any>(() =>
-      usePlebbitRpcSettings({ accountName: "Account 1" }),
-    );
+  test("usePkcRpcSettings with explicit options (branch 31)", async () => {
+    const rendered = renderHook<any, any>(() => usePkcRpcSettings({ accountName: "Account 1" }));
     const waitFor = testUtils.createWaitFor(rendered);
     await waitFor(() => rendered.result.current.state === "connected");
-    expect(rendered.result.current.plebbitRpcSettings).toBeDefined();
+    expect(rendered.result.current.pkcRpcSettings).toBeDefined();
   });
 
-  test("usePlebbitRpcSettings", async () => {
+  test("usePkcRpcSettings", async () => {
     // on first render, the account is undefined because it's not yet loaded from database
-    const rendered = renderHook<any, any>(() => usePlebbitRpcSettings());
+    const rendered = renderHook<any, any>(() => usePkcRpcSettings());
     const waitFor = testUtils.createWaitFor(rendered);
-    expect(rendered.result.current.plebbitRpcSettings).toBe(undefined);
+    expect(rendered.result.current.pkcRpcSettings).toBe(undefined);
 
     await waitFor(() => rendered.result.current.state !== "initializing");
     expect(["connecting", "connected"]).toContain(rendered.result.current.state);
 
-    await waitFor(() => !!rendered.result.current.plebbitRpcSettings);
-    expect(rendered.result.current.plebbitRpcSettings.challenges).not.toBe(undefined);
+    await waitFor(() => !!rendered.result.current.pkcRpcSettings);
+    expect(rendered.result.current.pkcRpcSettings.challenges).not.toBe(undefined);
     expect(rendered.result.current.state).toBe("connected");
 
     await act(async () => {
-      await rendered.result.current.setPlebbitRpcSettings({
+      await rendered.result.current.setPkcRpcSettings({
         challenges: {
           "some-challenge": {},
         },
       });
     });
 
-    await waitFor(() => !!rendered.result.current.plebbitRpcSettings.challenges["some-challenge"]);
-    expect(rendered.result.current.plebbitRpcSettings.challenges["some-challenge"]).not.toBe(
-      undefined,
-    );
+    await waitFor(() => !!rendered.result.current.pkcRpcSettings.challenges["some-challenge"]);
+    expect(rendered.result.current.pkcRpcSettings.challenges["some-challenge"]).not.toBe(undefined);
     expect(rendered.result.current.state).toBe("succeeded");
   });
 
-  test("usePlebbitRpcSettings setPlebbitRpcSettings before init asserts", async () => {
+  test("usePkcRpcSettings setPkcRpcSettings before init asserts", async () => {
     const rendered = renderHook<any, any>(() =>
-      usePlebbitRpcSettings({ accountName: "nonexistent-account-xyz" }),
+      usePkcRpcSettings({ accountName: "nonexistent-account-xyz" }),
     );
     await new Promise((r) => setTimeout(r, 50));
-    await expect(rendered.result.current.setPlebbitRpcSettings({ challenges: {} })).rejects.toThrow(
+    await expect(rendered.result.current.setPkcRpcSettings({ challenges: {} })).rejects.toThrow(
       /before initialized/,
     );
   });
 
-  test("usePlebbitRpcSettings no rpcClient returns early (lines 33-35)", async () => {
+  test("usePkcRpcSettings no rpcClient returns early (lines 33-35)", async () => {
     const accountWithNoRpc = {
       id: "test-id",
-      plebbit: { clients: { plebbitRpcClients: {} } },
+      pkc: { clients: { pkcRpcClients: {} } },
     };
     vi.spyOn(accountsHooks, "useAccount").mockReturnValue(accountWithNoRpc as any);
-    const rendered = renderHook<any, any>(() => usePlebbitRpcSettings());
+    const rendered = renderHook<any, any>(() => usePkcRpcSettings());
     await act(async () => {});
-    expect(rendered.result.current.plebbitRpcSettings).toBe(undefined);
+    expect(rendered.result.current.pkcRpcSettings).toBe(undefined);
     expect(rendered.result.current.state).toBe("initializing");
     vi.mocked(accountsHooks.useAccount).mockRestore();
   });
 
-  test("usePlebbitRpcSettings rpcClient with state null skips setState (branch 36)", async () => {
+  test("usePkcRpcSettings rpcClient with state null skips setState (branch 36)", async () => {
     const rpcClient = {
       settings: { challenges: {} },
       state: null,
@@ -111,15 +107,15 @@ describe("plebbit-rpc", () => {
     };
     vi.spyOn(accountsHooks, "useAccount").mockReturnValue({
       id: "test-id",
-      plebbit: { clients: { plebbitRpcClients: { "http://x": rpcClient } } },
+      pkc: { clients: { pkcRpcClients: { "http://x": rpcClient } } },
     } as any);
-    const rendered = renderHook<any, any>(() => usePlebbitRpcSettings());
+    const rendered = renderHook<any, any>(() => usePkcRpcSettings());
     await act(async () => {});
     expect(rendered.result.current.state).toBe("initializing");
     vi.mocked(accountsHooks.useAccount).mockRestore();
   });
 
-  test("usePlebbitRpcSettings rpcClient.settings and rpcClient.state hydration (lines 38-43)", async () => {
+  test("usePkcRpcSettings rpcClient.settings and rpcClient.state hydration (lines 38-43)", async () => {
     const rpcClient = {
       settings: { challenges: { "pre-hydrated": {} } },
       state: "connected",
@@ -128,55 +124,55 @@ describe("plebbit-rpc", () => {
     };
     const accountWithRpc = {
       id: "test-id",
-      plebbit: { clients: { plebbitRpcClients: { "http://x": rpcClient } } },
+      pkc: { clients: { pkcRpcClients: { "http://x": rpcClient } } },
     };
     vi.spyOn(accountsHooks, "useAccount").mockReturnValue(accountWithRpc as any);
-    const rendered = renderHook<any, any>(() => usePlebbitRpcSettings());
+    const rendered = renderHook<any, any>(() => usePkcRpcSettings());
     await act(async () => {});
-    expect(rendered.result.current.plebbitRpcSettings?.challenges?.["pre-hydrated"]).toBeDefined();
+    expect(rendered.result.current.pkcRpcSettings?.challenges?.["pre-hydrated"]).toBeDefined();
     expect(rendered.result.current.state).toBe("connected");
     vi.mocked(accountsHooks.useAccount).mockRestore();
   });
 
-  test("usePlebbitRpcSettings no account returns early", async () => {
+  test("usePkcRpcSettings no account returns early", async () => {
     const rendered = renderHook<any, any>(() =>
-      usePlebbitRpcSettings({ accountName: "nonexistent-account-xyz" }),
+      usePkcRpcSettings({ accountName: "nonexistent-account-xyz" }),
     );
     await new Promise((r) => setTimeout(r, 50));
-    expect(rendered.result.current.plebbitRpcSettings).toBe(undefined);
+    expect(rendered.result.current.pkcRpcSettings).toBe(undefined);
     expect(rendered.result.current.state).toBe("initializing");
   });
 
-  test("usePlebbitRpcSettings effect returns early when account is undefined (branch 33)", async () => {
+  test("usePkcRpcSettings effect returns early when account is undefined (branch 33)", async () => {
     vi.spyOn(accountsHooks, "useAccount").mockReturnValue(undefined as any);
-    const rendered = renderHook<any, any>(() => usePlebbitRpcSettings());
+    const rendered = renderHook<any, any>(() => usePkcRpcSettings());
     await act(async () => {});
-    expect(rendered.result.current.plebbitRpcSettings).toBe(undefined);
+    expect(rendered.result.current.pkcRpcSettings).toBe(undefined);
     expect(rendered.result.current.state).toBe("initializing");
     vi.mocked(accountsHooks.useAccount).mockRestore();
   });
 
-  test("usePlebbitRpcSettings initial rpcClient.state hydration (stmt 40)", async () => {
-    const rendered = renderHook<any, any>(() => usePlebbitRpcSettings());
+  test("usePkcRpcSettings initial rpcClient.state hydration (stmt 40)", async () => {
+    const rendered = renderHook<any, any>(() => usePkcRpcSettings());
     const waitFor = testUtils.createWaitFor(rendered);
     await waitFor(() => rendered.result.current.state === "connected");
     expect(rendered.result.current.state).toBe("connected");
-    expect(rendered.result.current.plebbitRpcSettings).toBeDefined();
+    expect(rendered.result.current.pkcRpcSettings).toBeDefined();
   });
 
-  test("usePlebbitRpcSettings setSettings error path", async () => {
-    const rendered = renderHook<any, any>(() => usePlebbitRpcSettings());
+  test("usePkcRpcSettings setSettings error path", async () => {
+    const rendered = renderHook<any, any>(() => usePkcRpcSettings());
     const waitFor = testUtils.createWaitFor(rendered);
     await waitFor(() => rendered.result.current.state === "connected");
     const { accounts, activeAccountId } = accountsStore.getState();
     const account = accounts[activeAccountId || ""];
-    const rpc = Object.values(account?.plebbit?.clients?.plebbitRpcClients || {})[0] as any;
+    const rpc = Object.values(account?.pkc?.clients?.pkcRpcClients || {})[0] as any;
     expect(rpc).toBeDefined();
     const origSet = rpc.setSettings;
     try {
       rpc.setSettings = () => Promise.reject(new Error("setSettings failed"));
       await act(async () => {
-        await rendered.result.current.setPlebbitRpcSettings({ challenges: {} });
+        await rendered.result.current.setPkcRpcSettings({ challenges: {} });
       });
       await waitFor(() => rendered.result.current.state === "failed");
       expect(rendered.result.current.error?.message).toBe("setSettings failed");
@@ -185,66 +181,66 @@ describe("plebbit-rpc", () => {
     }
   });
 
-  test("usePlebbitRpcSettings rpcClient error event triggers onRpcError", async () => {
-    const rendered = renderHook<any, any>(() => usePlebbitRpcSettings());
+  test("usePkcRpcSettings rpcClient error event triggers onRpcError", async () => {
+    const rendered = renderHook<any, any>(() => usePkcRpcSettings());
     const waitFor = testUtils.createWaitFor(rendered);
     await waitFor(() => rendered.result.current.state === "connected");
     const { accounts, activeAccountId } = accountsStore.getState();
     const account = accounts[activeAccountId || ""];
-    const rpc = Object.values(account?.plebbit?.clients?.plebbitRpcClients || {})[0] as any;
+    const rpc = Object.values(account?.pkc?.clients?.pkcRpcClients || {})[0] as any;
     expect(rpc).toBeDefined();
     rpc.emit("error", new Error("rpc error event"));
     await waitFor(() => rendered.result.current.error?.message === "rpc error event");
     expect(rendered.result.current.errors.length).toBeGreaterThan(0);
   });
 
-  test("usePlebbitRpcSettings setPlebbitRpcSettings no rpcClient asserts (branch 74)", async () => {
-    const rendered = renderHook<any, any>(() => usePlebbitRpcSettings());
+  test("usePkcRpcSettings setPkcRpcSettings no rpcClient asserts (branch 74)", async () => {
+    const rendered = renderHook<any, any>(() => usePkcRpcSettings());
     const waitFor = testUtils.createWaitFor(rendered);
     await waitFor(() => rendered.result.current.state === "connected");
     const { accounts, activeAccountId } = accountsStore.getState();
     const account = accounts[activeAccountId || ""];
-    const origClients = account?.plebbit?.clients;
-    expect(account?.plebbit).toBeDefined();
+    const origClients = account?.pkc?.clients;
+    expect(account?.pkc).toBeDefined();
     try {
-      (account.plebbit as any).clients = { plebbitRpcClients: {} };
-      await expect(
-        rendered.result.current.setPlebbitRpcSettings({ challenges: {} }),
-      ).rejects.toThrow(/no account.plebbit.clients.plebbitRpcClients/);
+      (account.pkc as any).clients = { pkcRpcClients: {} };
+      await expect(rendered.result.current.setPkcRpcSettings({ challenges: {} })).rejects.toThrow(
+        /no account.pkc.clients.pkcRpcClients/,
+      );
     } finally {
-      if (origClients && account?.plebbit) {
-        (account.plebbit as any).clients = origClients;
+      if (origClients && account?.pkc) {
+        (account.pkc as any).clients = origClients;
       }
     }
   });
 
-  test("usePlebbitRpcSettings setPlebbitRpcSettings invalid arg asserts", async () => {
-    const rendered = renderHook<any, any>(() => usePlebbitRpcSettings());
+  test("usePkcRpcSettings setPkcRpcSettings invalid arg asserts", async () => {
+    const rendered = renderHook<any, any>(() => usePkcRpcSettings());
     const waitFor = testUtils.createWaitFor(rendered);
     await waitFor(() => rendered.result.current.state === "connected");
-    await expect(rendered.result.current.setPlebbitRpcSettings(null as any)).rejects.toThrow(
-      /plebbitRpcSettings argument/,
+    await expect(rendered.result.current.setPkcRpcSettings(null as any)).rejects.toThrow(
+      /pkcRpcSettings argument/,
     );
-    await expect(rendered.result.current.setPlebbitRpcSettings("string" as any)).rejects.toThrow(
-      /plebbitRpcSettings argument/,
+    await expect(rendered.result.current.setPkcRpcSettings("string" as any)).rejects.toThrow(
+      /pkcRpcSettings argument/,
     );
   });
 
-  test("usePlebbitRpcSettings timeout state-restore branch (branch 94)", async () => {
+  test("usePkcRpcSettings timeout state-restore branch (branch 94)", async () => {
     vi.useFakeTimers();
     try {
-      const rendered = renderHook<any, any>(() => usePlebbitRpcSettings());
+      const rendered = renderHook<any, any>(() => usePkcRpcSettings());
       vi.advanceTimersByTime(100);
       await act(async () => {});
       const { accounts, activeAccountId } = accountsStore.getState();
       const account = accounts[activeAccountId || ""];
-      const rpc = Object.values(account?.plebbit?.clients?.plebbitRpcClients || {})[0] as any;
+      const rpc = Object.values(account?.pkc?.clients?.pkcRpcClients || {})[0] as any;
       expect(rpc).toBeDefined();
       rpc.state = "connected";
       rpc.emit("statechange", "connected");
       vi.advanceTimersByTime(50);
       await act(async () => {
-        await rendered.result.current.setPlebbitRpcSettings({ challenges: {} });
+        await rendered.result.current.setPkcRpcSettings({ challenges: {} });
       });
       expect(rendered.result.current.state).toBe("succeeded");
       rpc.state = "connected";

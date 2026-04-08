@@ -6,7 +6,7 @@ import {
   useAuthorComments,
   useAuthorAvatar,
   useResolvedAuthorAddress,
-  setPlebbitJs,
+  setPkcJs,
   useAccount,
   useAuthorAddress,
   setAuthorAvatarsWhitelistedTokenAddresses,
@@ -23,7 +23,7 @@ import {
 import localForageLru from "../../lib/localforage-lru";
 import { ethers } from "ethers";
 import { Nft, Author } from "../../types";
-import PlebbitJsMock, { Plebbit } from "../../lib/plebbit-js/plebbit-js-mock";
+import PkcJsMock, { PKC } from "../../lib/pkc-js/pkc-js-mock";
 
 const avatarNft1 = {
   chainTicker: "eth",
@@ -76,8 +76,8 @@ describe("authors", () => {
   let author: Author;
 
   beforeAll(async () => {
-    // set plebbit-js mock and reset dbs
-    setPlebbitJs(PlebbitJsMock);
+    // set pkc-js mock and reset dbs
+    setPkcJs(PkcJsMock);
     await testUtils.resetDatabasesAndStores();
 
     testUtils.silenceReactWarnings();
@@ -162,8 +162,8 @@ describe("authors", () => {
     });
 
     test("useAuthorAddress extends shortAddress when shorter than crypto name", async () => {
-      const origGetShortAddress = PlebbitJsMock.getShortAddress;
-      PlebbitJsMock.getShortAddress = () => "ab";
+      const origGetShortAddress = PkcJsMock.getShortAddress;
+      PkcJsMock.getShortAddress = () => "ab";
       const cryptoName = "very-long-crypto-name.eth";
       const commentWithCrypto = {
         ...comment,
@@ -173,12 +173,12 @@ describe("authors", () => {
       rendered.rerender({ comment: commentWithCrypto });
       await waitFor(() => rendered.result.current.authorAddress === cryptoName);
       expect(rendered.result.current.shortAuthorAddress.length).toBe(cryptoName.length - 4);
-      PlebbitJsMock.getShortAddress = origGetShortAddress;
+      PkcJsMock.getShortAddress = origGetShortAddress;
     });
 
     test("useAuthorAddress catch path when resolveAuthorAddress rejects", async () => {
-      const origResolve = Plebbit.prototype.resolveAuthorAddress;
-      Plebbit.prototype.resolveAuthorAddress = () => Promise.reject(new Error("resolve failed"));
+      const origResolve = PKC.prototype.resolveAuthorAddress;
+      PKC.prototype.resolveAuthorAddress = () => Promise.reject(new Error("resolve failed"));
       try {
         const cryptoName = "addr-reject-test.eth";
         const commentWithCrypto = {
@@ -190,7 +190,7 @@ describe("authors", () => {
         await new Promise((r) => setTimeout(r, 150));
         // Catch path is covered; Logger may not use console.error
       } finally {
-        Plebbit.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorAddress = origResolve;
       }
     });
 
@@ -200,8 +200,8 @@ describe("authors", () => {
       const signerAddr = comment.author.address;
       let resolveCalls = 0;
       let shouldReject = true;
-      const origResolve = Plebbit.prototype.resolveAuthorAddress;
-      Plebbit.prototype.resolveAuthorAddress = () => {
+      const origResolve = PKC.prototype.resolveAuthorAddress;
+      PKC.prototype.resolveAuthorAddress = () => {
         resolveCalls += 1;
         return shouldReject
           ? Promise.reject(new Error("resolve failed"))
@@ -225,7 +225,7 @@ describe("authors", () => {
         await waitForSecond(() => second.result.current.authorAddress === cryptoName);
         expect(resolveCalls).toBe(2);
       } finally {
-        Plebbit.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorAddress = origResolve;
       }
     });
 
@@ -234,8 +234,8 @@ describe("authors", () => {
       const cryptoName = "first-resolve-293.eth";
       const signerAddr = comment.author.address;
       let resolveCallCount = 0;
-      const origResolve = Plebbit.prototype.resolveAuthorAddress;
-      Plebbit.prototype.resolveAuthorAddress = function (opts: { address: string }) {
+      const origResolve = PKC.prototype.resolveAuthorAddress;
+      PKC.prototype.resolveAuthorAddress = function (opts: { address: string }) {
         resolveCallCount += 1;
         return Promise.resolve(signerAddr);
       };
@@ -249,15 +249,15 @@ describe("authors", () => {
         expect(rendered.result.current.authorAddress).toBe(cryptoName);
         expect(resolveCallCount).toBe(1);
       } finally {
-        Plebbit.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorAddress = origResolve;
       }
     });
 
     test("useAuthorAddress uses cached result on rerender", async () => {
       const cryptoName = "cached-addr.eth";
       const signerAddr = comment.author.address;
-      const origResolve = Plebbit.prototype.resolveAuthorAddress;
-      Plebbit.prototype.resolveAuthorAddress = () => Promise.resolve(signerAddr);
+      const origResolve = PKC.prototype.resolveAuthorAddress;
+      PKC.prototype.resolveAuthorAddress = () => Promise.resolve(signerAddr);
       try {
         const commentWithCrypto = {
           ...comment,
@@ -269,16 +269,16 @@ describe("authors", () => {
         await act(() => {});
         expect(rendered.result.current.authorAddress).toBe(cryptoName);
       } finally {
-        Plebbit.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorAddress = origResolve;
       }
     });
 
     test("useAuthorAddress uses cached result on remount (hits cached path)", async () => {
       const cryptoName = "cached-remount.eth";
       const signerAddr = comment.author.address;
-      const origResolve = Plebbit.prototype.resolveAuthorAddress;
+      const origResolve = PKC.prototype.resolveAuthorAddress;
       let resolveCallCount = 0;
-      Plebbit.prototype.resolveAuthorAddress = () => {
+      PKC.prototype.resolveAuthorAddress = () => {
         resolveCallCount += 1;
         return Promise.resolve(signerAddr);
       };
@@ -297,7 +297,7 @@ describe("authors", () => {
         await waitFor(() => rendered.result.current.authorAddress === cryptoName);
         expect(resolveCallCount).toBe(1);
       } finally {
-        Plebbit.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorAddress = origResolve;
       }
     });
 
@@ -306,8 +306,8 @@ describe("authors", () => {
       const deferredPromise = new Promise<string>((r) => {
         resolveDeferred = r;
       });
-      const origResolve = Plebbit.prototype.resolveAuthorAddress;
-      Plebbit.prototype.resolveAuthorAddress = () => deferredPromise;
+      const origResolve = PKC.prototype.resolveAuthorAddress;
+      PKC.prototype.resolveAuthorAddress = () => deferredPromise;
       try {
         const cryptoName = "deferred-addr.eth";
         const accountComment = { author: { address: cryptoName } };
@@ -318,7 +318,7 @@ describe("authors", () => {
         resolveDeferred!("resolved");
         await waitFor(() => rendered.result.current.authorAddress === cryptoName);
       } finally {
-        Plebbit.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorAddress = origResolve;
       }
     });
   });
@@ -383,7 +383,7 @@ describe("authors", () => {
     test("comment cid from different author", async () => {
       rendered.rerender({ commentCid: "comment cid", authorAddress: "different-author.eth" });
 
-      // expect to fail because plebbit-js mock content doesnt have author address 'different-author.eth'
+      // expect to fail because pkc-js mock content doesnt have author address 'different-author.eth'
       await waitFor(() => rendered.result.current.state === "failed");
       expect(rendered.result.current.state).toBe("failed");
       expect(rendered.result.current.error.message).toBe(
@@ -393,7 +393,7 @@ describe("authors", () => {
 
     test("get multiple pages until no more previous comment", async () => {
       // mock the correct author address on the comment
-      const commentToGet = Plebbit.prototype.commentToGet;
+      const commentToGet = PKC.prototype.commentToGet;
       // the author only has 110 comments
       const authorCommentsCount = 110;
       let previousCommentCount = 0;
@@ -402,7 +402,7 @@ describe("authors", () => {
           return `previous comment cid ${++previousCommentCount}`;
         }
       };
-      Plebbit.prototype.commentToGet = (commentCid) => {
+      PKC.prototype.commentToGet = (commentCid) => {
         // ignore other comments used for testing changing useAuthorsOptions
         if (commentCid?.startsWith("other comment")) {
           return {};
@@ -478,12 +478,12 @@ describe("authors", () => {
       expect(rendered.result.current.hasMore).toBe(false);
 
       // restore mock
-      Plebbit.prototype.commentToGet = commentToGet;
+      PKC.prototype.commentToGet = commentToGet;
     });
 
     test("find more recent lastCommentCid while scrolling", async () => {
       // mock the correct author address on the comment
-      const commentToGet = Plebbit.prototype.commentToGet;
+      const commentToGet = PKC.prototype.commentToGet;
       let previousCommentCount = 0;
       const getAuthorPreviousCommentCid = () => `previous comment cid ${++previousCommentCount}`;
       const getTimestamp = (commentCid?: string) => {
@@ -494,7 +494,7 @@ describe("authors", () => {
         }
         return 1000 - (previousCommentCount + 1);
       };
-      Plebbit.prototype.commentToGet = (commentCid?: string) => ({
+      PKC.prototype.commentToGet = (commentCid?: string) => ({
         timestamp: getTimestamp(commentCid),
         author: {
           address: "author.eth",
@@ -516,17 +516,17 @@ describe("authors", () => {
       expect(rendered.result.current.lastCommentCid).toBe("last comment cid");
 
       // restore mock
-      Plebbit.prototype.commentToGet = commentToGet;
+      PKC.prototype.commentToGet = commentToGet;
     });
 
     test("some author comments have wrong author", async () => {
       // mock the correct author address on the comment
-      const commentToGet = Plebbit.prototype.commentToGet;
+      const commentToGet = PKC.prototype.commentToGet;
       // start giving a wrong author after this amount
       const wrongAuthorAfter = 40;
       let previousCommentCount = 0;
       const getAuthorPreviousCommentCid = () => `previous comment cid ${++previousCommentCount}`;
-      Plebbit.prototype.commentToGet = () => ({
+      PKC.prototype.commentToGet = () => ({
         author: {
           address: previousCommentCount < wrongAuthorAfter ? "author.eth" : "wrong-author.eth",
           previousCommentCid: getAuthorPreviousCommentCid(),
@@ -555,15 +555,15 @@ describe("authors", () => {
       // expect(rendered.result.current.error.message).toBe('comment.author.previousCommentCid comment has different author address from authorAddress')
 
       // restore mock
-      Plebbit.prototype.commentToGet = commentToGet;
+      PKC.prototype.commentToGet = commentToGet;
     });
 
     test("cannot spam load more", async () => {
       // mock the correct author address on the comment
-      const commentToGet = Plebbit.prototype.commentToGet;
+      const commentToGet = PKC.prototype.commentToGet;
       let previousCommentCount = 0;
       const getAuthorPreviousCommentCid = () => `previous comment cid ${++previousCommentCount}`;
-      Plebbit.prototype.commentToGet = () => ({
+      PKC.prototype.commentToGet = () => ({
         author: {
           address: "author.eth",
           previousCommentCid: getAuthorPreviousCommentCid(),
@@ -590,13 +590,13 @@ describe("authors", () => {
       expect(rendered.result.current.hasMore).toBe(true);
 
       // restore mock
-      Plebbit.prototype.commentToGet = commentToGet;
+      PKC.prototype.commentToGet = commentToGet;
     });
 
     test("has no previous comment cid, get only comment cid provided", async () => {
       // mock the correct author address on the comment
-      const commentToGet = Plebbit.prototype.commentToGet;
-      Plebbit.prototype.commentToGet = () => ({
+      const commentToGet = PKC.prototype.commentToGet;
+      PKC.prototype.commentToGet = () => ({
         author: { address: "author.eth", previousCommentCid: undefined },
       });
 
@@ -608,7 +608,7 @@ describe("authors", () => {
       expect(rendered.result.current.hasMore).toBe(false);
 
       // restore mock
-      Plebbit.prototype.commentToGet = commentToGet;
+      PKC.prototype.commentToGet = commentToGet;
     });
   });
 
@@ -644,7 +644,7 @@ describe("authors", () => {
     test("comment cid from different author", async () => {
       rendered.rerender({ commentCid: "comment cid", authorAddress: "different-author.eth" });
 
-      // expect to fail because plebbit-js mock content doesnt have author address 'different-author.eth'
+      // expect to fail because pkc-js mock content doesnt have author address 'different-author.eth'
       await waitFor(() => rendered.result.current.state === "failed");
       expect(rendered.result.current.state).toBe("failed");
       expect(rendered.result.current.error.message).toBe(
@@ -654,8 +654,8 @@ describe("authors", () => {
 
     test("succeeded", async () => {
       // mock the correct author address on the comment
-      const commentToGet = Plebbit.prototype.commentToGet;
-      Plebbit.prototype.commentToGet = () => ({
+      const commentToGet = PKC.prototype.commentToGet;
+      PKC.prototype.commentToGet = () => ({
         author: {
           address: "author.eth",
           displayName: "display name",
@@ -678,7 +678,7 @@ describe("authors", () => {
       expect(rendered.result.current.state).toBe("succeeded");
 
       // restore mock
-      Plebbit.prototype.commentToGet = commentToGet;
+      PKC.prototype.commentToGet = commentToGet;
     });
   });
 
@@ -708,7 +708,7 @@ describe("authors", () => {
         avatarNft1.id,
       );
       const json = JSON.parse(string);
-      expect(json.domainSeparator).toBe("plebbit-author-avatar");
+      expect(json.domainSeparator).toBe("pkc-author-avatar");
       expect(json.authorAddress).toBe(authorAddress);
       expect(json.authorAddress).not.toBe(undefined);
       expect(json.timestamp).toBe(avatarNft1.timestamp);
@@ -838,7 +838,7 @@ describe("authors", () => {
       const waitFor = testUtils.createWaitFor(rendered);
       expect(rendered.result.current.resolvedAddress).toBe(undefined);
 
-      rendered.rerender({ address: "plebbit.com" });
+      rendered.rerender({ address: "pkc.com" });
       await waitFor(() => rendered.result.current.error);
       expect(rendered.result.current.error.message).toBe("crypto domain type unsupported");
     });
@@ -875,8 +875,8 @@ describe("authors", () => {
       resetAuthorAddressCacheForTesting();
       const resolved = "12D3KooWresolved";
       let resolveArgs: { address: string } | undefined;
-      const origResolve = Plebbit.prototype.resolveAuthorAddress;
-      Plebbit.prototype.resolveAuthorAddress = (opts: { address: string }) => {
+      const origResolve = PKC.prototype.resolveAuthorAddress;
+      PKC.prototype.resolveAuthorAddress = (opts: { address: string }) => {
         resolveArgs = opts;
         return Promise.resolve(resolved);
       };
@@ -889,7 +889,7 @@ describe("authors", () => {
           });
           return {
             ...resolvedAuthorAddress,
-            ethChainProvider: account?.plebbitOptions?.chainProviders?.eth,
+            ethChainProvider: account?.pkcOptions?.chainProviders?.eth,
           };
         });
         const waitFor = testUtils.createWaitFor(rendered, { timeout: 20000 });
@@ -900,7 +900,7 @@ describe("authors", () => {
           rendered.result.current.ethChainProvider,
         );
       } finally {
-        Plebbit.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorAddress = origResolve;
       }
     });
 
@@ -933,7 +933,7 @@ describe("authors", () => {
       async () => {
         const rendered = renderHook<any, any>((opts) => useResolvedAuthorAddress({ author: opts }));
         const waitFor = testUtils.createWaitFor(rendered);
-        rendered.rerender({ address: "plebbit.com" } as any);
+        rendered.rerender({ address: "pkc.com" } as any);
         await waitFor(() => rendered.result.current.error !== undefined);
         expect(rendered.result.current.error?.message).toBe("crypto domain type unsupported");
         rendered.rerender(undefined);
@@ -943,8 +943,8 @@ describe("authors", () => {
     );
 
     test("useResolvedAuthorAddress handles resolve error", { timeout }, async () => {
-      const origResolve = Plebbit.prototype.resolveAuthorAddress;
-      Plebbit.prototype.resolveAuthorAddress = () => Promise.reject(new Error("resolution failed"));
+      const origResolve = PKC.prototype.resolveAuthorAddress;
+      PKC.prototype.resolveAuthorAddress = () => Promise.reject(new Error("resolution failed"));
       try {
         const rendered = renderHook<any, any>((author) => useResolvedAuthorAddress({ author }));
         const waitFor = testUtils.createWaitFor(rendered, { timeout: 20000 });
@@ -952,7 +952,7 @@ describe("authors", () => {
         await waitFor(() => rendered.result.current.error !== undefined);
         expect(rendered.result.current.error?.message).toBe("resolution failed");
       } finally {
-        Plebbit.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorAddress = origResolve;
       }
     });
 
@@ -968,8 +968,8 @@ describe("authors", () => {
       const addr = "cache-hit.eth";
       const resolved = "12D3KooWresolved";
       let resolveCalls = 0;
-      const origResolve = Plebbit.prototype.resolveAuthorAddress;
-      Plebbit.prototype.resolveAuthorAddress = () => {
+      const origResolve = PKC.prototype.resolveAuthorAddress;
+      PKC.prototype.resolveAuthorAddress = () => {
         resolveCalls++;
         return Promise.resolve(resolved);
       };
@@ -988,7 +988,7 @@ describe("authors", () => {
         await waitFor2(() => r2.result.current.resolvedAddress === resolved);
         expect(resolveCalls).toBe(1);
       } finally {
-        Plebbit.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorAddress = origResolve;
       }
     });
 
@@ -997,8 +997,8 @@ describe("authors", () => {
       const addr = "cached-promise.eth";
       const resolved = "12D3KooWresolved";
       let resolveCalls = 0;
-      const origResolve = Plebbit.prototype.resolveAuthorAddress;
-      Plebbit.prototype.resolveAuthorAddress = () => {
+      const origResolve = PKC.prototype.resolveAuthorAddress;
+      PKC.prototype.resolveAuthorAddress = () => {
         resolveCalls++;
         return Promise.resolve(resolved);
       };
@@ -1017,7 +1017,7 @@ describe("authors", () => {
         await waitFor2(() => r2.result.current.resolvedAddress === resolved);
         expect(resolveCalls).toBe(1);
       } finally {
-        Plebbit.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorAddress = origResolve;
       }
     });
 
@@ -1027,8 +1027,8 @@ describe("authors", () => {
       const resolved = "12D3KooWresolved";
       let resolveCalls = 0;
       let shouldReject = true;
-      const origResolve = Plebbit.prototype.resolveAuthorAddress;
-      Plebbit.prototype.resolveAuthorAddress = () => {
+      const origResolve = PKC.prototype.resolveAuthorAddress;
+      PKC.prototype.resolveAuthorAddress = () => {
         resolveCalls++;
         return shouldReject
           ? Promise.reject(new Error("resolution failed"))
@@ -1051,7 +1051,7 @@ describe("authors", () => {
         await waitForSecond(() => second.result.current.resolvedAddress === resolved);
         expect(resolveCalls).toBe(2);
       } finally {
-        Plebbit.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorAddress = origResolve;
       }
     });
 
@@ -1061,8 +1061,8 @@ describe("authors", () => {
       const resolved = "12D3KooWresolved";
       let resolveCalls = 0;
       let releasePromise: ((value: string) => void) | undefined;
-      const origResolve = Plebbit.prototype.resolveAuthorAddress;
-      Plebbit.prototype.resolveAuthorAddress = () => {
+      const origResolve = PKC.prototype.resolveAuthorAddress;
+      PKC.prototype.resolveAuthorAddress = () => {
         resolveCalls++;
         return new Promise((resolve) => {
           releasePromise = resolve;
@@ -1086,7 +1086,7 @@ describe("authors", () => {
         await waitForSecond(() => second.result.current.resolvedAddress === resolved);
         expect(resolveCalls).toBe(1);
       } finally {
-        Plebbit.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorAddress = origResolve;
       }
     });
 
@@ -1096,8 +1096,8 @@ describe("authors", () => {
       const resolved = "12D3KooWresolved";
       let resolveCalls = 0;
       let releaseFirstPromise: ((value: string) => void) | undefined;
-      const origResolve = Plebbit.prototype.resolveAuthorAddress;
-      Plebbit.prototype.resolveAuthorAddress = () => {
+      const origResolve = PKC.prototype.resolveAuthorAddress;
+      PKC.prototype.resolveAuthorAddress = () => {
         resolveCalls++;
         if (resolveCalls === 1) {
           return new Promise((resolve) => {
@@ -1126,7 +1126,7 @@ describe("authors", () => {
         });
         await waitForFirst(() => first.result.current.resolvedAddress === resolved);
       } finally {
-        Plebbit.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorAddress = origResolve;
       }
     });
   });
@@ -1170,7 +1170,7 @@ const createAuthorAvatarSignature = async (nft: Nft, authorAddress: string) => {
 
   // use plain JSON so the user can read what he's signing
   // property names must always be in this order for signature to match so don't use JSON.stringify
-  const messageToSign = `{"domainSeparator":"plebbit-author-avatar","authorAddress":"${authorAddress}","timestamp":${nft.timestamp},"tokenAddress":"${nft.address}","tokenId":"${nft.id}"}`;
+  const messageToSign = `{"domainSeparator":"pkc-author-avatar","authorAddress":"${authorAddress}","timestamp":${nft.timestamp},"tokenAddress":"${nft.address}","tokenId":"${nft.id}"}`;
 
   // the ethers.js signer is usually gotten from metamask https://docs.ethers.io/v5/api/signer/
   const signature = await ethersJsSigner.signMessage(messageToSign);

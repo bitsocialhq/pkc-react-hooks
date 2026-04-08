@@ -11,7 +11,7 @@ import createStore from "zustand";
 import assert from "assert";
 
 const repliesPagesDatabase = localForageLru.createInstance({
-  name: "plebbitReactHooks-repliesPages",
+  name: "bitsocialReactHooks-repliesPages",
   size: 500,
 });
 
@@ -41,7 +41,7 @@ const repliesPagesStore = createStore<RepliesPagesState>(
         `repliesPagesStore.addNextRepliesPageToStore sortType '${sortType}' invalid`,
       );
       assert(
-        typeof account?.plebbit?.createComment === "function",
+        typeof account?.pkc?.createComment === "function",
         `repliesPagesStore.addNextRepliesPageToStore account '${account}' invalid`,
       );
 
@@ -215,7 +215,7 @@ const onCommentRepliesClientsStateChange =
     });
   };
 
-const fetchPageComments: { [commentCid: string]: any } = {}; // cache plebbit.createComment because sometimes it's slow
+const fetchPageComments: { [commentCid: string]: any } = {}; // cache pkc.createComment because sometimes it's slow
 let fetchPagePending: { [key: string]: boolean } = {};
 const fetchPage = async (pageCid: string, comment: Comment, account: Account) => {
   // replies page is cached
@@ -224,7 +224,7 @@ const fetchPage = async (pageCid: string, comment: Comment, account: Account) =>
     return cachedRepliesPage;
   }
   if (!fetchPageComments[comment.cid]) {
-    fetchPageComments[comment.cid] = await account.plebbit.createComment({
+    fetchPageComments[comment.cid] = await account.pkc.createComment({
       cid: comment.cid,
       postCid: comment.postCid,
       communityAddress: comment.communityAddress,
@@ -316,7 +316,7 @@ export const resetRepliesPagesStore = async () => {
 
 // reset database and store in between tests
 export const resetRepliesPagesDatabaseAndStore = async () => {
-  await localForageLru.createInstance({ name: "plebbitReactHooks-repliesPages" }).clear();
+  await localForageLru.createInstance({ name: "bitsocialReactHooks-repliesPages" }).clear();
   await resetRepliesPagesStore();
 };
 

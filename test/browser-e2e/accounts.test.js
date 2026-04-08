@@ -17,7 +17,7 @@ import debugUtils from "../../dist/lib/debug-utils";
 import * as accountsActions from "../../dist/stores/accounts/accounts-actions";
 import communitiesStore from "../../dist/stores/communities";
 import testUtils from "../../dist/lib/test-utils";
-import { offlineIpfs, pubsubIpfs, plebbitRpc } from "../test-server/config";
+import { offlineIpfs, pubsubIpfs, pkcRpc } from "../test-server/config";
 import signers from "../fixtures/signers";
 const communityAddress = signers[0].address;
 const adminRoleSigner = signers[1];
@@ -28,12 +28,12 @@ const isBase64 = (testString) =>
 // large value for manual debugging
 const timeout = 600000;
 
-// run tests using plebbit options gateway and httpClient
+// run tests using pkc options gateway and httpClient
 const localGatewayUrl = `http://localhost:${offlineIpfs.gatewayPort}`;
 const localIpfsProviderUrl = `http://localhost:${offlineIpfs.apiPort}`;
 const localPubsubProviderUrl = `http://localhost:${pubsubIpfs.apiPort}/api/v0`;
-const localPlebbitRpcUrl = `ws://127.0.0.1:${plebbitRpc.port}`;
-const plebbitOptionsTypes = {
+const localPkcRpcUrl = `ws://127.0.0.1:${pkcRpc.port}`;
+const pkcOptionsTypes = {
   "kubo rpc client": {
     kuboRpcClientsOptions: [localIpfsProviderUrl],
     // define pubsubKuboRpcClientsOptions with localPubsubProviderUrl because
@@ -48,17 +48,17 @@ const plebbitOptionsTypes = {
     resolveAuthorAddresses: false,
     validatePages: false,
   },
-  "plebbit rpc client": {
-    plebbitRpcClientsOptions: [localPlebbitRpcUrl],
+  "pkc rpc client": {
+    pkcRpcClientsOptions: [localPkcRpcUrl],
     resolveAuthorAddresses: false,
     validatePages: false,
   },
 };
 
-for (const plebbitOptionsType in plebbitOptionsTypes) {
-  describe(`accounts (${plebbitOptionsType})`, () => {
+for (const pkcOptionsType in pkcOptionsTypes) {
+  describe(`accounts (${pkcOptionsType})`, () => {
     beforeAll(async () => {
-      console.log(`before accounts tests (${plebbitOptionsType})`);
+      console.log(`before accounts tests (${pkcOptionsType})`);
       testUtils.silenceReactWarnings();
       // reset before or init accounts sometimes fails
       await testUtils.resetDatabasesAndStores();
@@ -75,9 +75,9 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
       await assertTestServerDidntCrash();
     });
 
-    describe(`no accounts in database (${plebbitOptionsType})`, () => {
-      it(`generate default account on load (${plebbitOptionsType})`, async () => {
-        console.log(`starting accounts tests (${plebbitOptionsType})`);
+    describe(`no accounts in database (${pkcOptionsType})`, () => {
+      it(`generate default account on load (${pkcOptionsType})`, async () => {
+        console.log(`starting accounts tests (${pkcOptionsType})`);
 
         const rendered = renderHook(() => useAccount());
         const waitFor = testUtils.createWaitFor(rendered, { timeout });
@@ -94,11 +94,11 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
         expect(account.blockedAddresses && typeof account.blockedAddresses === "object").to.equal(
           true,
         );
-        expect(account.plebbit && typeof account.plebbit === "object").to.equal(true);
-        expect(account.plebbitOptions && typeof account.plebbitOptions === "object").to.equal(true);
-        expect(account.plebbitOptions.ipfsGatewayUrls?.length).to.be.greaterThan(0);
-        expect(account.plebbitOptions.pubsubKuboRpcClientsOptions?.length).to.be.greaterThan(0);
-        expect(account.plebbitOptions.ipfsHttpClientOptions).to.equal(undefined);
+        expect(account.pkc && typeof account.pkc === "object").to.equal(true);
+        expect(account.pkcOptions && typeof account.pkcOptions === "object").to.equal(true);
+        expect(account.pkcOptions.ipfsGatewayUrls?.length).to.be.greaterThan(0);
+        expect(account.pkcOptions.pubsubKuboRpcClientsOptions?.length).to.be.greaterThan(0);
+        expect(account.pkcOptions.ipfsHttpClientOptions).to.equal(undefined);
 
         // wait for short address
         await waitFor(() => rendered.result.current?.author?.shortAddress);
@@ -106,10 +106,10 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
       });
     });
 
-    if (plebbitOptionsType !== "plebbit rpc client") {
-      console.log(`${plebbitOptionsType} can't create community, skipping`);
+    if (pkcOptionsType !== "pkc rpc client") {
+      console.log(`${pkcOptionsType} can't create community, skipping`);
     } else {
-      describe(`create community (${plebbitOptionsType})`, () => {
+      describe(`create community (${pkcOptionsType})`, () => {
         let rendered, waitFor;
 
         beforeAll(async () => {
@@ -134,14 +134,14 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
           expect(typeof rendered.result.current.publishComment).to.equal("function");
           expect(typeof rendered.result.current.publishVote).to.equal("function");
 
-          const plebbitOptions = { ...plebbitOptionsTypes[plebbitOptionsType] };
+          const pkcOptions = { ...pkcOptionsTypes[pkcOptionsType] };
 
           console.log("before set account");
           await act(async () => {
-            const account = { ...rendered.result.current.account, plebbitOptions };
+            const account = { ...rendered.result.current.account, pkcOptions };
             await rendered.result.current.setAccount(account);
           });
-          expect(rendered.result.current.account.plebbitOptions).to.deep.equal(plebbitOptions);
+          expect(rendered.result.current.account.pkcOptions).to.deep.equal(pkcOptions);
           console.log("after set account");
         });
 
@@ -415,7 +415,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
       });
     }
 
-    describe(`publish community edit (${plebbitOptionsType})`, () => {
+    describe(`publish community edit (${pkcOptionsType})`, () => {
       let rendered, waitFor;
 
       beforeAll(async () => {
@@ -436,13 +436,13 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
         expect(typeof rendered.result.current.publishComment).to.equal("function");
         expect(typeof rendered.result.current.publishVote).to.equal("function");
 
-        const plebbitOptions = { ...plebbitOptionsTypes[plebbitOptionsType] };
+        const pkcOptions = { ...pkcOptionsTypes[pkcOptionsType] };
 
         console.log("before set account");
         await act(async () => {
           const account = {
             ...rendered.result.current.account,
-            plebbitOptions,
+            pkcOptions,
             // the 'admin' role signer of communityAddress
             signer: {
               type: "ed25519",
@@ -456,7 +456,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
           };
           await rendered.result.current.setAccount(account);
         });
-        expect(rendered.result.current.account.plebbitOptions).to.deep.equal(plebbitOptions);
+        expect(rendered.result.current.account.pkcOptions).to.deep.equal(pkcOptions);
         console.log("after set account");
       });
 
@@ -479,7 +479,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
         const onChallengeVerificationCalls = [];
         const onChallengeVerification = (...args) => onChallengeVerificationCalls.push([...args]);
         const editedTitle = `edited title ${Math.random()}`;
-        console.log("before plebbit.publishCommunityEdit()");
+        console.log("before pkc.publishCommunityEdit()");
         await act(async () => {
           await rendered.result.current.publishCommunityEdit(communityAddress, {
             title: editedTitle,
@@ -487,7 +487,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
             onChallengeVerification,
           });
         });
-        console.log("after plebbit.publishCommunityEdit()");
+        console.log("after pkc.publishCommunityEdit()");
 
         console.log("before onChallengeVerification");
         await waitFor(() => onChallengeVerificationCalls.length >= 1);
@@ -502,7 +502,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
       });
     });
 
-    describe(`publish (${plebbitOptionsType})`, { retry: 2 }, () => {
+    describe(`publish (${pkcOptionsType})`, { retry: 2 }, () => {
       let rendered, waitFor, publishedCid;
 
       beforeAll(async () => {
@@ -536,18 +536,18 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
         expect(typeof rendered.result.current.publishComment).to.equal("function");
         expect(typeof rendered.result.current.publishVote).to.equal("function");
 
-        const plebbitOptions = { ...plebbitOptionsTypes[plebbitOptionsType] };
+        const pkcOptions = { ...pkcOptionsTypes[pkcOptionsType] };
 
         console.log("before set account");
         await act(async () => {
-          const account = { ...rendered.result.current.account, plebbitOptions };
+          const account = { ...rendered.result.current.account, pkcOptions };
           await rendered.result.current.setAccount(account);
         });
-        expect(rendered.result.current.account.plebbitOptions).to.deep.equal(plebbitOptions);
+        expect(rendered.result.current.account.pkcOptions).to.deep.equal(pkcOptions);
         console.log("after set account");
       });
 
-      describe(`create comment (${plebbitOptionsType})`, () => {
+      describe(`create comment (${pkcOptionsType})`, () => {
         let onChallengeCalled = 0;
         let challenge, comment;
         const onChallenge = (_challenge, _comment) => {
@@ -567,7 +567,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
           onChallengeVerificationCalled++;
         };
 
-        it(`publish comment (${plebbitOptionsType})`, async () => {
+        it(`publish comment (${pkcOptionsType})`, async () => {
           const publishCommentOptions = {
             communityAddress,
             title: "some title",
@@ -582,7 +582,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
           });
         });
 
-        it(`onChallenge gets called (${plebbitOptionsType})`, async () => {
+        it(`onChallenge gets called (${pkcOptionsType})`, async () => {
           await waitFor(() => onChallengeCalled > 0);
           expect(onChallengeCalled).to.equal(1);
 
@@ -590,7 +590,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
           expect(typeof comment.publishChallengeAnswers).to.equal("function");
         });
 
-        it(`onChallengeVerification gets called (${plebbitOptionsType})`, async () => {
+        it(`onChallengeVerification gets called (${pkcOptionsType})`, async () => {
           // publish challenge answer and wait for verification
           comment.publishChallengeAnswers(["2"]);
           await waitFor(() => onChallengeVerificationCalled > 0);
@@ -603,7 +603,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
           publishedCid = challengeVerification.commentUpdate.cid;
         });
 
-        it(`published comment is in account comments (${plebbitOptionsType})`, async () => {
+        it(`published comment is in account comments (${pkcOptionsType})`, async () => {
           console.log("before comment in accountComments");
           await waitFor(() => rendered.result.current.accountComments.length > 0);
           expect(rendered.result.current.accountComments.length).to.be.greaterThan(0);
@@ -621,7 +621,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
           // console.log('after cid', publishedCid)
         });
 
-        it(`publish reply (${plebbitOptionsType})`, { retry: 2 }, async () => {
+        it(`publish reply (${pkcOptionsType})`, { retry: 2 }, async () => {
           // make sure there's no notifications
           expect(rendered.result.current.notifications.notifications.length).to.equal(0);
 

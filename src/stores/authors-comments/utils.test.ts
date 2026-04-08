@@ -7,13 +7,13 @@ import {
 } from "./utils";
 import commentsStore from "../comments";
 import { Comment, Comments, CommentsFilter } from "../../types";
-import { setPlebbitJs } from "../..";
+import { setPkcJs } from "../..";
 import testUtils from "../../lib/test-utils";
-import PlebbitJsMock from "../../lib/plebbit-js/plebbit-js-mock";
+import PkcJsMock from "../../lib/pkc-js/pkc-js-mock";
 
 describe("authors-comments utils", () => {
   beforeAll(async () => {
-    setPlebbitJs(PlebbitJsMock);
+    setPkcJs(PkcJsMock);
     await testUtils.resetDatabasesAndStores();
   });
 

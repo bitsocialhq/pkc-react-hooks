@@ -18,10 +18,7 @@ import accountsStore from "../accounts";
 import feedSorter from "./feed-sorter";
 import { communityPostsCacheExpired, commentIsValid, removeInvalidComments } from "../../lib/utils";
 import { areEquivalentCommunityAddresses } from "../../lib/community-address";
-import {
-  getCommentCommunityAddress,
-  normalizeCommentCommunityAddress,
-} from "../../lib/plebbit-compat";
+import { getCommentCommunityAddress, normalizeCommentCommunityAddress } from "../../lib/pkc-compat";
 import Logger from "@pkc/pkc-logger";
 const log = Logger("bitsocial-react-hooks:feeds:stores");
 
@@ -284,7 +281,7 @@ export const getLoadedFeeds = async (
   let loadedFeedsChanged = false;
   for (const feedName in feedsOptions) {
     const { pageNumber, postsPerPage, accountId } = feedsOptions[feedName];
-    const plebbit = accounts[accountId]?.plebbit;
+    const pkc = accounts[accountId]?.pkc;
     const loadedFeedPostCount = pageNumber * postsPerPage;
     const currentLoadedFeed = reconcileLoadedModQueueFeed(
       feedsOptions[feedName],
@@ -304,11 +301,7 @@ export const getLoadedFeeds = async (
     let missingPosts: any[] = [];
     for (const post of bufferedFeed) {
       if (missingPosts.length >= missingPostsCount) {
-        missingPosts = await removeInvalidComments(
-          missingPosts,
-          { validateReplies: false },
-          plebbit,
-        );
+        missingPosts = await removeInvalidComments(missingPosts, { validateReplies: false }, pkc);
         // only stop if there were no invalid comments
         if (missingPosts.length >= missingPostsCount) {
           break;
@@ -498,7 +491,7 @@ export const getUpdatedFeeds = async (
 
   const newUpdatedFeeds: Feeds = { ...updatedFeeds };
   for (const feedName in filteredSortedFeeds) {
-    const plebbit = accounts[feedsOptions[feedName]?.accountId]?.plebbit;
+    const pkc = accounts[feedsOptions[feedName]?.accountId]?.pkc;
     const updatedFeed = [...(updatedFeeds[feedName] || [])];
     const onlyHasNewPosts = updatedFeed.length === 0;
     let updatedFeedChanged = false;
@@ -520,7 +513,7 @@ export const getUpdatedFeeds = async (
             (async () => {
               if (
                 (post.updatedAt || 0) > (updatedPost.updatedAt || 0) &&
-                (await commentIsValid(post, { validateReplies: false }, plebbit))
+                (await commentIsValid(post, { validateReplies: false }, pkc))
               ) {
                 updatedFeed[index] = post;
                 updatedFeedChanged = true;

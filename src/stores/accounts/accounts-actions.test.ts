@@ -6,16 +6,13 @@ import * as accountsActionsInternal from "./accounts-actions-internal";
 import accountsDatabase from "./accounts-database";
 import accountsStore from "./accounts-store";
 import communitiesStore from "../communities";
-import PlebbitJsMock, {
-  Plebbit as BasePlebbit,
-  Comment as BaseComment,
-} from "../../lib/plebbit-js/plebbit-js-mock";
-import { setPlebbitJs } from "../../lib/plebbit-js";
-import * as plebbitCompat from "../../lib/plebbit-compat";
+import PkcJsMock, { PKC as BasePkc, Comment as BaseComment } from "../../lib/pkc-js/pkc-js-mock";
+import { setPkcJs } from "../../lib/pkc-js";
+import * as protocolCompat from "../../lib/pkc-compat";
 
-// Custom Plebbit that returns publications emitting challengeSuccess: false on first attempt
-function createRetryPlebbitMock() {
-  const baseInstance = new BasePlebbit();
+// Custom PKC that returns publications emitting challengeSuccess: false on first attempt
+function createRetryPkcMock() {
+  const baseInstance = new BasePkc();
   let retryCommentAttemptCount = 0;
 
   class RetryComment extends BaseComment {
@@ -37,7 +34,7 @@ function createRetryPlebbitMock() {
     }
   }
 
-  class RetryPlebbit extends BasePlebbit {
+  class RetryPkc extends BasePkc {
     async createComment(opts: any) {
       return new RetryComment(opts);
     }
@@ -139,144 +136,15 @@ function createRetryPlebbitMock() {
     }
   }
 
-  const createRetryPlebbit: any = async (...args: any) => new RetryPlebbit(...args);
-  createRetryPlebbit.getShortAddress = PlebbitJsMock.getShortAddress;
-  createRetryPlebbit.getShortCid = PlebbitJsMock.getShortCid;
-  return createRetryPlebbit;
-}
-
-function createLegacyOnlyPlebbitMock() {
-  class LegacyOnlyPlebbit extends BasePlebbit {
-    constructor(...args: any[]) {
-      super(...args);
-      (this as any).createCommunity = undefined;
-      (this as any).getCommunity = undefined;
-      (this as any).createCommunityEdit = undefined;
-    }
-
-    async createComment(opts: any) {
-      if ("communityAddress" in opts) {
-        throw new Error("legacy createComment received communityAddress");
-      }
-      return super.createComment(opts);
-    }
-
-    async createVote(opts: any) {
-      if ("communityAddress" in opts) {
-        throw new Error("legacy createVote received communityAddress");
-      }
-      return super.createVote(opts);
-    }
-
-    async createCommentEdit(opts: any) {
-      if ("communityAddress" in opts) {
-        throw new Error("legacy createCommentEdit received communityAddress");
-      }
-      return super.createCommentEdit(opts);
-    }
-
-    async createCommentModeration(opts: any) {
-      if ("communityAddress" in opts) {
-        throw new Error("legacy createCommentModeration received communityAddress");
-      }
-      return super.createCommentModeration(opts);
-    }
-
-    async createSubplebbitEdit(opts: any) {
-      if ("communityAddress" in opts) {
-        throw new Error("legacy createSubplebbitEdit received communityAddress");
-      }
-      if ("communityEdit" in opts) {
-        throw new Error("legacy createSubplebbitEdit received communityEdit");
-      }
-      const communityEdit: any = await BasePlebbit.prototype.createCommunityEdit.call(this, opts);
-      communityEdit.subplebbitAddress = opts.subplebbitAddress;
-      return communityEdit;
-    }
-  }
-
-  const createLegacyOnlyPlebbit: any = async (...args: any[]) => new LegacyOnlyPlebbit(...args);
-  createLegacyOnlyPlebbit.getShortAddress = PlebbitJsMock.getShortAddress;
-  createLegacyOnlyPlebbit.getShortCid = PlebbitJsMock.getShortCid;
-  return createLegacyOnlyPlebbit;
-}
-
-function createLegacyPublicationSchemaPlebbitMock() {
-  class LegacyPublicationSchemaPlebbit extends BasePlebbit {
-    async createComment(opts: any) {
-      if ("communityAddress" in opts) {
-        throw new Error("createComment received communityAddress");
-      }
-      const comment: any = await super.createComment(opts);
-      comment.subplebbitAddress = opts.subplebbitAddress;
-      return comment;
-    }
-
-    async createVote(opts: any) {
-      if ("communityAddress" in opts) {
-        throw new Error("createVote received communityAddress");
-      }
-      const vote: any = await super.createVote(opts);
-      vote.subplebbitAddress = opts.subplebbitAddress;
-      return vote;
-    }
-
-    async createCommentEdit(opts: any) {
-      if ("communityAddress" in opts) {
-        throw new Error("createCommentEdit received communityAddress");
-      }
-      if ("communityEdit" in opts) {
-        throw new Error("createCommentEdit received communityEdit");
-      }
-      const commentEdit: any = await super.createCommentEdit(opts);
-      commentEdit.subplebbitAddress = opts.subplebbitAddress;
-      return commentEdit;
-    }
-
-    async createCommentModeration(opts: any) {
-      if ("communityAddress" in opts) {
-        throw new Error("createCommentModeration received communityAddress");
-      }
-      const commentModeration: any = await super.createCommentModeration(opts);
-      commentModeration.subplebbitAddress = opts.subplebbitAddress;
-      return commentModeration;
-    }
-
-    async createCommunityEdit(opts: any) {
-      if ("communityAddress" in opts) {
-        throw new Error("createCommunityEdit received communityAddress");
-      }
-      if ("communityEdit" in opts) {
-        throw new Error("createCommunityEdit received communityEdit");
-      }
-      const communityEdit: any = await super.createCommunityEdit(opts);
-      communityEdit.subplebbitAddress = opts.subplebbitAddress;
-      return communityEdit;
-    }
-
-    async createSubplebbitEdit(opts: any) {
-      if ("communityAddress" in opts) {
-        throw new Error("createSubplebbitEdit received communityAddress");
-      }
-      if ("communityEdit" in opts) {
-        throw new Error("createSubplebbitEdit received communityEdit");
-      }
-      const communityEdit: any = await BasePlebbit.prototype.createCommunityEdit.call(this, opts);
-      communityEdit.subplebbitAddress = opts.subplebbitAddress;
-      return communityEdit;
-    }
-  }
-
-  const createLegacyPublicationSchemaPlebbit: any = async (...args: any[]) =>
-    new LegacyPublicationSchemaPlebbit(...args);
-  createLegacyPublicationSchemaPlebbit.getShortAddress = PlebbitJsMock.getShortAddress;
-  createLegacyPublicationSchemaPlebbit.getShortCid = PlebbitJsMock.getShortCid;
-  return createLegacyPublicationSchemaPlebbit;
+  const createRetryPkc: any = async (...args: any) => new RetryPkc(...args);
+  createRetryPkc.getShortAddress = PkcJsMock.getShortAddress;
+  createRetryPkc.getShortCid = PkcJsMock.getShortCid;
+  return createRetryPkc;
 }
 
 describe("accounts-actions", () => {
   beforeAll(async () => {
-    setPlebbitJs(PlebbitJsMock);
+    setPkcJs(PkcJsMock);
     await testUtils.resetDatabasesAndStores();
     testUtils.silenceReactWarnings();
   });
@@ -712,13 +580,13 @@ describe("accounts-actions", () => {
       expect(sub?.address).toBeDefined();
     });
 
-    test("publishCommunityEdit uses local owner state when plebbit communities list is stale", async () => {
+    test("publishCommunityEdit uses local owner state when pkc communities list is stale", async () => {
       const account = Object.values(accountsStore.getState().accounts)[0];
-      const getPlebbitCommunityAddressesSpy = vi
-        .spyOn(plebbitCompat, "getPlebbitCommunityAddresses")
+      const getPkcCommunityAddressesSpy = vi
+        .spyOn(protocolCompat, "getPkcCommunityAddresses")
         .mockReturnValue([]);
       const editCommunitySpy = vi.spyOn(communitiesStore.getState(), "editCommunity");
-      const createCommunityEditSpy = vi.spyOn(account.plebbit, "createCommunityEdit");
+      const createCommunityEditSpy = vi.spyOn(account.pkc, "createCommunityEdit");
       const onChallengeVerification = vi.fn();
 
       try {
@@ -749,7 +617,7 @@ describe("accounts-actions", () => {
         expect(createCommunityEditSpy).not.toHaveBeenCalled();
         expect(onChallengeVerification).toHaveBeenCalledWith({ challengeSuccess: true });
       } finally {
-        getPlebbitCommunityAddressesSpy.mockRestore();
+        getPkcCommunityAddressesSpy.mockRestore();
         editCommunitySpy.mockRestore();
         createCommunityEditSpy.mockRestore();
       }
@@ -896,7 +764,7 @@ describe("accounts-actions", () => {
       ).rejects.toThrow("can't edit address of a remote community");
     });
 
-    test("setAccount with author.address change updates only the eth wallet when using plebbit signer", async () => {
+    test("setAccount with author.address change updates only the eth wallet when using pkc signer", async () => {
       await act(async () => {
         await accountsActions.createAccount();
       });
@@ -908,7 +776,7 @@ describe("accounts-actions", () => {
       }
 
       const chainMod = await import("../../lib/chain");
-      vi.spyOn(chainMod, "getEthWalletFromPlebbitPrivateKey").mockResolvedValue({
+      vi.spyOn(chainMod, "getEthWalletFromPkcPrivateKey").mockResolvedValue({
         address: ethAddr,
         timestamp: 1,
         signature: {},
@@ -947,7 +815,7 @@ describe("accounts-actions", () => {
       }
 
       const chainMod = await import("../../lib/chain");
-      vi.spyOn(chainMod, "getEthWalletFromPlebbitPrivateKey").mockResolvedValue({
+      vi.spyOn(chainMod, "getEthWalletFromPkcPrivateKey").mockResolvedValue({
         address: "0xOtherEth",
         timestamp: 1,
         signature: {},
@@ -974,12 +842,12 @@ describe("accounts-actions", () => {
 
   describe("publish retry loops (challengeSuccess === false && lastChallenge)", () => {
     beforeEach(async () => {
-      setPlebbitJs(createRetryPlebbitMock());
+      setPkcJs(createRetryPkcMock());
       await testUtils.resetDatabasesAndStores();
     });
 
     afterEach(() => {
-      setPlebbitJs(PlebbitJsMock);
+      setPkcJs(PkcJsMock);
     });
 
     test("publishComment retries on challenge failure", async () => {
@@ -1005,8 +873,8 @@ describe("accounts-actions", () => {
     test("publishComment ignores stale errors from a replaced retry comment", async () => {
       const account = Object.values(accountsStore.getState().accounts)[0];
       const createdComments: any[] = [];
-      const origCreateComment = account.plebbit.createComment.bind(account.plebbit);
-      vi.spyOn(account.plebbit, "createComment").mockImplementation(async (opts: any) => {
+      const origCreateComment = account.pkc.createComment.bind(account.pkc);
+      vi.spyOn(account.pkc, "createComment").mockImplementation(async (opts: any) => {
         const comment = await origCreateComment(opts);
         createdComments.push(comment);
         return comment;
@@ -1087,9 +955,9 @@ describe("accounts-actions", () => {
     test("publishCommentEdit awaits rollback before firing onError", async () => {
       const account = Object.values(accountsStore.getState().accounts)[0];
       const accountId = accountsStore.getState().activeAccountId!;
-      const origCreate = account.plebbit.createCommentEdit.bind(account.plebbit);
+      const origCreate = account.pkc.createCommentEdit.bind(account.pkc);
       const deleteAccountEdit = vi.spyOn(accountsDatabase, "deleteAccountEdit");
-      vi.spyOn(account.plebbit, "createCommentEdit").mockImplementation(async (opts: any) => {
+      vi.spyOn(account.pkc, "createCommentEdit").mockImplementation(async (opts: any) => {
         const publication = await origCreate(opts);
         vi.spyOn(publication, "publishChallengeAnswers").mockImplementation(async () => {
           const error = new Error(
@@ -1136,9 +1004,9 @@ describe("accounts-actions", () => {
     test("publishCommentEdit rolls back optimistic edit on terminal challengeverification failure", async () => {
       const account = Object.values(accountsStore.getState().accounts)[0];
       const accountId = accountsStore.getState().activeAccountId!;
-      const origCreate = account.plebbit.createCommentEdit.bind(account.plebbit);
+      const origCreate = account.pkc.createCommentEdit.bind(account.pkc);
       const createCommentEditSpy = vi
-        .spyOn(account.plebbit, "createCommentEdit")
+        .spyOn(account.pkc, "createCommentEdit")
         .mockImplementation(async (opts: any) => {
           const publication = await origCreate(opts);
           vi.spyOn(publication, "simulateChallengeVerificationEvent").mockImplementation(() => {
@@ -1206,8 +1074,8 @@ describe("accounts-actions", () => {
         },
       }));
 
-      const origCreate = account.plebbit.createCommentEdit.bind(account.plebbit);
-      vi.spyOn(account.plebbit, "createCommentEdit").mockImplementation(async (opts: any) => {
+      const origCreate = account.pkc.createCommentEdit.bind(account.pkc);
+      vi.spyOn(account.pkc, "createCommentEdit").mockImplementation(async (opts: any) => {
         const publication = await origCreate(opts);
         vi.spyOn(publication, "publishChallengeAnswers").mockImplementation(async () => {
           publication.emit("error", new Error("terminal delete failure"));
@@ -1239,12 +1107,12 @@ describe("accounts-actions", () => {
     });
 
     test("publishCommentEdit keeps optimistic edit when a later error happens after challenge success", async () => {
-      setPlebbitJs(PlebbitJsMock);
+      setPkcJs(PkcJsMock);
       await testUtils.resetDatabasesAndStores();
       const account = Object.values(accountsStore.getState().accounts)[0];
       const accountId = accountsStore.getState().activeAccountId!;
-      const origCreate = account.plebbit.createCommentEdit.bind(account.plebbit);
-      vi.spyOn(account.plebbit, "createCommentEdit").mockImplementation(async (opts: any) => {
+      const origCreate = account.pkc.createCommentEdit.bind(account.pkc);
+      vi.spyOn(account.pkc, "createCommentEdit").mockImplementation(async (opts: any) => {
         const publication = await origCreate(opts);
         const origPublishChallengeAnswers = publication.publishChallengeAnswers.bind(publication);
         vi.spyOn(publication, "publishChallengeAnswers").mockImplementation(async (...args) => {
@@ -1320,7 +1188,7 @@ describe("accounts-actions", () => {
         accountsStore.getState().accountsEdits[accountId]?.["remote-sub.eth"] || [];
       expect(storedEdits).toHaveLength(1);
       expect(storedEdits[0].title).toBeUndefined();
-      expect(storedEdits[0].subplebbitEdit?.title).toBe("edited");
+      expect(storedEdits[0].communityEdit?.title).toBe("edited");
       expect(
         accountsStore.getState().accountsEditsSummaries[accountId]?.["remote-sub.eth"]?.title,
       ).toEqual({ timestamp: storedEdits[0].timestamp, value: "edited" });
@@ -1329,97 +1197,13 @@ describe("accounts-actions", () => {
     });
   });
 
-  describe("legacy plebbit-js compatibility", () => {
+  describe("community publication payloads", () => {
     beforeEach(async () => {
-      setPlebbitJs(createLegacyOnlyPlebbitMock());
+      setPkcJs(PkcJsMock);
       await testUtils.resetDatabasesAndStores();
     });
 
-    afterEach(() => {
-      setPlebbitJs(PlebbitJsMock);
-    });
-
-    test("publication actions map community fields back to legacy subplebbit fields", async () => {
-      await act(async () => {
-        await accountsActions.publishComment({
-          communityAddress: "sub.eth",
-          content: "legacy comment",
-          onChallenge: (ch: any, c: any) => c.publishChallengeAnswers(["4"]),
-          onChallengeVerification: () => {},
-        });
-      });
-
-      await act(async () => {
-        await accountsActions.publishVote({
-          communityAddress: "sub.eth",
-          commentCid: "legacy cid",
-          vote: 1,
-          onChallenge: (ch: any, v: any) => v.publishChallengeAnswers(["4"]),
-          onChallengeVerification: () => {},
-        });
-      });
-
-      await act(async () => {
-        await accountsActions.publishCommentEdit({
-          communityAddress: "sub.eth",
-          commentCid: "legacy cid",
-          spoiler: true,
-          onChallenge: (ch: any, e: any) => e.publishChallengeAnswers(["4"]),
-          onChallengeVerification: () => {},
-        });
-      });
-
-      await act(async () => {
-        await accountsActions.publishCommentModeration({
-          communityAddress: "sub.eth",
-          commentCid: "legacy cid",
-          commentModeration: { locked: true },
-          onChallenge: (ch: any, m: any) => m.publishChallengeAnswers(["4"]),
-          onChallengeVerification: () => {},
-        });
-      });
-
-      await act(async () => {
-        await accountsActions.publishCommunityEdit("remote-sub.eth", {
-          title: "legacy edit",
-          onChallenge: (ch: any, e: any) => e.publishChallengeAnswers(["4"]),
-          onChallengeVerification: () => {},
-        });
-      });
-
-      const { activeAccountId, accountsComments, accountsVotes, accountsEdits } =
-        accountsStore.getState();
-      const accountId = activeAccountId!;
-      const storedComment = accountsComments[accountId][0];
-      const storedVote = accountsVotes[accountId]["legacy cid"];
-      const storedEdits = accountsEdits[accountId]["legacy cid"] || [];
-
-      expect(storedComment.communityAddress).toBe("sub.eth");
-      expect(storedComment.subplebbitAddress).toBeUndefined();
-      expect(storedComment.shortCommunityAddress).toBeDefined();
-
-      expect(storedVote.communityAddress).toBe("sub.eth");
-      expect(storedVote.subplebbitAddress).toBeUndefined();
-
-      expect(storedEdits).toHaveLength(2);
-      for (const storedEdit of storedEdits) {
-        expect(storedEdit.communityAddress).toBe("sub.eth");
-        expect(storedEdit.subplebbitAddress).toBeUndefined();
-      }
-    });
-  });
-
-  describe("partial community rename compatibility", () => {
-    beforeEach(async () => {
-      setPlebbitJs(createLegacyPublicationSchemaPlebbitMock());
-      await testUtils.resetDatabasesAndStores();
-    });
-
-    afterEach(() => {
-      setPlebbitJs(PlebbitJsMock);
-    });
-
-    test("publication actions still use subplebbit payloads when createCommunity methods exist", async () => {
+    test("publication actions persist and emit current community fields", async () => {
       const waitForStore = async (condition: () => boolean) => {
         const start = Date.now();
         while (Date.now() - start < 2000) {
@@ -1525,14 +1309,11 @@ describe("accounts-actions", () => {
 
       expect(storedComment.communityAddress).toBe("sub.eth");
       expect(storedComment.shortCommunityAddress).toBeDefined();
-      expect(storedComment.subplebbitAddress).toBeUndefined();
       expect(storedVote.communityAddress).toBe("sub.eth");
-      expect(storedVote.subplebbitAddress).toBeUndefined();
       expect(remoteVotePublication.communityAddress).toBe("sub.eth");
       expect(storedEdits).toHaveLength(2);
       for (const storedEdit of storedEdits) {
         expect(storedEdit.communityAddress).toBe("sub.eth");
-        expect(storedEdit.subplebbitAddress).toBeUndefined();
       }
       expect(remoteCommentEditPublication.communityAddress).toBe("sub.eth");
       expect(remoteCommentModerationPublication.communityAddress).toBe("sub.eth");
@@ -1635,7 +1416,7 @@ describe("accounts-actions", () => {
 
     test("deleting an earlier comment does not let a later pending publish reuse another session", async () => {
       const account = Object.values(accountsStore.getState().accounts)[0];
-      const origCreateComment = account.plebbit.createComment.bind(account.plebbit);
+      const origCreateComment = account.pkc.createComment.bind(account.pkc);
       const createCommentCallCounts: Record<string, number> = {};
       const liveCommentsByContent: Record<string, any> = {};
       const waitForAccountComments = async (
@@ -1654,7 +1435,7 @@ describe("accounts-actions", () => {
         throw new Error("timed out waiting for account comments");
       };
 
-      vi.spyOn(account.plebbit, "createComment").mockImplementation(async (opts: any) => {
+      vi.spyOn(account.pkc, "createComment").mockImplementation(async (opts: any) => {
         const content = opts.content || "";
         createCommentCallCounts[content] = (createCommentCallCounts[content] || 0) + 1;
         const comment = await origCreateComment(opts);
@@ -1773,8 +1554,8 @@ describe("accounts-actions", () => {
 
     test("abandonAndStopPublishSession when comment has no stop: skips stop (branch 58)", async () => {
       const account = Object.values(accountsStore.getState().accounts)[0];
-      const origCreateComment = account.plebbit.createComment.bind(account.plebbit);
-      vi.spyOn(account.plebbit, "createComment").mockImplementation(async (opts: any) => {
+      const origCreateComment = account.pkc.createComment.bind(account.pkc);
+      vi.spyOn(account.pkc, "createComment").mockImplementation(async (opts: any) => {
         const c = await origCreateComment(opts);
         (c as any).stop = undefined;
         return c;
@@ -1810,9 +1591,9 @@ describe("accounts-actions", () => {
 
     test("abandonAndStopPublishSession when stop throws: logs error (line 62)", async () => {
       const account = Object.values(accountsStore.getState().accounts)[0];
-      const origCreateComment = account.plebbit.createComment.bind(account.plebbit);
+      const origCreateComment = account.pkc.createComment.bind(account.pkc);
       let stopThrew = false;
-      vi.spyOn(account.plebbit, "createComment").mockImplementation(async (opts: any) => {
+      vi.spyOn(account.pkc, "createComment").mockImplementation(async (opts: any) => {
         const c = await origCreateComment(opts);
         vi.spyOn(c, "stop").mockImplementation(() => {
           stopThrew = true;
@@ -1842,8 +1623,8 @@ describe("accounts-actions", () => {
     test("error handler no-op when session abandoned", async () => {
       let commentRef: any;
       const account = Object.values(accountsStore.getState().accounts)[0];
-      const origCreate = account.plebbit.createComment.bind(account.plebbit);
-      vi.spyOn(account.plebbit, "createComment").mockImplementation(async (opts: any) => {
+      const origCreate = account.pkc.createComment.bind(account.pkc);
+      vi.spyOn(account.pkc, "createComment").mockImplementation(async (opts: any) => {
         const c = await origCreate(opts);
         commentRef = c;
         return c;
@@ -1898,8 +1679,8 @@ describe("accounts-actions", () => {
     test("publishComment error handler no-op when accountComment not in state yet", async () => {
       const account = Object.values(accountsStore.getState().accounts)[0];
       let commentRef: any;
-      const origCreate = account.plebbit.createComment.bind(account.plebbit);
-      vi.spyOn(account.plebbit, "createComment").mockImplementation(async (opts: any) => {
+      const origCreate = account.pkc.createComment.bind(account.pkc);
+      vi.spyOn(account.pkc, "createComment").mockImplementation(async (opts: any) => {
         const c = await origCreate(opts);
         commentRef = c;
         return c;
@@ -1929,8 +1710,8 @@ describe("accounts-actions", () => {
 
     test("publishComment error and onError callback when comment emits error", async () => {
       const account = Object.values(accountsStore.getState().accounts)[0];
-      const origCreate = account.plebbit.createComment.bind(account.plebbit);
-      vi.spyOn(account.plebbit, "createComment").mockImplementation(async (opts: any) => {
+      const origCreate = account.pkc.createComment.bind(account.pkc);
+      vi.spyOn(account.pkc, "createComment").mockImplementation(async (opts: any) => {
         const c = await origCreate(opts);
         const origPublish = c.publish.bind(c);
         vi.spyOn(c, "publish").mockImplementation(async () => {
@@ -2065,8 +1846,8 @@ describe("accounts-actions", () => {
       const account = Object.values(accountsStore.getState().accounts)[0];
       const EventEmitter = (await import("events")).default;
       const chainClient = new EventEmitter();
-      const origCreate = account.plebbit.createComment.bind(account.plebbit);
-      vi.spyOn(account.plebbit, "createComment").mockImplementation(async (opts: any) => {
+      const origCreate = account.pkc.createComment.bind(account.pkc);
+      vi.spyOn(account.pkc, "createComment").mockImplementation(async (opts: any) => {
         const c = await origCreate(opts);
         (c as any).clients = {
           chainProviders: {
@@ -2099,9 +1880,9 @@ describe("accounts-actions", () => {
 
     test("publishComment publishingstatechange when accountComment not in state yet: returns {} (line 788)", async () => {
       const account = Object.values(accountsStore.getState().accounts)[0];
-      const origCreate = account.plebbit.createComment.bind(account.plebbit);
+      const origCreate = account.pkc.createComment.bind(account.pkc);
       let commentRef: any;
-      vi.spyOn(account.plebbit, "createComment").mockImplementation(async (opts: any) => {
+      vi.spyOn(account.pkc, "createComment").mockImplementation(async (opts: any) => {
         const c = await origCreate(opts);
         commentRef = c;
         // Clear state after listeners are set up, then emit so listener sees no accountComment
@@ -2130,8 +1911,8 @@ describe("accounts-actions", () => {
       const account = Object.values(accountsStore.getState().accounts)[0];
       const EventEmitter = (await import("events")).default;
       const ipfsClient = new EventEmitter();
-      const origCreate = account.plebbit.createComment.bind(account.plebbit);
-      vi.spyOn(account.plebbit, "createComment").mockImplementation(async (opts: any) => {
+      const origCreate = account.pkc.createComment.bind(account.pkc);
+      vi.spyOn(account.pkc, "createComment").mockImplementation(async (opts: any) => {
         const c = await origCreate(opts);
         (c as any).clients = {
           ipfsGateways: { "https://ipfs.io": ipfsClient },
@@ -2165,8 +1946,8 @@ describe("accounts-actions", () => {
       const account = Object.values(accountsStore.getState().accounts)[0];
       const EventEmitter = (await import("events")).default;
       const ipfsClient = new EventEmitter();
-      const origCreate = account.plebbit.createComment.bind(account.plebbit);
-      vi.spyOn(account.plebbit, "createComment").mockImplementation(async (opts: any) => {
+      const origCreate = account.pkc.createComment.bind(account.pkc);
+      vi.spyOn(account.pkc, "createComment").mockImplementation(async (opts: any) => {
         const c = await origCreate(opts);
         (c as any).clients = {
           ipfsGateways: { "https://ipfs.io": ipfsClient },
@@ -2191,8 +1972,8 @@ describe("accounts-actions", () => {
 
     test("publishComment publish throws: stores error on the pending comment and calls onError", async () => {
       const account = Object.values(accountsStore.getState().accounts)[0];
-      const origCreate = account.plebbit.createComment.bind(account.plebbit);
-      vi.spyOn(account.plebbit, "createComment").mockImplementation(async (opts: any) => {
+      const origCreate = account.pkc.createComment.bind(account.pkc);
+      vi.spyOn(account.pkc, "createComment").mockImplementation(async (opts: any) => {
         const c = await origCreate(opts);
         vi.spyOn(c, "publish").mockRejectedValueOnce(new Error("publish failed"));
         return c;
@@ -2218,13 +1999,13 @@ describe("accounts-actions", () => {
 
     test("publishComment stores terminal publication state and ignores later errors", async () => {
       const account = Object.values(accountsStore.getState().accounts)[0];
-      const origCreate = account.plebbit.createComment.bind(account.plebbit);
+      const origCreate = account.pkc.createComment.bind(account.pkc);
       let commentRef: any;
       let resolveCommentCreated!: () => void;
       const commentCreated = new Promise<void>((resolve) => {
         resolveCommentCreated = resolve;
       });
-      vi.spyOn(account.plebbit, "createComment").mockImplementation(async (opts: any) => {
+      vi.spyOn(account.pkc, "createComment").mockImplementation(async (opts: any) => {
         const c = await origCreate(opts);
         commentRef = c;
         resolveCommentCreated();
@@ -2307,8 +2088,8 @@ describe("accounts-actions", () => {
 
     test("publishCommentEdit publish throws: onError called", async () => {
       const account = Object.values(accountsStore.getState().accounts)[0];
-      const origCreate = account.plebbit.createCommentEdit.bind(account.plebbit);
-      vi.spyOn(account.plebbit, "createCommentEdit").mockImplementation(async (opts: any) => {
+      const origCreate = account.pkc.createCommentEdit.bind(account.pkc);
+      vi.spyOn(account.pkc, "createCommentEdit").mockImplementation(async (opts: any) => {
         const e = await origCreate(opts);
         vi.spyOn(e, "publish").mockRejectedValueOnce(new Error("publish failed"));
         return e;
@@ -2332,8 +2113,8 @@ describe("accounts-actions", () => {
 
     test("publishCommentModeration publish throws: onError called", async () => {
       const account = Object.values(accountsStore.getState().accounts)[0];
-      const origCreate = account.plebbit.createCommentModeration.bind(account.plebbit);
-      vi.spyOn(account.plebbit, "createCommentModeration").mockImplementation(async (opts: any) => {
+      const origCreate = account.pkc.createCommentModeration.bind(account.pkc);
+      vi.spyOn(account.pkc, "createCommentModeration").mockImplementation(async (opts: any) => {
         const m = await origCreate(opts);
         vi.spyOn(m, "publish").mockRejectedValueOnce(new Error("publish failed"));
         return m;
@@ -2357,8 +2138,8 @@ describe("accounts-actions", () => {
 
     test("publishCommunityEdit publish throws: onError called", async () => {
       const account = Object.values(accountsStore.getState().accounts)[0];
-      const origCreate = account.plebbit.createCommunityEdit.bind(account.plebbit);
-      vi.spyOn(account.plebbit, "createCommunityEdit").mockImplementation(async (opts: any) => {
+      const origCreate = account.pkc.createCommunityEdit.bind(account.pkc);
+      vi.spyOn(account.pkc, "createCommunityEdit").mockImplementation(async (opts: any) => {
         const e = await origCreate(opts);
         vi.spyOn(e, "publish").mockRejectedValueOnce(new Error("publish failed"));
         return e;

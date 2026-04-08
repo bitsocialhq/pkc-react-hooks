@@ -10,7 +10,8 @@ const toString = (value) => {
     catch (_a) { }
     return value;
 };
-const getPublicationCommunityAddress = (options) => (options === null || options === void 0 ? void 0 : options.communityAddress) || (options === null || options === void 0 ? void 0 : options.subplebbitAddress);
+const getPublicationCommunityAddress = (options) => (options === null || options === void 0 ? void 0 : options.communityAddress) || (options === null || options === void 0 ? void 0 : options.communityAddress);
+const getAccountProtocolClient = (account) => (account === null || account === void 0 ? void 0 : account.pkc) || (account === null || account === void 0 ? void 0 : account.pkc);
 const validateAccountsActionsPublishCommentArguments = ({ publishCommentOptions, accountName, account, }) => {
     assert(!accountName || typeof accountName === "string", `publishComment accountName '${accountName}' not a string`);
     assert(accountName !== "", `publishComment accountName argument is empty string`);
@@ -19,7 +20,7 @@ const validateAccountsActionsPublishCommentArguments = ({ publishCommentOptions,
     assert(typeof publishCommentOptions.onChallenge === "function", "publishComment publishCommentOptions.onChallenge not a function");
     assert(typeof publishCommentOptions.onChallengeVerification === "function", "publishComment publishCommentOptions.onChallengeVerification not a function");
     assert(!publishCommentOptions.onError || typeof publishCommentOptions.onError === "function", "publishComment publishCommentOptions.onError not a function");
-    assert(typeof getPublicationCommunityAddress(publishCommentOptions) === "string", "publishComment publishCommentOptions.communityAddress/subplebbitAddress not a string");
+    assert(typeof getPublicationCommunityAddress(publishCommentOptions) === "string", "publishComment publishCommentOptions.communityAddress/communityAddress not a string");
     assert(!publishCommentOptions.parentCid || typeof publishCommentOptions.parentCid === "string", "publishComment publishCommentOptions.parentCid not a string");
     assert(!publishCommentOptions.timestamp || typeof publishCommentOptions.timestamp === "number", "publishComment publishCommentOptions.timestamp is not a number");
     // validate content
@@ -38,7 +39,7 @@ const validateAccountsActionsPublishVoteArguments = ({ publishVoteOptions, accou
     assert(typeof publishVoteOptions.onChallenge === "function", "publishVote publishVoteOptions.onChallenge not a function");
     assert(typeof publishVoteOptions.onChallengeVerification === "function", "publishVote publishVoteOptions.onChallengeVerification not a function");
     assert(!publishVoteOptions.onError || typeof publishVoteOptions.onError === "function", "publishVote publishVoteOptions.onError not a function");
-    assert(typeof getPublicationCommunityAddress(publishVoteOptions) === "string", "publishVote publishVoteOptions.communityAddress/subplebbitAddress not a string");
+    assert(typeof getPublicationCommunityAddress(publishVoteOptions) === "string", "publishVote publishVoteOptions.communityAddress/communityAddress not a string");
     assert(typeof publishVoteOptions.commentCid === "string", "publishVote publishVoteOptions.commentCid not a string");
     assert(publishVoteOptions.vote === 1 ||
         publishVoteOptions.vote === 0 ||
@@ -53,7 +54,7 @@ const validateAccountsActionsPublishCommentEditArguments = ({ publishCommentEdit
     assert(typeof publishCommentEditOptions.onChallenge === "function", "publishCommentEdit publishCommentEditOptions.onChallenge not a function");
     assert(typeof publishCommentEditOptions.onChallengeVerification === "function", "publishCommentEdit publishCommentEditOptions.onChallengeVerification not a function");
     assert(!publishCommentEditOptions.onError || typeof publishCommentEditOptions.onError === "function", "publishCommentEditOptions publishCommentEditOptions.onError not a function");
-    assert(typeof getPublicationCommunityAddress(publishCommentEditOptions) === "string", "publishCommentEdit publishCommentEditOptions.communityAddress/subplebbitAddress not a string");
+    assert(typeof getPublicationCommunityAddress(publishCommentEditOptions) === "string", "publishCommentEdit publishCommentEditOptions.communityAddress/communityAddress not a string");
     assert(typeof publishCommentEditOptions.commentCid === "string", "publishCommentEdit publishCommentEditOptions.commentCid not a string");
     assert(!publishCommentEditOptions.timestamp || typeof publishCommentEditOptions.timestamp === "number", "publishCommentEdit publishCommentEditOptions.timestamp is not a number");
 };
@@ -66,7 +67,7 @@ const validateAccountsActionsPublishCommentModerationArguments = ({ publishComme
     assert(typeof publishCommentModerationOptions.onChallengeVerification === "function", "publishCommentModeration publishCommentModerationOptions.onChallengeVerification not a function");
     assert(!publishCommentModerationOptions.onError ||
         typeof publishCommentModerationOptions.onError === "function", "publishCommentModerationOptions publishCommentModerationOptions.onError not a function");
-    assert(typeof getPublicationCommunityAddress(publishCommentModerationOptions) === "string", "publishCommentModeration publishCommentModerationOptions.communityAddress/subplebbitAddress not a string");
+    assert(typeof getPublicationCommunityAddress(publishCommentModerationOptions) === "string", "publishCommentModeration publishCommentModerationOptions.communityAddress/communityAddress not a string");
     assert(typeof publishCommentModerationOptions.commentCid === "string", "publishCommentModeration publishCommentModerationOptions.commentCid not a string");
     assert(!publishCommentModerationOptions.timestamp ||
         typeof publishCommentModerationOptions.timestamp === "number", "publishCommentModeration publishCommentModerationOptions.timestamp is not a number");
@@ -128,25 +129,25 @@ const validateAccountsDatabaseAddAccountArguments = (account) => {
 };
 const validateUseCommentArguments = (commentCid, account) => {
     assert(typeof commentCid === "string", `useComment commentCid '${commentCid}' not a string`);
-    assert((account === null || account === void 0 ? void 0 : account.plebbit) && typeof (account === null || account === void 0 ? void 0 : account.plebbit) === "object", `useComment account.plebbit '${account === null || account === void 0 ? void 0 : account.plebbit}' not an object`);
+    assert(getAccountProtocolClient(account) && typeof getAccountProtocolClient(account) === "object", `useComment account.pkc/account.pkc '${getAccountProtocolClient(account)}' not an object`);
 };
 const validateUseCommentsArguments = (commentCids, account) => {
     assert(Array.isArray(commentCids), `useComment commentCids '${toString(commentCids)}' not an array`);
     for (const commentCid of commentCids) {
         assert(typeof commentCid === "string", `useComments commentCids '${toString(commentCids)}' commentCid '${toString(commentCid)}' not a string`);
     }
-    assert((account === null || account === void 0 ? void 0 : account.plebbit) && typeof (account === null || account === void 0 ? void 0 : account.plebbit) === "object", `useComments account.plebbit '${account === null || account === void 0 ? void 0 : account.plebbit}' not an object`);
+    assert(getAccountProtocolClient(account) && typeof getAccountProtocolClient(account) === "object", `useComments account.pkc/account.pkc '${getAccountProtocolClient(account)}' not an object`);
 };
 const validateUseCommunityArguments = (communityAddress, account) => {
     assert(typeof communityAddress === "string", `useCommunity communityAddress '${communityAddress}' not a string`);
-    assert((account === null || account === void 0 ? void 0 : account.plebbit) && typeof (account === null || account === void 0 ? void 0 : account.plebbit) === "object", `useCommunity account.plebbit '${account === null || account === void 0 ? void 0 : account.plebbit}' not an object`);
+    assert(getAccountProtocolClient(account) && typeof getAccountProtocolClient(account) === "object", `useCommunity account.pkc/account.pkc '${getAccountProtocolClient(account)}' not an object`);
 };
 const validateUseCommunitiesArguments = (communityAddresses, account) => {
     assert(Array.isArray(communityAddresses), `useCommunity communityAddresses '${toString(communityAddresses)}' not an array`);
     for (const communityAddress of communityAddresses) {
         assert(typeof communityAddress === "string", `useCommunities communityAddresses '${toString(communityAddresses)}' communityAddress '${toString(communityAddress)}' not a string`);
     }
-    assert((account === null || account === void 0 ? void 0 : account.plebbit) && typeof (account === null || account === void 0 ? void 0 : account.plebbit) === "object", `useCommunity account.plebbit '${account === null || account === void 0 ? void 0 : account.plebbit}' not an object`);
+    assert(getAccountProtocolClient(account) && typeof getAccountProtocolClient(account) === "object", `useCommunity account.pkc/account.pkc '${getAccountProtocolClient(account)}' not an object`);
 };
 const feedSortTypes = new Set([
     "hot",

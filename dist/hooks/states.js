@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import Logger from "@pkc/pkc-logger";
 const log = Logger("bitsocial-react-hooks:states:hooks");
 import assert from "assert";
+import { getPageRpcClients } from "../lib/pkc-compat";
 import { useCommunities } from "./communities";
 import { communityPostsCacheExpired } from "../lib/utils";
 // TODO: implement getting peers
@@ -50,8 +51,9 @@ export function useClientsStates(options) {
             for (const clientUrl in clients === null || clients === void 0 ? void 0 : clients.pubsubKuboRpcClients) {
                 addState((_c = clients.pubsubKuboRpcClients[clientUrl]) === null || _c === void 0 ? void 0 : _c.state, clientUrl);
             }
-            for (const clientUrl in clients === null || clients === void 0 ? void 0 : clients.plebbitRpcClients) {
-                addState((_d = clients.plebbitRpcClients[clientUrl]) === null || _d === void 0 ? void 0 : _d.state, clientUrl);
+            const rpcClients = getPageRpcClients(clients);
+            for (const clientUrl in rpcClients) {
+                addState((_d = rpcClients[clientUrl]) === null || _d === void 0 ? void 0 : _d.state, clientUrl);
             }
             for (const clientUrl in clients === null || clients === void 0 ? void 0 : clients.libp2pJsClients) {
                 addState((_e = clients.libp2pJsClients[clientUrl]) === null || _e === void 0 ? void 0 : _e.state, clientUrl);
@@ -135,7 +137,7 @@ export function useCommunitiesStates(options) {
                             for (const clientUrl in community.clients.chainProviders[chainTicker]) {
                                 const state = community.clients.chainProviders[chainTicker][clientUrl].state;
                                 // TODO: client states should always be the same as community.updatingState
-                                // but possibly because of a plebbit-js bug they are sometimes not
+                                // but possibly because of a pkc-js bug they are sometimes not
                                 if (state !== "stopped" && state === community.updatingState) {
                                     states[community.updatingState].clientUrls.add(clientUrl);
                                 }
@@ -146,7 +148,7 @@ export function useCommunitiesStates(options) {
                         for (const clientUrl in community.clients[clientType]) {
                             const state = community.clients[clientType][clientUrl].state;
                             // TODO: client states should always be the same as community.updatingState
-                            // but possibly because of a plebbit-js bug they are sometimes not
+                            // but possibly because of a pkc-js bug they are sometimes not
                             if (state !== "stopped" && state === community.updatingState) {
                                 states[community.updatingState].clientUrls.add(clientUrl);
                             }

@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 import localForageLru from "../../lib/localforage-lru";
 const commentsDatabase = localForageLru.createInstance({
-    name: "plebbitReactHooks-comments",
+    name: "bitsocialReactHooks-comments",
     size: 5000,
 });
 import Logger from "@pkc/pkc-logger";
@@ -18,8 +18,8 @@ import utils from "../../lib/utils";
 import createStore from "zustand";
 import accountsStore from "../accounts";
 import repliesPagesStore from "../replies-pages";
-import { normalizeCommentCommunityAddress } from "../../lib/plebbit-compat";
-let plebbitGetCommentPending = {};
+import { normalizeCommentCommunityAddress } from "../../lib/pkc-compat";
+let pkcGetCommentPending = {};
 const liveComments = {};
 const liveCommentPromises = {};
 const commentAutoUpdateSubscribers = {};
@@ -174,7 +174,7 @@ const commentsStore = createStore((setState, getState) => {
         const liveCommentPromise = (() => __awaiter(void 0, void 0, void 0, function* () {
             const initialComment = normalizeCommentCommunityAddress(utils.clone(commentData || { cid: commentCid })) ||
                 { cid: commentCid };
-            const liveComment = normalizeCommentCommunityAddress(yield account.plebbit.createComment(initialComment));
+            const liveComment = normalizeCommentCommunityAddress(yield account.pkc.createComment(initialComment));
             initializeComment(commentCid, liveComment, account);
             return liveComment;
         }))();
@@ -232,10 +232,10 @@ const commentsStore = createStore((setState, getState) => {
                 const pendingKey = commentCid + account.id;
                 // comment is in store already, do nothing
                 let comment = comments[commentCid];
-                if (comment || plebbitGetCommentPending[pendingKey]) {
+                if (comment || pkcGetCommentPending[pendingKey]) {
                     return;
                 }
-                plebbitGetCommentPending[pendingKey] = true;
+                pkcGetCommentPending[pendingKey] = true;
                 try {
                     // try to find comment in database
                     comment = yield getCommentFromDatabase(commentCid, account);
@@ -256,14 +256,16 @@ const commentsStore = createStore((setState, getState) => {
                         repliesPagesStore.getState().addRepliesPageCommentsToStore(comment);
                         comment = yield ensureLiveComment(commentCid, account, comment);
                     }
-                    requestCommentUpdate(commentCid, comment, { stopAfterNextUpdate: true });
+                    if (comment) {
+                        requestCommentUpdate(commentCid, comment, { stopAfterNextUpdate: true });
+                    }
                 }
                 catch (e) {
                     addCommentError(commentCid, e);
                     throw e;
                 }
                 finally {
-                    plebbitGetCommentPending[pendingKey] = false;
+                    pkcGetCommentPending[pendingKey] = false;
                 }
             });
         },
@@ -329,12 +331,12 @@ const getCommentFromDatabase = (commentCid, account) => __awaiter(void 0, void 0
         return;
     }
     try {
-        const comment = normalizeCommentCommunityAddress(yield account.plebbit.createComment(commentData));
+        const comment = normalizeCommentCommunityAddress(yield account.pkc.createComment(commentData));
         return comment;
     }
     catch (e) {
         // need to log this always or it could silently fail in production and cache never be used
-        console.error("failed plebbit.createComment(cachedComment)", {
+        console.error("failed pkc.createComment(cachedComment)", {
             cachedComment: commentData,
             error: e,
         });
@@ -344,7 +346,7 @@ const getCommentFromDatabase = (commentCid, account) => __awaiter(void 0, void 0
 const originalState = commentsStore.getState();
 // async function because some stores have async init
 export const resetCommentsStore = () => __awaiter(void 0, void 0, void 0, function* () {
-    plebbitGetCommentPending = {};
+    pkcGetCommentPending = {};
     for (const commentCid in commentAutoUpdateSubscribers) {
         delete commentAutoUpdateSubscribers[commentCid];
     }
@@ -376,7 +378,7 @@ export const resetCommentsStore = () => __awaiter(void 0, void 0, void 0, functi
 });
 // reset database and store in between tests
 export const resetCommentsDatabaseAndStore = () => __awaiter(void 0, void 0, void 0, function* () {
-    yield localForageLru.createInstance({ name: "plebbitReactHooks-comments" }).clear();
+    yield localForageLru.createInstance({ name: "bitsocialReactHooks-comments" }).clear();
     yield resetCommentsStore();
 });
 export default commentsStore;

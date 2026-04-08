@@ -42,7 +42,7 @@ describe("replies utils", () => {
         feedsOptions,
         comments,
         {},
-        { [mockAccountId]: { plebbit: {}, blockedAddresses: {}, blockedCids: {} } },
+        { [mockAccountId]: { pkc: {}, blockedAddresses: {}, blockedCids: {} } },
       );
       expect(feeds[feedName]).toContainEqual(
         expect.objectContaining({ cid: "preloaded-reply-cid" }),
@@ -78,7 +78,7 @@ describe("replies utils", () => {
             nextCid: undefined,
           },
         },
-        { [mockAccountId]: { plebbit: {}, blockedAddresses: {}, blockedCids: {} } },
+        { [mockAccountId]: { pkc: {}, blockedAddresses: {}, blockedCids: {} } },
       );
       expect(feeds.feed1).toBeDefined();
     });
@@ -114,7 +114,7 @@ describe("replies utils", () => {
         feedsOptions,
         comments,
         {},
-        { [mockAccountId]: { plebbit: {}, blockedAddresses: {}, blockedCids: {} } },
+        { [mockAccountId]: { pkc: {}, blockedAddresses: {}, blockedCids: {} } },
       );
       expect(feeds.feed1).toContainEqual(expect.objectContaining({ cid: "depth1-fallback" }));
     });
@@ -149,7 +149,7 @@ describe("replies utils", () => {
         },
       };
       const feeds = getFilteredSortedFeeds(feedsOptions, comments, repliesPages, {
-        [mockAccountId]: { plebbit: {}, blockedAddresses: {}, blockedCids: {} },
+        [mockAccountId]: { pkc: {}, blockedAddresses: {}, blockedCids: {} },
       });
       expect(feeds.feed1).toHaveLength(1);
       expect(feeds.feed1[0].cid).toBe("r1");
@@ -184,7 +184,7 @@ describe("replies utils", () => {
         feedsOptions,
         comments,
         {},
-        { [mockAccountId]: { plebbit: {}, blockedAddresses: {}, blockedCids: {} } },
+        { [mockAccountId]: { pkc: {}, blockedAddresses: {}, blockedCids: {} } },
       );
       expect(feeds.feed1).toHaveLength(1);
       expect(feeds.feed1[0].cid).toBe("r1");
@@ -219,7 +219,7 @@ describe("replies utils", () => {
         feedsOptions,
         comments,
         {},
-        { [mockAccountId]: { plebbit: {}, blockedAddresses: {}, blockedCids: {} } },
+        { [mockAccountId]: { pkc: {}, blockedAddresses: {}, blockedCids: {} } },
       );
       expect(feeds.feed1.map((reply: any) => reply.cid)).toEqual(["r2", "r1"]);
     });
@@ -253,7 +253,7 @@ describe("replies utils", () => {
         feedsOptions,
         comments,
         {},
-        { [mockAccountId]: { plebbit: {}, blockedAddresses: {}, blockedCids: {} } },
+        { [mockAccountId]: { pkc: {}, blockedAddresses: {}, blockedCids: {} } },
       );
       expect(feeds.feed1).toContainEqual(expect.objectContaining({ cid: "fallback-reply" }));
     });
@@ -271,7 +271,7 @@ describe("replies utils", () => {
     beforeEach(() => {
       (accountsStore as any).getState = () => ({
         accountsComments: { [mockAccountId]: [] },
-        accounts: { [mockAccountId]: { plebbit: {} } },
+        accounts: { [mockAccountId]: { pkc: {} } },
       });
     });
 
@@ -301,7 +301,7 @@ describe("replies utils", () => {
       };
       (accountsStore as any).getState = () => ({
         accountsComments: { [mockAccountId]: [freshAccountReply] },
-        accounts: { [mockAccountId]: { plebbit: {} } },
+        accounts: { [mockAccountId]: { pkc: {} } },
       });
       const loadedFeeds = { [feedName]: [loadedReply] };
       const changed = addAccountsComments(feedsOptions, loadedFeeds);
@@ -335,7 +335,7 @@ describe("replies utils", () => {
       };
       (accountsStore as any).getState = () => ({
         accountsComments: { [mockAccountId]: [accountReply] },
-        accounts: { [mockAccountId]: { plebbit: {} } },
+        accounts: { [mockAccountId]: { pkc: {} } },
       });
       const loadedFeeds = { [feedName]: [existingReply] };
       const changed = addAccountsComments(feedsOptions, loadedFeeds);
@@ -365,7 +365,7 @@ describe("replies utils", () => {
       };
       (accountsStore as any).getState = () => ({
         accountsComments: { [mockAccountId]: [accountReply] },
-        accounts: { [mockAccountId]: { plebbit: {} } },
+        accounts: { [mockAccountId]: { pkc: {} } },
       });
       const loadedFeeds = { [feedName]: [] };
       const changed = addAccountsComments(feedsOptions, loadedFeeds);
@@ -396,7 +396,7 @@ describe("replies utils", () => {
       };
       (accountsStore as any).getState = () => ({
         accountsComments: { [mockAccountId]: [accountReply] },
-        accounts: { [mockAccountId]: { plebbit: {} } },
+        accounts: { [mockAccountId]: { pkc: {} } },
       });
       const loadedFeeds = { [feedName]: [] };
       const changed = addAccountsComments(feedsOptions, loadedFeeds);
@@ -430,7 +430,7 @@ describe("replies utils", () => {
       };
       (accountsStore as any).getState = () => ({
         accountsComments: { [mockAccountId]: [accountReplyWithCid] },
-        accounts: { [mockAccountId]: { plebbit: {} } },
+        accounts: { [mockAccountId]: { pkc: {} } },
       });
       const loadedFeeds = { [feedName]: [pendingReply] };
       const changed = addAccountsComments(feedsOptions, loadedFeeds);
@@ -524,7 +524,7 @@ describe("replies utils", () => {
     beforeEach(() => {
       (accountsStore as any).getState = () => ({
         accountsComments: { [mockAccountId]: [] },
-        accounts: { [mockAccountId]: { plebbit: {} } },
+        accounts: { [mockAccountId]: { pkc: {} } },
       });
     });
 
@@ -545,7 +545,7 @@ describe("replies utils", () => {
         feed1: [{ cid: "r1", communityAddress: "sub1", timestamp: 100 }],
       };
       const bufferedFeeds = { feed1: [] };
-      const accounts = { [mockAccountId]: { plebbit: {} } };
+      const accounts = { [mockAccountId]: { pkc: {} } };
       const result = await getLoadedFeeds(feedsOptions, loadedFeeds, bufferedFeeds, accounts);
       expect(result).toBe(loadedFeeds);
     });
@@ -568,7 +568,7 @@ describe("replies utils", () => {
         { cid: "r3", communityAddress: "sub1", timestamp: 3 },
       ];
       const bufferedFeeds = { feed1: bufferedReplies };
-      const accounts = { [mockAccountId]: { plebbit: {} } };
+      const accounts = { [mockAccountId]: { pkc: {} } };
       const result = await getLoadedFeeds(feedsOptions, loadedFeeds, bufferedFeeds, accounts);
       expect(result.feed1.length).toBeGreaterThanOrEqual(3);
     });
@@ -593,7 +593,7 @@ describe("replies utils", () => {
       const loadedFeeds = { [feedName]: loadedFeed };
       const updatedFeeds: Record<string, any> = {};
       const filteredSortedFeeds = { [feedName]: loadedFeed };
-      const accounts = { [mockAccountId]: { plebbit: {} } };
+      const accounts = { [mockAccountId]: { pkc: {} } };
 
       const result = await getUpdatedFeeds(
         feedsOptions,
@@ -623,7 +623,7 @@ describe("replies utils", () => {
       const loadedFeeds = { [feedName]: [loadedReply] };
       const updatedFeeds = { [feedName]: [previousUpdatedReply] };
       const filteredSortedFeeds = { [feedName]: [loadedReply] };
-      const accounts = { [mockAccountId]: { plebbit: {} } };
+      const accounts = { [mockAccountId]: { pkc: {} } };
 
       const result = await getUpdatedFeeds(
         feedsOptions,
@@ -643,7 +643,7 @@ describe("replies utils", () => {
       const loadedFeeds = { [feedName]: [] };
       const updatedFeeds: Record<string, any> = {};
       const filteredSortedFeeds = { [feedName]: [] };
-      const accounts = { [mockAccountId]: { plebbit: {} } };
+      const accounts = { [mockAccountId]: { pkc: {} } };
 
       const result = await getUpdatedFeeds(
         feedsOptions,
@@ -670,8 +670,8 @@ describe("replies utils", () => {
         ...loadedReply,
         updatedAt: 200,
       };
-      const plebbit = { validateComment: () => Promise.resolve(true) };
-      const accounts = { [mockAccountId]: { plebbit } };
+      const pkc = { validateComment: () => Promise.resolve(true) };
+      const accounts = { [mockAccountId]: { pkc } };
       const loadedFeeds = { [feedName]: [loadedReply] };
       const updatedFeeds = { [feedName]: [loadedReply] };
       const filteredSortedFeeds = { [feedName]: [newerCandidate] };

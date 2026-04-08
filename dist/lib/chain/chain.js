@@ -116,10 +116,10 @@ const nftAbi = [
 export const getWalletMessageToSign = (authorAddress, timestamp) => {
     // use plain JSON so the user can read what he's signing
     // property names must always be in this order for signature to match so don't use JSON.stringify
-    return `{"domainSeparator":"plebbit-author-wallet","authorAddress":"${authorAddress}","timestamp":${timestamp}}`;
+    return `{"domainSeparator":"pkc-author-wallet","authorAddress":"${authorAddress}","timestamp":${timestamp}}`;
 };
-export const getEthWalletFromPlebbitPrivateKey = (privateKeyBase64, authorAddress) => __awaiter(void 0, void 0, void 0, function* () {
-    // ignore private key used in plebbit-js signer mock so tests run faster, also make sure nobody uses it
+export const getEthWalletFromPkcPrivateKey = (privateKeyBase64, authorAddress) => __awaiter(void 0, void 0, void 0, function* () {
+    // ignore private key used in pkc-js signer mock so tests run faster, also make sure nobody uses it
     if (privateKeyBase64 === "private key") {
         return;
     }
@@ -135,8 +135,8 @@ export const getEthWalletFromPlebbitPrivateKey = (privateKeyBase64, authorAddres
     const signature = yield new ethers.Wallet(privateKeyHex).signMessage(getWalletMessageToSign(authorAddress, timestamp));
     return { address: ethAddress, timestamp, signature: { signature, type: "eip191" } };
 });
-export const getEthPrivateKeyFromPlebbitPrivateKey = (privateKeyBase64, authorAddress) => __awaiter(void 0, void 0, void 0, function* () {
-    // ignore private key used in plebbit-js signer mock so tests run faster, also make sure nobody uses it
+export const getEthPrivateKeyFromPkcPrivateKey = (privateKeyBase64, authorAddress) => __awaiter(void 0, void 0, void 0, function* () {
+    // ignore private key used in pkc-js signer mock so tests run faster, also make sure nobody uses it
     if (privateKeyBase64 === "private key") {
         return;
     }
@@ -149,8 +149,8 @@ export const getEthPrivateKeyFromPlebbitPrivateKey = (privateKeyBase64, authorAd
 });
 import { getPublicKey as ed25519GetPublicKey, sign as ed25519Sign, verify as ed25519Verify, } from "@noble/ed25519";
 import { toString as uint8ArrayToString, fromString as uint8ArrayFromString } from "uint8arrays";
-export const getSolWalletFromPlebbitPrivateKey = (privateKeyBase64, authorAddress) => __awaiter(void 0, void 0, void 0, function* () {
-    // ignore private key used in plebbit-js signer mock so tests run faster, also make sure nobody uses it
+export const getSolWalletFromPkcPrivateKey = (privateKeyBase64, authorAddress) => __awaiter(void 0, void 0, void 0, function* () {
+    // ignore private key used in pkc-js signer mock so tests run faster, also make sure nobody uses it
     if (privateKeyBase64 === "private key") {
         return;
     }
@@ -171,13 +171,13 @@ export const getSolWalletFromPlebbitPrivateKey = (privateKeyBase64, authorAddres
         signature: {
             signature: signatureBase58,
             // solana has no signature standard so just call it 'sol' for now
-            // can't use just 'ed25519' because we use it for plebbit signature with base64
+            // can't use just 'ed25519' because we use it for pkc signature with base64
             type: "sol",
         },
     };
 });
-export const getSolPrivateKeyFromPlebbitPrivateKey = (privateKeyBase64, authorAddress) => __awaiter(void 0, void 0, void 0, function* () {
-    // ignore private key used in plebbit-js signer mock so tests run faster, also make sure nobody uses it
+export const getSolPrivateKeyFromPkcPrivateKey = (privateKeyBase64, authorAddress) => __awaiter(void 0, void 0, void 0, function* () {
+    // ignore private key used in pkc-js signer mock so tests run faster, also make sure nobody uses it
     if (privateKeyBase64 === "private key") {
         return;
     }
@@ -249,10 +249,10 @@ export default {
     getNftMetadataUrl,
     getNftImageUrl,
     resolveEnsTxtRecord,
-    getEthWalletFromPlebbitPrivateKey,
-    getSolWalletFromPlebbitPrivateKey,
-    getEthPrivateKeyFromPlebbitPrivateKey,
-    getSolPrivateKeyFromPlebbitPrivateKey,
+    getEthWalletFromPkcPrivateKey,
+    getSolWalletFromPkcPrivateKey,
+    getEthPrivateKeyFromPkcPrivateKey,
+    getSolPrivateKeyFromPkcPrivateKey,
     validateEthWallet,
     validateEthWalletViem,
     validateSolWallet,

@@ -7,11 +7,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import PlebbitJs from "../../lib/plebbit-js";
+import PkcJs from "../../lib/pkc-js";
 import validator from "../../lib/validator";
 import chain from "../../lib/chain";
 import { v4 as uuid } from "uuid";
 import accountsDatabase from "./accounts-database";
+import { normalizeOptionsForPkcClient, withProtocolAliases } from "../../lib/pkc-compat";
 import Logger from "@pkc/pkc-logger";
 const log = Logger("bitsocial-react-hooks:accounts:stores");
 // default chain providers
@@ -31,34 +32,41 @@ const chainProviders = {
     },
 };
 // force using these options or can cause bugs
-export const overwritePlebbitOptions = {
+export const overwritePkcOptions = {
+    resolveAuthorNames: false,
     resolveAuthorAddresses: false,
     validatePages: false,
 };
-// default options aren't saved to database so they can be changed
-export const getDefaultPlebbitOptions = () => {
-    // default plebbit options defined by the electron process
-    // @ts-ignore
-    if (window.defaultPlebbitOptions) {
-        // @ts-ignore
-        const defaultPlebbitOptions = JSON.parse(JSON.stringify(Object.assign(Object.assign({}, window.defaultPlebbitOptions), { libp2pJsClientsOptions: undefined })));
-        // @ts-ignore
-        defaultPlebbitOptions.libp2pJsClientsOptions =
-            window.defaultPlebbitOptions.libp2pJsClientsOptions; // libp2pJsClientsOptions is not always just json
-        // add missing chain providers
-        if (!defaultPlebbitOptions.chainProviders) {
-            defaultPlebbitOptions.chainProviders = {};
-        }
-        // add default chain providers if missing
-        for (const chainTicker in chainProviders) {
-            if (!defaultPlebbitOptions.chainProviders[chainTicker]) {
-                defaultPlebbitOptions.chainProviders[chainTicker] = chainProviders[chainTicker];
-            }
-        }
-        return defaultPlebbitOptions;
+const aliasProtocolOptions = (options) => {
+    var _a, _b, _c, _d;
+    return (Object.assign(Object.assign({}, options), { resolveAuthorNames: (_b = (_a = options.resolveAuthorNames) !== null && _a !== void 0 ? _a : options.resolveAuthorAddresses) !== null && _b !== void 0 ? _b : false, resolveAuthorAddresses: (_d = (_c = options.resolveAuthorAddresses) !== null && _c !== void 0 ? _c : options.resolveAuthorNames) !== null && _d !== void 0 ? _d : false }));
+};
+const addMissingChainProviders = (options) => {
+    const optionsWithChainProviders = Object.assign({}, options);
+    if (!optionsWithChainProviders.chainProviders) {
+        optionsWithChainProviders.chainProviders = {};
     }
-    // default plebbit options for web client
-    return Object.assign({ ipfsGatewayUrls: [
+    for (const chainTicker in chainProviders) {
+        if (!optionsWithChainProviders.chainProviders[chainTicker]) {
+            optionsWithChainProviders.chainProviders[chainTicker] = chainProviders[chainTicker];
+        }
+    }
+    return optionsWithChainProviders;
+};
+// default options aren't saved to database so they can be changed
+export const getDefaultPkcOptions = () => {
+    // default PKC options defined by the electron process
+    // @ts-ignore
+    const defaultWindowOptions = window.defaultPkcOptions;
+    if (defaultWindowOptions) {
+        // @ts-ignore
+        const defaultPkcOptions = JSON.parse(JSON.stringify(Object.assign(Object.assign({}, defaultWindowOptions), { libp2pJsClientsOptions: undefined })));
+        // @ts-ignore
+        defaultPkcOptions.libp2pJsClientsOptions = defaultWindowOptions.libp2pJsClientsOptions; // libp2pJsClientsOptions is not always just json
+        return aliasProtocolOptions(addMissingChainProviders(Object.assign(Object.assign({}, defaultPkcOptions), overwritePkcOptions)));
+    }
+    // default PKC options for web client
+    return aliasProtocolOptions(Object.assign({ ipfsGatewayUrls: [
             "https://ipfsgateway.xyz",
             "https://gateway.plebpubsub.xyz",
             "https://gateway.forumindex.com",
@@ -71,41 +79,40 @@ export const getDefaultPlebbitOptions = () => {
             "https://peers.pleb.bot",
             "https://peers.plebpubsub.xyz",
             "https://peers.forumindex.com",
-        ], chainProviders }, overwritePlebbitOptions);
+        ], chainProviders }, overwritePkcOptions));
 };
 // the gateway to use in <img src> for nft avatars
 // @ts-ignore
 const defaultMediaIpfsGatewayUrl = window.defaultMediaIpfsGatewayUrl || "https://ipfs.io";
 const generateDefaultAccount = () => __awaiter(void 0, void 0, void 0, function* () {
-    const plebbitOptions = getDefaultPlebbitOptions();
-    const plebbit = yield PlebbitJs.Plebbit(plebbitOptions);
+    const pkcOptions = getDefaultPkcOptions();
+    const pkc = yield PkcJs.PKC(normalizeOptionsForPkcClient(pkcOptions));
     // handle errors or error events are uncaught
-    // no need to log them because plebbit-js already logs them
-    plebbit.on("error", (error) => log.error("uncaught plebbit instance error, should never happen", { error }));
-    const signer = yield plebbit.createSigner();
+    // no need to log them because pkc-js already logs them
+    pkc.on("error", (error) => log.error("uncaught pkc instance error, should never happen", { error }));
+    const signer = yield pkc.createSigner();
     const author = {
         address: signer.address,
         wallets: {
-            eth: yield chain.getEthWalletFromPlebbitPrivateKey(signer.privateKey, signer.address),
+            eth: yield chain.getEthWalletFromPkcPrivateKey(signer.privateKey, signer.address),
         },
     };
     const accountName = yield getNextAvailableDefaultAccountName();
     // communities where the account has a role, like moderator, admin, owner, etc.
     const communities = {};
-    const account = {
+    const account = withProtocolAliases({
         id: uuid(),
         version: accountsDatabase.accountVersion,
         name: accountName,
         author,
         signer,
-        plebbitOptions,
-        plebbit: plebbit,
+        pkcOptions,
         subscriptions: [],
         blockedAddresses: {},
         blockedCids: {},
         communities,
         mediaIpfsGatewayUrl: defaultMediaIpfsGatewayUrl,
-    };
+    }, pkc, pkcOptions);
     return account;
 });
 const getNextAvailableDefaultAccountName = () => __awaiter(void 0, void 0, void 0, function* () {
@@ -133,6 +140,6 @@ const getNextAvailableDefaultAccountName = () => __awaiter(void 0, void 0, void 
 });
 const accountGenerator = {
     generateDefaultAccount,
-    getDefaultPlebbitOptions,
+    getDefaultPkcOptions,
 };
 export default accountGenerator;

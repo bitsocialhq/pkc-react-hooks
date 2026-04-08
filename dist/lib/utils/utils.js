@@ -11,7 +11,8 @@ import assert from "assert";
 import QuickLru from "quick-lru";
 import Logger from "@pkc/pkc-logger";
 import { areEquivalentCommunityAddresses } from "../community-address";
-import { getCommentCommunityAddress, normalizePublicationOptionsForStore } from "../plebbit-compat";
+import { getCommentCommunityAddress, normalizePublicationOptionsForStore } from "../pkc-compat";
+import { getPageRpcClients } from "../pkc-compat";
 const log = Logger("bitsocial-react-hooks:utils");
 const merge = (...args) => {
     // @ts-ignore
@@ -48,8 +49,8 @@ const clone = (obj) => {
         if (obj[i] === undefined || obj[i] === null) {
             continue;
         }
-        // plebbit-js has a bug where plebbit instances have circular deps
-        if (((_b = (_a = obj[i]) === null || _a === void 0 ? void 0 : _a.constructor) === null || _b === void 0 ? void 0 : _b.name) === "Plebbit") {
+        // pkc-js has a bug where pkc instances have circular deps
+        if (((_b = (_a = obj[i]) === null || _a === void 0 ? void 0 : _a.constructor) === null || _b === void 0 ? void 0 : _b.name) === "PKC") {
             continue;
         }
         clonedObj[i] = obj[i];
@@ -192,7 +193,7 @@ const memoSync = (functionToMemo, memoOptions) => {
     return obj[memoedFunctionName];
 };
 const clientsOnStateChange = (clients, onStateChange) => {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
+    var _a, _b, _c, _d, _e, _f, _g;
     for (const clientUrl in clients === null || clients === void 0 ? void 0 : clients.ipfsGateways) {
         (_a = clients === null || clients === void 0 ? void 0 : clients.ipfsGateways) === null || _a === void 0 ? void 0 : _a[clientUrl].on("statechange", (state) => onStateChange(state, "ipfsGateways", clientUrl));
     }
@@ -202,20 +203,21 @@ const clientsOnStateChange = (clients, onStateChange) => {
     for (const clientUrl in clients === null || clients === void 0 ? void 0 : clients.pubsubKuboRpcClients) {
         (_c = clients === null || clients === void 0 ? void 0 : clients.pubsubKuboRpcClients) === null || _c === void 0 ? void 0 : _c[clientUrl].on("statechange", (state) => onStateChange(state, "pubsubKuboRpcClients", clientUrl));
     }
-    for (const clientUrl in clients === null || clients === void 0 ? void 0 : clients.plebbitRpcClients) {
-        (_d = clients === null || clients === void 0 ? void 0 : clients.plebbitRpcClients) === null || _d === void 0 ? void 0 : _d[clientUrl].on("statechange", (state) => onStateChange(state, "plebbitRpcClients", clientUrl));
+    const rpcClients = getPageRpcClients(clients);
+    for (const clientUrl in rpcClients) {
+        rpcClients === null || rpcClients === void 0 ? void 0 : rpcClients[clientUrl].on("statechange", (state) => onStateChange(state, "pkcRpcClients", clientUrl));
     }
     for (const clientUrl in clients === null || clients === void 0 ? void 0 : clients.libp2pJsClients) {
-        (_e = clients === null || clients === void 0 ? void 0 : clients.libp2pJsClients) === null || _e === void 0 ? void 0 : _e[clientUrl].on("statechange", (state) => onStateChange(state, "libp2pJsClients", clientUrl));
+        (_d = clients === null || clients === void 0 ? void 0 : clients.libp2pJsClients) === null || _d === void 0 ? void 0 : _d[clientUrl].on("statechange", (state) => onStateChange(state, "libp2pJsClients", clientUrl));
     }
     for (const chainTicker in clients === null || clients === void 0 ? void 0 : clients.chainProviders) {
-        for (const clientUrl in (_f = clients === null || clients === void 0 ? void 0 : clients.chainProviders) === null || _f === void 0 ? void 0 : _f[chainTicker]) {
-            (_h = (_g = clients === null || clients === void 0 ? void 0 : clients.chainProviders) === null || _g === void 0 ? void 0 : _g[chainTicker]) === null || _h === void 0 ? void 0 : _h[clientUrl].on("statechange", (state) => onStateChange(state, "chainProviders", clientUrl, chainTicker));
+        for (const clientUrl in (_e = clients === null || clients === void 0 ? void 0 : clients.chainProviders) === null || _e === void 0 ? void 0 : _e[chainTicker]) {
+            (_g = (_f = clients === null || clients === void 0 ? void 0 : clients.chainProviders) === null || _f === void 0 ? void 0 : _f[chainTicker]) === null || _g === void 0 ? void 0 : _g[clientUrl].on("statechange", (state) => onStateChange(state, "chainProviders", clientUrl, chainTicker));
         }
     }
 };
 const pageClientsOnStateChange = (clients, onStateChange) => {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
     for (const sortType in clients === null || clients === void 0 ? void 0 : clients.ipfsGateways) {
         for (const clientUrl in (_a = clients === null || clients === void 0 ? void 0 : clients.ipfsGateways) === null || _a === void 0 ? void 0 : _a[sortType]) {
             (_c = (_b = clients === null || clients === void 0 ? void 0 : clients.ipfsGateways) === null || _b === void 0 ? void 0 : _b[sortType]) === null || _c === void 0 ? void 0 : _c[clientUrl].on("statechange", (state) => onStateChange(state, "ipfsGateways", sortType, clientUrl));
@@ -226,14 +228,15 @@ const pageClientsOnStateChange = (clients, onStateChange) => {
             (_f = (_e = clients === null || clients === void 0 ? void 0 : clients.kuboRpcClients) === null || _e === void 0 ? void 0 : _e[sortType]) === null || _f === void 0 ? void 0 : _f[clientUrl].on("statechange", (state) => onStateChange(state, "kuboRpcClients", sortType, clientUrl));
         }
     }
-    for (const sortType in clients === null || clients === void 0 ? void 0 : clients.plebbitRpcClients) {
-        for (const clientUrl in (_g = clients === null || clients === void 0 ? void 0 : clients.plebbitRpcClients) === null || _g === void 0 ? void 0 : _g[sortType]) {
-            (_j = (_h = clients === null || clients === void 0 ? void 0 : clients.plebbitRpcClients) === null || _h === void 0 ? void 0 : _h[sortType]) === null || _j === void 0 ? void 0 : _j[clientUrl].on("statechange", (state) => onStateChange(state, "plebbitRpcClients", sortType, clientUrl));
+    const rpcPageClients = getPageRpcClients(clients);
+    for (const sortType in rpcPageClients) {
+        for (const clientUrl in rpcPageClients === null || rpcPageClients === void 0 ? void 0 : rpcPageClients[sortType]) {
+            (_g = rpcPageClients === null || rpcPageClients === void 0 ? void 0 : rpcPageClients[sortType]) === null || _g === void 0 ? void 0 : _g[clientUrl].on("statechange", (state) => onStateChange(state, "pkcRpcClients", sortType, clientUrl));
         }
     }
     for (const sortType in clients === null || clients === void 0 ? void 0 : clients.libp2pJsClients) {
-        for (const clientUrl in (_k = clients === null || clients === void 0 ? void 0 : clients.libp2pJsClients) === null || _k === void 0 ? void 0 : _k[sortType]) {
-            (_m = (_l = clients === null || clients === void 0 ? void 0 : clients.libp2pJsClients) === null || _l === void 0 ? void 0 : _l[sortType]) === null || _m === void 0 ? void 0 : _m[clientUrl].on("statechange", (state) => onStateChange(state, "libp2pJsClients", sortType, clientUrl));
+        for (const clientUrl in (_h = clients === null || clients === void 0 ? void 0 : clients.libp2pJsClients) === null || _h === void 0 ? void 0 : _h[sortType]) {
+            (_k = (_j = clients === null || clients === void 0 ? void 0 : clients.libp2pJsClients) === null || _j === void 0 ? void 0 : _j[sortType]) === null || _k === void 0 ? void 0 : _k[clientUrl].on("statechange", (state) => onStateChange(state, "libp2pJsClients", sortType, clientUrl));
         }
     }
 };
@@ -246,16 +249,16 @@ export const communityPostsCacheExpired = (community) => {
     const oneHourAgo = Date.now() / 1000 - 60 * 60;
     return oneHourAgo > community.fetchedAt;
 };
-export const removeInvalidComments = (comments_1, _a, plebbit_1) => __awaiter(void 0, [comments_1, _a, plebbit_1], void 0, function* (comments, { validateReplies, blockCommunity }, plebbit) {
+export const removeInvalidComments = (comments_1, _a, pkc_1) => __awaiter(void 0, [comments_1, _a, pkc_1], void 0, function* (comments, { validateReplies, blockCommunity }, pkc) {
     if (!comments.length) {
         return [];
     }
-    const isValid = yield Promise.all(comments.map((comment) => commentIsValid(comment, { validateReplies, blockCommunity }, plebbit)));
+    const isValid = yield Promise.all(comments.map((comment) => commentIsValid(comment, { validateReplies, blockCommunity }, pkc)));
     const validComments = comments.filter((_, i) => isValid[i]);
     return validComments;
 });
 const communitiesWithInvalidComments = {};
-export const commentIsValid = (comment_1, ...args_1) => __awaiter(void 0, [comment_1, ...args_1], void 0, function* (comment, { validateReplies, blockCommunity } = {}, plebbit) {
+export const commentIsValid = (comment_1, ...args_1) => __awaiter(void 0, [comment_1, ...args_1], void 0, function* (comment, { validateReplies, blockCommunity } = {}, pkc) {
     validateReplies = Boolean(validateReplies);
     if (blockCommunity === undefined || blockCommunity === null) {
         blockCommunity = true;
@@ -268,7 +271,7 @@ export const commentIsValid = (comment_1, ...args_1) => __awaiter(void 0, [comme
         return false;
     }
     try {
-        yield plebbit.validateComment(comment, { validateReplies });
+        yield pkc.validateComment(comment, { validateReplies });
     }
     catch (e) {
         if (blockCommunity) {
@@ -279,7 +282,7 @@ export const commentIsValid = (comment_1, ...args_1) => __awaiter(void 0, [comme
     }
     return true;
 });
-const repliesAreValid = (comment_1, ...args_1) => __awaiter(void 0, [comment_1, ...args_1], void 0, function* (comment, { validateReplies, blockCommunity } = {}, plebbit) {
+const repliesAreValid = (comment_1, ...args_1) => __awaiter(void 0, [comment_1, ...args_1], void 0, function* (comment, { validateReplies, blockCommunity } = {}, pkc) {
     var _a;
     validateReplies = Boolean(validateReplies);
     if (blockCommunity === undefined || blockCommunity === null) {
@@ -318,7 +321,7 @@ const repliesAreValid = (comment_1, ...args_1) => __awaiter(void 0, [comment_1, 
     }
     // signature verification
     try {
-        const promises = normalizedReplies.map((reply) => commentIsValid(reply, { validateReplies: false, blockCommunity: true }, plebbit));
+        const promises = normalizedReplies.map((reply) => commentIsValid(reply, { validateReplies: false, blockCommunity: true }, pkc));
         yield Promise.all(promises);
     }
     catch (e) {

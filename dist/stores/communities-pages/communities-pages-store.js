@@ -16,9 +16,9 @@ import communitiesStore from "../communities";
 import localForageLru from "../../lib/localforage-lru";
 import createStore from "zustand";
 import assert from "assert";
-import { createPlebbitCommunity, getPlebbitCreateCommunity, normalizeCommentCommunityAddress, } from "../../lib/plebbit-compat";
+import { createPkcCommunity, getPkcCreateCommunity, normalizeCommentCommunityAddress, } from "../../lib/pkc-compat";
 const communitiesPagesDatabase = localForageLru.createInstance({
-    name: "plebbitReactHooks-communitiesPages",
+    name: "bitsocialReactHooks-communitiesPages",
     size: 500,
 });
 const getCommunityPageStoreKey = (pageCid, pageType, accountId) => {
@@ -40,7 +40,7 @@ const communitiesPagesStore = createStore((setState, getState) => ({
         var _a;
         assert((community === null || community === void 0 ? void 0 : community.address) && typeof (community === null || community === void 0 ? void 0 : community.address) === "string", `communitiesPagesStore.addNextCommunityPageToStore community '${community}' invalid`);
         assert(sortType && typeof sortType === "string", `communitiesPagesStore.addNextCommunityPageToStore sortType '${sortType}' invalid`);
-        assert(typeof getPlebbitCreateCommunity(account === null || account === void 0 ? void 0 : account.plebbit) === "function", `communitiesPagesStore.addNextCommunityPageToStore account '${account}' invalid`);
+        assert(typeof getPkcCreateCommunity(account === null || account === void 0 ? void 0 : account.pkc) === "function", `communitiesPagesStore.addNextCommunityPageToStore account '${account}' invalid`);
         assert(!modQueue || Array.isArray(modQueue), `communitiesPagesStore.addNextCommunityPageToStore modQueue '${modQueue}' invalid`);
         let pageType = "posts";
         if (modQueue === null || modQueue === void 0 ? void 0 : modQueue[0]) {
@@ -231,13 +231,12 @@ const fetchPage = (pageCid, communityAddress, account, pageType) => __awaiter(vo
     if (cachedCommunityPage) {
         return cachedCommunityPage;
     }
-    if (!fetchPageCommunities[account.id] ||
-        fetchPageCommunities[account.id].plebbit !== account.plebbit) {
-        fetchPageCommunities[account.id] = { plebbit: account.plebbit, communities: {} };
+    if (!fetchPageCommunities[account.id] || fetchPageCommunities[account.id].pkc !== account.pkc) {
+        fetchPageCommunities[account.id] = { pkc: account.pkc, communities: {} };
     }
     const accountCommunities = fetchPageCommunities[account.id].communities;
     if (!accountCommunities[communityAddress]) {
-        accountCommunities[communityAddress] = yield createPlebbitCommunity(account.plebbit, {
+        accountCommunities[communityAddress] = yield createPkcCommunity(account.pkc, {
             address: communityAddress,
         });
         listeners.push(accountCommunities[communityAddress]);
@@ -310,7 +309,7 @@ export const resetCommunitiesPagesStore = () => __awaiter(void 0, void 0, void 0
 });
 // reset database and store in between tests
 export const resetCommunitiesPagesDatabaseAndStore = () => __awaiter(void 0, void 0, void 0, function* () {
-    yield localForageLru.createInstance({ name: "plebbitReactHooks-communitiesPages" }).clear();
+    yield localForageLru.createInstance({ name: "bitsocialReactHooks-communitiesPages" }).clear();
     yield resetCommunitiesPagesStore();
 });
 export default communitiesPagesStore;

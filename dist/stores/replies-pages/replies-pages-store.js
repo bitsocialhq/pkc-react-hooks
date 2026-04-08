@@ -18,7 +18,7 @@ import localForageLru from "../../lib/localforage-lru";
 import createStore from "zustand";
 import assert from "assert";
 const repliesPagesDatabase = localForageLru.createInstance({
-    name: "plebbitReactHooks-repliesPages",
+    name: "bitsocialReactHooks-repliesPages",
     size: 500,
 });
 // reset all event listeners in between tests
@@ -31,7 +31,7 @@ const repliesPagesStore = createStore((setState, getState) => ({
         var _a, _b;
         assert((comment === null || comment === void 0 ? void 0 : comment.cid) && typeof (comment === null || comment === void 0 ? void 0 : comment.cid) === "string", `repliesPagesStore.addNextRepliesPageToStore comment '${comment}' invalid`);
         assert(sortType && typeof sortType === "string", `repliesPagesStore.addNextRepliesPageToStore sortType '${sortType}' invalid`);
-        assert(typeof ((_a = account === null || account === void 0 ? void 0 : account.plebbit) === null || _a === void 0 ? void 0 : _a.createComment) === "function", `repliesPagesStore.addNextRepliesPageToStore account '${account}' invalid`);
+        assert(typeof ((_a = account === null || account === void 0 ? void 0 : account.pkc) === null || _a === void 0 ? void 0 : _a.createComment) === "function", `repliesPagesStore.addNextRepliesPageToStore account '${account}' invalid`);
         // check the preloaded replies on comment.replies.pages first, then the comment.replies.pageCids
         const repliesFirstPageCid = getRepliesFirstPageCid(comment, sortType);
         if (!repliesFirstPageCid) {
@@ -182,7 +182,7 @@ const onCommentRepliesClientsStateChange = (commentCid) => (clientState, clientT
         return { comments: Object.assign(Object.assign({}, state.comments), { [commentCid]: comment }) };
     });
 };
-const fetchPageComments = {}; // cache plebbit.createComment because sometimes it's slow
+const fetchPageComments = {}; // cache pkc.createComment because sometimes it's slow
 let fetchPagePending = {};
 const fetchPage = (pageCid, comment, account) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
@@ -192,7 +192,7 @@ const fetchPage = (pageCid, comment, account) => __awaiter(void 0, void 0, void 
         return cachedRepliesPage;
     }
     if (!fetchPageComments[comment.cid]) {
-        fetchPageComments[comment.cid] = yield account.plebbit.createComment({
+        fetchPageComments[comment.cid] = yield account.pkc.createComment({
             cid: comment.cid,
             postCid: comment.postCid,
             communityAddress: comment.communityAddress,
@@ -263,7 +263,7 @@ export const resetRepliesPagesStore = () => __awaiter(void 0, void 0, void 0, fu
 });
 // reset database and store in between tests
 export const resetRepliesPagesDatabaseAndStore = () => __awaiter(void 0, void 0, void 0, function* () {
-    yield localForageLru.createInstance({ name: "plebbitReactHooks-repliesPages" }).clear();
+    yield localForageLru.createInstance({ name: "bitsocialReactHooks-repliesPages" }).clear();
     yield resetRepliesPagesStore();
 });
 export default repliesPagesStore;

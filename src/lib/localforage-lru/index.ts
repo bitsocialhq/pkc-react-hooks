@@ -2,10 +2,7 @@ import localForageLru from "./localforage-lru";
 
 try {
   // for debugging without caching
-  if (
-    process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_NO_CACHE ||
-    process.env.REACT_APP_PLEBBIT_REACT_HOOKS_NO_CACHE
-  ) {
+  if (process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_NO_CACHE) {
     // @ts-ignore
     localForageLru.createInstance = () => {
       console.warn("@bitsocialnet/bitsocial-react-hooks cache is disabled for testing");

@@ -84,20 +84,20 @@ import {
 import { useClientsStates, useCommunitiesStates } from "./hooks/states";
 
 // pkc-rpc
-import { usePkcRpcSettings, usePlebbitRpcSettings } from "./hooks/plebbit-rpc";
+import { usePkcRpcSettings } from "./hooks/pkc-rpc";
 
 // chain
 import {
-  getEthWalletFromPlebbitPrivateKey,
-  getSolWalletFromPlebbitPrivateKey,
-  getEthPrivateKeyFromPlebbitPrivateKey,
-  getSolPrivateKeyFromPlebbitPrivateKey,
+  getEthWalletFromPkcPrivateKey,
+  getSolWalletFromPkcPrivateKey,
+  getEthPrivateKeyFromPkcPrivateKey,
+  getSolPrivateKeyFromPkcPrivateKey,
   validateEthWallet,
   validateSolWallet,
 } from "./lib/chain";
 
 // utils
-import { setPkcJs, restorePkcJs, setPlebbitJs, restorePlebbitJs } from "./lib/plebbit-js";
+import { setPkcJs, restorePkcJs } from "./lib/pkc-js";
 import { deleteDatabases, deleteCaches } from "./lib/debug-utils";
 
 // types
@@ -164,19 +164,16 @@ export {
   useCommunitiesStates,
   // pkc-rpc
   usePkcRpcSettings,
-  usePlebbitRpcSettings,
   // chain
-  getEthWalletFromPlebbitPrivateKey,
-  getSolWalletFromPlebbitPrivateKey,
-  getEthPrivateKeyFromPlebbitPrivateKey,
-  getSolPrivateKeyFromPlebbitPrivateKey,
+  getEthWalletFromPkcPrivateKey,
+  getSolWalletFromPkcPrivateKey,
+  getEthPrivateKeyFromPkcPrivateKey,
+  getSolPrivateKeyFromPkcPrivateKey,
   validateEthWallet,
   validateSolWallet,
   // utils
   setPkcJs,
   restorePkcJs,
-  setPlebbitJs,
-  restorePlebbitJs,
   deleteDatabases,
   deleteCaches,
 };
@@ -242,19 +239,16 @@ const hooks = {
   useCommunitiesStates,
   // pkc-rpc
   usePkcRpcSettings,
-  usePlebbitRpcSettings,
   // chain
-  getEthWalletFromPlebbitPrivateKey,
-  getSolWalletFromPlebbitPrivateKey,
-  getEthPrivateKeyFromPlebbitPrivateKey,
-  getSolPrivateKeyFromPlebbitPrivateKey,
+  getEthWalletFromPkcPrivateKey,
+  getSolWalletFromPkcPrivateKey,
+  getEthPrivateKeyFromPkcPrivateKey,
+  getSolPrivateKeyFromPkcPrivateKey,
   validateEthWallet,
   validateSolWallet,
   // utils
   setPkcJs,
   restorePkcJs,
-  setPlebbitJs,
-  restorePlebbitJs,
   deleteDatabases,
   deleteCaches,
 };

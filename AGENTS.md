@@ -16,7 +16,7 @@ Only record items that are repo-specific, likely to recur, and have a concrete m
 
 bitsocial-react-hooks (`@bitsocialnet/bitsocial-react-hooks`) is a React hooks library for the Bitsocial protocol. It provides React hooks and Zustand stores for interacting with decentralized communities — fetching comments, feeds, author data, publishing, account management, and more.
 
-This repository is its own project under the bitsocialnet org. The codebase is actively rebranding legacy `plebbit` / `subplebbit` terminology toward `pkc` / `community`; prefer current naming in new or updated code, but preserve compatibility where public APIs, stored data, or migrations still need legacy aliases.
+This repository is its own project under the bitsocialnet org. Use `pkc`, `community`, and `pkc-js` naming consistently in code, tests, docs, and file names.
 
 ## Instruction Priority
 
@@ -110,7 +110,7 @@ src/
 ### Naming and Branding Rules
 
 - Prefer `pkc`, `community`, and `pkc-js` naming in new or renamed code.
-- Preserve backward compatibility when legacy `plebbit` / `subplebbit` names remain part of the current public API, persisted data, or migration logic.
+- Do not introduce or preserve older protocol naming in code, tests, docs, or migrations unless the user explicitly asks for a compatibility bridge.
 - Package name and import path is `@bitsocialnet/bitsocial-react-hooks`. Use this in README examples and docs.
 
 ### Bug Investigation Rules

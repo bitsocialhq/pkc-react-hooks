@@ -1,13 +1,13 @@
 import {
-  getEthWalletFromPlebbitPrivateKey,
-  getSolWalletFromPlebbitPrivateKey,
-  getEthPrivateKeyFromPlebbitPrivateKey,
-  getSolPrivateKeyFromPlebbitPrivateKey,
+  getEthWalletFromPkcPrivateKey,
+  getSolWalletFromPkcPrivateKey,
+  getEthPrivateKeyFromPkcPrivateKey,
+  getSolPrivateKeyFromPkcPrivateKey,
   validateEthWallet,
   validateSolWallet,
 } from "../../dist";
 
-const plebbitPrivateKey = "mV8GRU5TGScen7UYZOuNQQ1CKe2G46DCc60moM1yLF4";
+const pkcPrivateKey = "mV8GRU5TGScen7UYZOuNQQ1CKe2G46DCc60moM1yLF4";
 const authorAddress = "authoraddress.eth";
 const walletTimestamp = 1740000000;
 
@@ -15,14 +15,14 @@ describe("chain", () => {
   describe("eth wallet", () => {
     let wallet, privateKey;
     beforeAll(async () => {
-      privateKey = await getEthPrivateKeyFromPlebbitPrivateKey(plebbitPrivateKey);
+      privateKey = await getEthPrivateKeyFromPkcPrivateKey(pkcPrivateKey);
       const dateNow = Date.now;
       Date.now = () => walletTimestamp * 1000;
-      wallet = await getEthWalletFromPlebbitPrivateKey(plebbitPrivateKey, authorAddress);
+      wallet = await getEthWalletFromPkcPrivateKey(pkcPrivateKey, authorAddress);
       Date.now = dateNow;
     });
 
-    test("getEthWalletFromPlebbitPrivateKey", async () => {
+    test("getEthWalletFromPkcPrivateKey", async () => {
       expect(wallet.timestamp).toBe(walletTimestamp);
       expect(wallet.address).toBe("0x37BC48124fDf985DC3983E2e8414606D4a996ED7");
       expect(wallet.privateKey).toBe(undefined);
@@ -82,7 +82,7 @@ describe("chain", () => {
     });
 
     test("fixture wallet 2", async () => {
-      const plebbitPrivateKey = "Q2dsIzBWgHZuof0Aq1KhtMhmW2z5gM8NYY0NL+daBcI";
+      const pkcPrivateKey = "Q2dsIzBWgHZuof0Aq1KhtMhmW2z5gM8NYY0NL+daBcI";
       const authorAddress = "12D3KooWNzFJQ7CCcSCZNg7925WWHMzqVS4qe663PfQ3uBNCHZQb";
       const wallet = {
         address: "0x9097084f571AF3BFcc64E4dcA33FB3223071E4aB",
@@ -96,10 +96,7 @@ describe("chain", () => {
 
       const dateNow = Date.now;
       Date.now = () => wallet.timestamp * 1000;
-      const generatedWallet = await getEthWalletFromPlebbitPrivateKey(
-        plebbitPrivateKey,
-        authorAddress,
-      );
+      const generatedWallet = await getEthWalletFromPkcPrivateKey(pkcPrivateKey, authorAddress);
       Date.now = dateNow;
 
       expect(wallet.address).toBe(generatedWallet.address);
@@ -113,14 +110,14 @@ describe("chain", () => {
   describe("sol wallet", () => {
     let wallet, privateKey;
     beforeAll(async () => {
-      privateKey = await getSolPrivateKeyFromPlebbitPrivateKey(plebbitPrivateKey);
+      privateKey = await getSolPrivateKeyFromPkcPrivateKey(pkcPrivateKey);
       const dateNow = Date.now;
       Date.now = () => walletTimestamp * 1000;
-      wallet = await getSolWalletFromPlebbitPrivateKey(plebbitPrivateKey, authorAddress);
+      wallet = await getSolWalletFromPkcPrivateKey(pkcPrivateKey, authorAddress);
       Date.now = dateNow;
     });
 
-    test("getSolWalletFromPlebbitPrivateKey", async () => {
+    test("getSolWalletFromPkcPrivateKey", async () => {
       expect(wallet.timestamp).toBe(walletTimestamp);
       expect(wallet.address).toBe("AzAfDLMxbptaq5Ppy4BK5aEsEzvTYNFAub5ffewbSdn9");
       expect(wallet.privateKey).toBe(undefined);

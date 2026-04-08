@@ -11,9 +11,9 @@ test-karma-webpack
 # pkc-js database files
 .pkc
 .pkc/
-# legacy plebbit-js database files
-.plebbit
-.plebbit/
+# legacy pkc-js database files
+.pkc
+.pkc/
 
 # build folder 
 dist/

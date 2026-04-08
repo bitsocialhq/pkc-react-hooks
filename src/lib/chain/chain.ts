@@ -174,14 +174,14 @@ const nftAbi = [
 export const getWalletMessageToSign = (authorAddress: string, timestamp: number) => {
   // use plain JSON so the user can read what he's signing
   // property names must always be in this order for signature to match so don't use JSON.stringify
-  return `{"domainSeparator":"plebbit-author-wallet","authorAddress":"${authorAddress}","timestamp":${timestamp}}`;
+  return `{"domainSeparator":"pkc-author-wallet","authorAddress":"${authorAddress}","timestamp":${timestamp}}`;
 };
 
-export const getEthWalletFromPlebbitPrivateKey = async (
+export const getEthWalletFromPkcPrivateKey = async (
   privateKeyBase64: string,
   authorAddress: string,
 ) => {
-  // ignore private key used in plebbit-js signer mock so tests run faster, also make sure nobody uses it
+  // ignore private key used in pkc-js signer mock so tests run faster, also make sure nobody uses it
   if (privateKeyBase64 === "private key") {
     return;
   }
@@ -203,11 +203,11 @@ export const getEthWalletFromPlebbitPrivateKey = async (
   return { address: ethAddress, timestamp, signature: { signature, type: "eip191" } };
 };
 
-export const getEthPrivateKeyFromPlebbitPrivateKey = async (
+export const getEthPrivateKeyFromPkcPrivateKey = async (
   privateKeyBase64: string,
   authorAddress: string,
 ) => {
-  // ignore private key used in plebbit-js signer mock so tests run faster, also make sure nobody uses it
+  // ignore private key used in pkc-js signer mock so tests run faster, also make sure nobody uses it
   if (privateKeyBase64 === "private key") {
     return;
   }
@@ -226,11 +226,11 @@ import {
   verify as ed25519Verify,
 } from "@noble/ed25519";
 import { toString as uint8ArrayToString, fromString as uint8ArrayFromString } from "uint8arrays";
-export const getSolWalletFromPlebbitPrivateKey = async (
+export const getSolWalletFromPkcPrivateKey = async (
   privateKeyBase64: string,
   authorAddress: string,
 ) => {
-  // ignore private key used in plebbit-js signer mock so tests run faster, also make sure nobody uses it
+  // ignore private key used in pkc-js signer mock so tests run faster, also make sure nobody uses it
   if (privateKeyBase64 === "private key") {
     return;
   }
@@ -257,17 +257,17 @@ export const getSolWalletFromPlebbitPrivateKey = async (
     signature: {
       signature: signatureBase58,
       // solana has no signature standard so just call it 'sol' for now
-      // can't use just 'ed25519' because we use it for plebbit signature with base64
+      // can't use just 'ed25519' because we use it for pkc signature with base64
       type: "sol",
     },
   };
 };
 
-export const getSolPrivateKeyFromPlebbitPrivateKey = async (
+export const getSolPrivateKeyFromPkcPrivateKey = async (
   privateKeyBase64: string,
   authorAddress: string,
 ) => {
-  // ignore private key used in plebbit-js signer mock so tests run faster, also make sure nobody uses it
+  // ignore private key used in pkc-js signer mock so tests run faster, also make sure nobody uses it
   if (privateKeyBase64 === "private key") {
     return;
   }
@@ -398,10 +398,10 @@ export default {
   getNftMetadataUrl,
   getNftImageUrl,
   resolveEnsTxtRecord,
-  getEthWalletFromPlebbitPrivateKey,
-  getSolWalletFromPlebbitPrivateKey,
-  getEthPrivateKeyFromPlebbitPrivateKey,
-  getSolPrivateKeyFromPlebbitPrivateKey,
+  getEthWalletFromPkcPrivateKey,
+  getSolWalletFromPkcPrivateKey,
+  getEthPrivateKeyFromPkcPrivateKey,
+  getSolPrivateKeyFromPkcPrivateKey,
   validateEthWallet,
   validateEthWalletViem,
   validateSolWallet,

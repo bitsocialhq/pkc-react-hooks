@@ -3,8 +3,8 @@ import { Role } from "../../types";
 import commentsStore from "../comments";
 import repliesPagesStore from "../replies-pages";
 import communitiesPagesStore from "../communities-pages";
-import PlebbitJsModule, { setPlebbitJs, restorePlebbitJs } from "../../lib/plebbit-js";
-import PlebbitJsMock from "../../lib/plebbit-js/plebbit-js-mock";
+import PkcJsModule, { setPkcJs, restorePkcJs } from "../../lib/pkc-js";
+import PkcJsMock from "../../lib/pkc-js/pkc-js-mock";
 
 describe("accountsStore utils", () => {
   const author = { address: "author address" };
@@ -327,7 +327,7 @@ describe("accountsStore utils", () => {
         {
           communityAddress: "sub.eth",
           timestamp: 25,
-          subplebbitEdit: { title: "edited title" },
+          communityEdit: { title: "edited title" },
         },
       ] as any);
       expect(summary.spoiler).toEqual({ timestamp: 15, value: true });
@@ -652,8 +652,8 @@ describe("accountsStore utils", () => {
   });
 
   describe("addShortAddressesToAccountComment", () => {
-    beforeAll(() => setPlebbitJs(PlebbitJsMock));
-    afterAll(() => restorePlebbitJs());
+    beforeAll(() => setPkcJs(PkcJsMock));
+    afterAll(() => restorePkcJs());
 
     test("adds shortCommunityAddress and author.shortAddress on success", () => {
       const comment = {
@@ -666,8 +666,8 @@ describe("accountsStore utils", () => {
       expect(result).not.toBe(comment);
     });
     test("safe-failure when getShortAddress throws", () => {
-      const orig = PlebbitJsModule.Plebbit.getShortAddress;
-      PlebbitJsModule.Plebbit.getShortAddress = () => {
+      const orig = PkcJsModule.PKC.getShortAddress;
+      PkcJsModule.PKC.getShortAddress = () => {
         throw new Error("mock throw");
       };
       try {
@@ -680,7 +680,7 @@ describe("accountsStore utils", () => {
         expect(result.communityAddress).toBe("eip155:0x1234567890abcdef");
         expect(result.shortCommunityAddress).toBeUndefined();
       } finally {
-        PlebbitJsModule.Plebbit.getShortAddress = orig;
+        PkcJsModule.PKC.getShortAddress = orig;
       }
     });
   });

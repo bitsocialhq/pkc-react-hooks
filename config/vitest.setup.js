@@ -15,7 +15,7 @@ import localforage from "localforage";
 // }})
 
 // fix TypeError: Failed to execute 'digest' on 'SubtleCrypto': 2nd argument is not instance of ArrayBuffer, Buffer, TypedArray, or DataView.
-// which is because @noble/ed25519 in getSolWalletFromPlebbitPrivateKey doesn't use the correct crypto because of the vitest/jsdom env
+// which is because @noble/ed25519 in getSolWalletFromPkcPrivateKey doesn't use the correct crypto because of the vitest/jsdom env
 {
   // don't put digest in global scope
   const digest = globalThis.crypto.subtle.digest.bind(globalThis.crypto.subtle);

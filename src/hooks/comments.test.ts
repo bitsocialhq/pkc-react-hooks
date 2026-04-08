@@ -1,18 +1,18 @@
 import { act } from "@testing-library/react";
 import testUtils, { renderHook } from "../lib/test-utils";
-import { useComment, useComments, useValidateComment, setPlebbitJs } from "..";
+import { useComment, useComments, useValidateComment, setPkcJs } from "..";
 import { getCommentFreshness, preferFresher } from "./comments";
 import * as accountsHooks from "./accounts";
 import commentsStore from "../stores/comments";
 import communitiesPagesStore from "../stores/communities-pages";
 import accountsStore from "../stores/accounts";
-import PlebbitJsMock, { Plebbit, Comment, Pages } from "../lib/plebbit-js/plebbit-js-mock";
+import PkcJsMock, { PKC, Comment, Pages } from "../lib/pkc-js/pkc-js-mock";
 import repliesPagesStore from "../stores/replies-pages";
 
 describe("comments", () => {
   beforeAll(async () => {
-    // set plebbit-js mock and reset dbs
-    setPlebbitJs(PlebbitJsMock);
+    // set pkc-js mock and reset dbs
+    setPkcJs(PkcJsMock);
     await testUtils.resetDatabasesAndStores();
 
     testUtils.silenceReactWarnings();
@@ -68,12 +68,12 @@ describe("comments", () => {
       expect(rendered.result.current.upvoteCount).toBe(3);
 
       // make sure comments are still in database
-      const getComment = Plebbit.prototype.getComment;
+      const getComment = PKC.prototype.getComment;
       const simulateUpdateEvent = Comment.prototype.simulateUpdateEvent;
-      // mock getComment on the Plebbit class
-      Plebbit.prototype.getComment = (options) => {
+      // mock getComment on the PKC class
+      PKC.prototype.getComment = (options) => {
         throw Error(
-          `plebbit.getComment called with comment cid '${options?.cid}' should not be called when getting comments from database`,
+          `pkc.getComment called with comment cid '${options?.cid}' should not be called when getting comments from database`,
         );
       };
       // don't simulate 'update' event during this test to see if the updates were saved to database
@@ -113,7 +113,7 @@ describe("comments", () => {
 
       // restore mock
       Comment.prototype.simulateUpdateEvent = simulateUpdateEvent;
-      Plebbit.prototype.getComment = getComment;
+      PKC.prototype.getComment = getComment;
     });
 
     test(`onlyIfCached: true doesn't add to store`, async () => {
@@ -208,8 +208,8 @@ describe("comments", () => {
     });
 
     test("addCommentToStore catch path logs error", async () => {
-      const origCreateComment = Plebbit.prototype.createComment;
-      (Plebbit.prototype as any).createComment = () =>
+      const origCreateComment = PKC.prototype.createComment;
+      (PKC.prototype as any).createComment = () =>
         Promise.reject(new Error("createComment failed"));
       const logSpy = vi.spyOn(console, "error").mockImplementation(() => {});
       const rendered = renderHook<any, any>((cid) => useComment({ commentCid: cid }));
@@ -219,19 +219,19 @@ describe("comments", () => {
           timeout: 2000,
         })
         .catch(() => {});
-      (Plebbit.prototype as any).createComment = origCreateComment;
+      (PKC.prototype as any).createComment = origCreateComment;
       logSpy.mockRestore();
     });
 
     test("addCommentToStore catch path for useComments", async () => {
-      const origCreateComment = Plebbit.prototype.createComment;
-      (Plebbit.prototype as any).createComment = () =>
+      const origCreateComment = PKC.prototype.createComment;
+      (PKC.prototype as any).createComment = () =>
         Promise.reject(new Error("createComment failed"));
       const logSpy = vi.spyOn(console, "error").mockImplementation(() => {});
       const rendered = renderHook<any, any>((cids) => useComments({ commentCids: cids }));
       rendered.rerender(["comment cid 998", "comment cid 999"]);
       await new Promise((r) => setTimeout(r, 100));
-      (Plebbit.prototype as any).createComment = origCreateComment;
+      (PKC.prototype as any).createComment = origCreateComment;
       logSpy.mockRestore();
     });
 
@@ -260,7 +260,7 @@ describe("comments", () => {
     });
 
     test("useComments keeps fetching-ipfs state while entries are still cid-only placeholders", async () => {
-      const account = { id: "mock-placeholder-comments-account", plebbit: {} };
+      const account = { id: "mock-placeholder-comments-account", pkc: {} };
       const commentCids = ["comment cid placeholder 1", "comment cid placeholder 2"];
       const useAccountSpy = vi.spyOn(accountsHooks, "useAccount").mockReturnValue(account as any);
 
@@ -598,11 +598,11 @@ describe("comments", () => {
       expect(stopCommentAutoUpdate).toHaveBeenCalled();
     });
 
-    test("plebbit.createComment throws adds useComment().error", async () => {
+    test("pkc.createComment throws adds useComment().error", async () => {
       // mock update to save comment instance
-      const createComment = Plebbit.prototype.createComment;
-      Plebbit.prototype.createComment = async function () {
-        throw Error("plebbit.createComment error");
+      const createComment = PKC.prototype.createComment;
+      PKC.prototype.createComment = async function () {
+        throw Error("pkc.createComment error");
       };
 
       const rendered = renderHook<any, any>((commentCid) => useComment({ commentCid }));
@@ -610,13 +610,13 @@ describe("comments", () => {
       rendered.rerender("comment cid");
 
       // first error
-      await waitFor(() => rendered.result.current.error.message === "plebbit.createComment error");
-      expect(rendered.result.current.error.message).toBe("plebbit.createComment error");
-      expect(rendered.result.current.errors[0].message).toBe("plebbit.createComment error");
+      await waitFor(() => rendered.result.current.error.message === "pkc.createComment error");
+      expect(rendered.result.current.error.message).toBe("pkc.createComment error");
+      expect(rendered.result.current.errors[0].message).toBe("pkc.createComment error");
       expect(rendered.result.current.errors.length).toBe(1);
 
       // restore mock
-      Plebbit.prototype.createComment = createComment;
+      PKC.prototype.createComment = createComment;
     });
 
     test("useComment with autoUpdate false can refresh manually", async () => {
@@ -638,7 +638,7 @@ describe("comments", () => {
 
     test("useComment with autoUpdate true refreshes through the store without freezing", async () => {
       const commentCid = "comment cid live refresh";
-      const account = { id: "mock-live-account", plebbit: {} };
+      const account = { id: "mock-live-account", pkc: {} };
       const refreshComment = vi.fn().mockResolvedValue({
         cid: commentCid,
         timestamp: 1,
@@ -670,7 +670,7 @@ describe("comments", () => {
 
     test("useComment with autoUpdate false keeps the frozen snapshot when refresh fails", async () => {
       const commentCid = "comment cid refresh failure";
-      const account = { id: "mock-frozen-account", plebbit: {} };
+      const account = { id: "mock-frozen-account", pkc: {} };
       const useAccountSpy = vi.spyOn(accountsHooks, "useAccount").mockReturnValue(account as any);
       try {
         commentsStore.setState((state: any) => ({
@@ -701,7 +701,7 @@ describe("comments", () => {
     test("useComment with autoUpdate false ignores stale refresh completions after commentCid changes", async () => {
       const previousCommentCid = "comment cid stale previous";
       const nextCommentCid = "comment cid stale next";
-      const account = { id: "mock-stale-comment-account", plebbit: {} };
+      const account = { id: "mock-stale-comment-account", pkc: {} };
       let resolveRefresh!: (comment: Comment) => void;
       const refreshComment = vi.fn().mockImplementation(
         () =>
@@ -787,7 +787,7 @@ describe("comments", () => {
 
     test("useComment with autoUpdate true rethrows refresh errors without freezing", async () => {
       const commentCid = "comment cid live refresh failure";
-      const account = { id: "mock-live-failure-account", plebbit: {} };
+      const account = { id: "mock-live-failure-account", pkc: {} };
       const refreshComment = vi.fn().mockRejectedValue(new Error("refresh failed"));
       const useAccountSpy = vi.spyOn(accountsHooks, "useAccount").mockReturnValue(account as any);
       try {
@@ -893,7 +893,7 @@ describe("comments", () => {
 
     test("useComments with autoUpdate true refreshes through the store without freezing", async () => {
       const commentCids = ["comment cid live refresh 1", "comment cid live refresh 2"];
-      const account = { id: "mock-live-comments-account", plebbit: {} };
+      const account = { id: "mock-live-comments-account", pkc: {} };
       const refreshComment = vi
         .fn()
         .mockResolvedValueOnce({
@@ -938,7 +938,7 @@ describe("comments", () => {
 
     test("useComments with autoUpdate false refresh handles empty-string comment ids", async () => {
       const commentCids = ["comment cid refresh empty", ""];
-      const account = { id: "mock-empty-comments-account", plebbit: {} };
+      const account = { id: "mock-empty-comments-account", pkc: {} };
       const refreshComment = vi
         .fn()
         .mockResolvedValueOnce({
@@ -1031,7 +1031,7 @@ describe("comments", () => {
     test("useComments with autoUpdate false ignores stale refresh completions after the comments key changes", async () => {
       const previousCommentCid = "comment cid stale comments previous";
       const nextCommentCid = "comment cid stale comments next";
-      const account = { id: "mock-stale-comments-account", plebbit: {} };
+      const account = { id: "mock-stale-comments-account", pkc: {} };
       let resolveRefresh!: (comment: Comment) => void;
       const refreshComment = vi.fn().mockImplementation(
         () =>
@@ -1118,7 +1118,7 @@ describe("comments", () => {
     test("useComments resets frozen state when different cid selections share the same Array#toString()", async () => {
       const combinedCommentCid = "comment cid key collision,1";
       const splitCommentCids = ["comment cid key collision", "1"];
-      const account = { id: "mock-key-collision-account", plebbit: {} };
+      const account = { id: "mock-key-collision-account", pkc: {} };
       const useAccountSpy = vi.spyOn(accountsHooks, "useAccount").mockReturnValue(account as any);
 
       try {
@@ -1227,7 +1227,7 @@ describe("comments", () => {
 
   describe("useComment preferFresher with repliesPagesComment (branches 88, 94)", () => {
     test("uses repliesPagesComment when fresher than store (branch 94)", async () => {
-      setPlebbitJs(PlebbitJsMock);
+      setPkcJs(PkcJsMock);
       await testUtils.resetDatabasesAndStores();
 
       const cid = "prefer-replies-cid";
@@ -1243,7 +1243,7 @@ describe("comments", () => {
     });
 
     test("uses commentFromStore when fresher than repliesPagesComment", async () => {
-      setPlebbitJs(PlebbitJsMock);
+      setPkcJs(PkcJsMock);
       await testUtils.resetDatabasesAndStores();
 
       const cid = "prefer-fresher-cid";
@@ -1261,7 +1261,7 @@ describe("comments", () => {
 
   describe("useComments preferFresher loop", () => {
     test("preferFresher skips when candidate is undefined (branch 169)", async () => {
-      setPlebbitJs(PlebbitJsMock);
+      setPkcJs(PkcJsMock);
       await testUtils.resetDatabasesAndStores();
 
       const cid1 = "comments-no-candidate-c1";
@@ -1289,7 +1289,7 @@ describe("comments", () => {
     });
 
     test("preferFresher merges communitiesPagesComments when fresher", async () => {
-      setPlebbitJs(PlebbitJsMock);
+      setPkcJs(PkcJsMock);
       await testUtils.resetDatabasesAndStores();
 
       const cid1 = "comments-prefer-c1";
@@ -1377,9 +1377,9 @@ describe("comments", () => {
 
     test("is invalid", async () => {
       const validateComment = Pages.prototype.validateComment;
-      Plebbit.prototype.validateComment = async function () {
+      PKC.prototype.validateComment = async function () {
         throw Error(
-          "this is not an error, plebbit.validateComment was mocked by a test to throw invalid",
+          "this is not an error, pkc.validateComment was mocked by a test to throw invalid",
         );
       };
 
@@ -1405,7 +1405,7 @@ describe("comments", () => {
       expect(rendered.result.current.valid).toBe(false);
       expect(rendered.result.current.state).toBe("failed");
 
-      Plebbit.prototype.validateComment = validateComment;
+      PKC.prototype.validateComment = validateComment;
       console.log = originalLog;
     });
   });

@@ -1,10 +1,10 @@
 import assert from "assert";
 import QuickLru from "quick-lru";
 import Logger from "@pkc/pkc-logger";
-import PlebbitJs from "../plebbit-js";
+import PkcJs from "../pkc-js";
 import { Comment } from "../../types";
 import { areEquivalentCommunityAddresses } from "../community-address";
-import { getCommentCommunityAddress, normalizePublicationOptionsForStore } from "../plebbit-compat";
+import { getCommentCommunityAddress, normalizePublicationOptionsForStore } from "../pkc-compat";
 import { getPageRpcClients } from "../pkc-compat";
 const log = Logger("bitsocial-react-hooks:utils");
 
@@ -44,8 +44,8 @@ const clone = (obj: any) => {
     if (obj[i] === undefined || obj[i] === null) {
       continue;
     }
-    // plebbit-js has a bug where plebbit instances have circular deps
-    if (obj[i]?.constructor?.name === "Plebbit") {
+    // pkc-js has a bug where pkc instances have circular deps
+    if (obj[i]?.constructor?.name === "PKC") {
       continue;
     }
     clonedObj[i] = obj[i];
@@ -295,15 +295,13 @@ export const communityPostsCacheExpired = (community: any) => {
 export const removeInvalidComments = async (
   comments: Comment[],
   { validateReplies, blockCommunity }: any,
-  plebbit: any,
+  pkc: any,
 ) => {
   if (!comments.length) {
     return [];
   }
   const isValid = await Promise.all(
-    comments.map((comment) =>
-      commentIsValid(comment, { validateReplies, blockCommunity }, plebbit),
-    ),
+    comments.map((comment) => commentIsValid(comment, { validateReplies, blockCommunity }, pkc)),
   );
   const validComments = comments.filter((_, i) => isValid[i]);
   return validComments;
@@ -313,7 +311,7 @@ const communitiesWithInvalidComments: { [communityAddress: string]: boolean } = 
 export const commentIsValid = async (
   comment: Comment,
   { validateReplies, blockCommunity }: any = {},
-  plebbit: any,
+  pkc: any,
 ) => {
   validateReplies = Boolean(validateReplies);
   if (blockCommunity === undefined || blockCommunity === null) {
@@ -329,7 +327,7 @@ export const commentIsValid = async (
     return false;
   }
   try {
-    await plebbit.validateComment(comment, { validateReplies });
+    await pkc.validateComment(comment, { validateReplies });
   } catch (e) {
     if (blockCommunity) {
       communitiesWithInvalidComments[comment.communityAddress] = true;
@@ -343,7 +341,7 @@ export const commentIsValid = async (
 const repliesAreValid = async (
   comment: Comment,
   { validateReplies, blockCommunity }: any = {},
-  plebbit: any,
+  pkc: any,
 ) => {
   validateReplies = Boolean(validateReplies);
   if (blockCommunity === undefined || blockCommunity === null) {
@@ -393,7 +391,7 @@ const repliesAreValid = async (
   // signature verification
   try {
     const promises = normalizedReplies.map((reply) =>
-      commentIsValid(reply, { validateReplies: false, blockCommunity: true }, plebbit),
+      commentIsValid(reply, { validateReplies: false, blockCommunity: true }, pkc),
     );
     await Promise.all(promises);
   } catch (e: any) {

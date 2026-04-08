@@ -21,7 +21,7 @@ const mockAccountId = "mock-account-id";
 const makeMockAccounts = (overrides: any = {}) => ({
   [mockAccountId]: {
     id: mockAccountId,
-    plebbit: {},
+    pkc: {},
     blockedAddresses: {},
     blockedCids: {},
     ...overrides,
@@ -879,10 +879,10 @@ describe("feeds utils", () => {
       const feedsOptions = {
         [feedName]: { accountId: mockAccountId },
       };
-      const plebbit = {
+      const pkc = {
         validateComment: () => Promise.resolve(true),
       };
-      const accounts = makeMockAccounts({ plebbit });
+      const accounts = makeMockAccounts({ pkc });
       const loadedFeed = [{ cid: "r1", communityAddress: "sub1", timestamp: 100, updatedAt: 100 }];
       const loadedFeeds = { [feedName]: loadedFeed };
       const updatedFeeds = {

@@ -1,8 +1,8 @@
 import accountsDatabase from "./accounts-database";
-import { setPlebbitJs, restorePlebbitJs } from "../../lib/plebbit-js";
-import PlebbitJsMock from "../../lib/plebbit-js/plebbit-js-mock";
+import { setPkcJs, restorePkcJs } from "../../lib/pkc-js";
+import PkcJsMock from "../../lib/pkc-js/pkc-js-mock";
 import localForage from "localforage";
-import { getDefaultPlebbitOptions } from "./account-generator";
+import { getDefaultPkcOptions } from "./account-generator";
 
 const createPerAccountDatabase = (databaseName: string, accountId: string) =>
   localForage.createInstance({
@@ -10,8 +10,8 @@ const createPerAccountDatabase = (databaseName: string, accountId: string) =>
   });
 
 describe("accounts-database", () => {
-  beforeAll(() => setPlebbitJs(PlebbitJsMock));
-  afterAll(() => restorePlebbitJs());
+  beforeAll(() => setPkcJs(PkcJsMock));
+  afterAll(() => restorePkcJs());
 
   beforeEach(async () => {
     await accountsDatabase.accountsMetadataDatabase.clear();
@@ -27,7 +27,7 @@ describe("accounts-database", () => {
       wallets: { eth: undefined },
     },
     signer: { privateKey: "private key", address: "address" },
-    plebbitOptions: getDefaultPlebbitOptions(),
+    pkcOptions: getDefaultPkcOptions(),
     subscriptions: [],
     blockedAddresses: {},
     blockedCids: {},
@@ -115,7 +115,7 @@ describe("accounts-database", () => {
         version: 1,
         author: { address: "address" },
         signer: { privateKey: "private key", address: "address" },
-        plebbitOptions: {
+        pkcOptions: {
           ipfsHttpClientsOptions: ["http://old:5001"],
           pubsubHttpClientsOptions: ["http://pubsub:5001"],
         },
@@ -127,15 +127,15 @@ describe("accounts-database", () => {
         V1: "v1-acc",
       });
       const accounts = await accountsDatabase.getAccounts(["v1-acc"]);
-      expect(accounts["v1-acc"].plebbitOptions.kuboRpcClientsOptions).toEqual(["http://old:5001"]);
-      expect(accounts["v1-acc"].plebbitOptions.pubsubKuboRpcClientsOptions).toEqual([
+      expect(accounts["v1-acc"].pkcOptions.kuboRpcClientsOptions).toEqual(["http://old:5001"]);
+      expect(accounts["v1-acc"].pkcOptions.pubsubKuboRpcClientsOptions).toEqual([
         "http://pubsub:5001",
       ]);
-      expect(accounts["v1-acc"].plebbitOptions.ipfsHttpClientsOptions).toBeUndefined();
+      expect(accounts["v1-acc"].pkcOptions.ipfsHttpClientsOptions).toBeUndefined();
       expect(accounts["v1-acc"].version).toBe(4);
     });
 
-    test("v1 migration when plebbitOptions absent (branch 111)", async () => {
+    test("v1 migration when pkcOptions absent (branch 111)", async () => {
       const v1Account = {
         id: "v1-no-opts",
         name: "V1NoOpts",
@@ -177,7 +177,7 @@ describe("accounts-database", () => {
         version: 1,
         author: { address: "address" },
         signer: { privateKey: "private key", address: "address" },
-        plebbitOptions: { pubsubHttpClientsOptions: ["http://pubsub:5001"] },
+        pkcOptions: { pubsubHttpClientsOptions: ["http://pubsub:5001"] },
       };
       await accountsDatabase.accountsDatabase.setItem("v1-no-ipfs", v1Account);
       await accountsDatabase.accountsMetadataDatabase.setItem("accountIds", ["v1-no-ipfs"]);
@@ -186,8 +186,8 @@ describe("accounts-database", () => {
         V1NoIpfs: "v1-no-ipfs",
       });
       const accounts = await accountsDatabase.getAccounts(["v1-no-ipfs"]);
-      expect(accounts["v1-no-ipfs"].plebbitOptions.kuboRpcClientsOptions).toBeUndefined();
-      expect(accounts["v1-no-ipfs"].plebbitOptions.pubsubKuboRpcClientsOptions).toEqual([
+      expect(accounts["v1-no-ipfs"].pkcOptions.kuboRpcClientsOptions).toBeUndefined();
+      expect(accounts["v1-no-ipfs"].pkcOptions.pubsubKuboRpcClientsOptions).toEqual([
         "http://pubsub:5001",
       ]);
     });
@@ -199,7 +199,7 @@ describe("accounts-database", () => {
         version: 1,
         author: { address: "address" },
         signer: { privateKey: "private key", address: "address" },
-        plebbitOptions: { ipfsHttpClientsOptions: ["http://ipfs:5001"] },
+        pkcOptions: { ipfsHttpClientsOptions: ["http://ipfs:5001"] },
       };
       await accountsDatabase.accountsDatabase.setItem("v1-no-pubsub", v1Account);
       await accountsDatabase.accountsMetadataDatabase.setItem("accountIds", ["v1-no-pubsub"]);
@@ -208,10 +208,10 @@ describe("accounts-database", () => {
         V1NoPubsub: "v1-no-pubsub",
       });
       const accounts = await accountsDatabase.getAccounts(["v1-no-pubsub"]);
-      expect(accounts["v1-no-pubsub"].plebbitOptions.kuboRpcClientsOptions).toEqual([
+      expect(accounts["v1-no-pubsub"].pkcOptions.kuboRpcClientsOptions).toEqual([
         "http://ipfs:5001",
       ]);
-      expect(accounts["v1-no-pubsub"].plebbitOptions.pubsubKuboRpcClientsOptions).toBeUndefined();
+      expect(accounts["v1-no-pubsub"].pkcOptions.pubsubKuboRpcClientsOptions).toBeUndefined();
     });
 
     test("v2 migration skips when wallets already exist", async () => {
@@ -224,7 +224,7 @@ describe("accounts-database", () => {
           wallets: { eth: { address: "0x" }, sol: { address: "sol" } },
         },
         signer: { privateKey: "private key", address: "address" },
-        plebbitOptions: {},
+        pkcOptions: {},
       };
       (v2Account as any).address = "address";
       await accountsDatabase.accountsDatabase.setItem("v2-with-wallets", v2Account);
@@ -245,7 +245,7 @@ describe("accounts-database", () => {
         version: 2,
         author: { address: "address" },
         signer: { privateKey: "private key", address: "address" },
-        plebbitOptions: {},
+        pkcOptions: {},
       };
       (v2Account as any).address = "address";
       await accountsDatabase.accountsDatabase.setItem("v2-acc", v2Account);
@@ -273,7 +273,7 @@ describe("accounts-database", () => {
           },
         },
         signer: { privateKey: "private key", address: "address" },
-        plebbitOptions: {},
+        pkcOptions: {},
       };
       await accountsDatabase.accountsDatabase.setItem("v3-acc", v3Account);
       await accountsDatabase.accountsMetadataDatabase.setItem("accountIds", ["v3-acc"]);
@@ -300,7 +300,7 @@ describe("accounts-database", () => {
           },
         },
         signer: { privateKey: "private key", address: "address" },
-        plebbitOptions: {},
+        pkcOptions: {},
       };
       await accountsDatabase.accountsDatabase.setItem("v3-seconds", v3Account);
       await accountsDatabase.accountsMetadataDatabase.setItem("accountIds", ["v3-seconds"]);
@@ -348,74 +348,74 @@ describe("accounts-database", () => {
       );
     });
 
-    test("strips default plebbit options from stored account", async () => {
-      const acc = makeAccount({ plebbitOptions: getDefaultPlebbitOptions() });
+    test("strips default pkc options from stored account", async () => {
+      const acc = makeAccount({ pkcOptions: getDefaultPkcOptions() });
       await accountsDatabase.addAccount(acc);
       const stored = await accountsDatabase.accountsDatabase.getItem(acc.id);
-      expect(stored.plebbitOptions).toBeUndefined();
+      expect(stored.pkcOptions).toBeUndefined();
     });
 
-    test("plebbit error handler is invoked when plebbit emits error (func coverage)", async () => {
+    test("pkc error handler is invoked when pkc emits error (func coverage)", async () => {
       const customOpts = {
-        ...getDefaultPlebbitOptions(),
+        ...getDefaultPkcOptions(),
         ipfsGatewayUrls: ["https://custom.ipfs"],
       };
-      const acc = makeAccount({ plebbitOptions: customOpts });
-      const OrigPlebbit = (await import("../../lib/plebbit-js")).default.Plebbit;
-      const WrapperPlebbit = async (opts: any) => {
-        const p = await OrigPlebbit(opts);
+      const acc = makeAccount({ pkcOptions: customOpts });
+      const OrigPkc = (await import("../../lib/pkc-js")).default.PKC;
+      const WrapperPkc = async (opts: any) => {
+        const p = await OrigPkc(opts);
         p.destroy = () => {
           p.emit("error", new Error("test error"));
           return Promise.resolve();
         };
         return p;
       };
-      setPlebbitJs(WrapperPlebbit);
+      setPkcJs(WrapperPkc);
       try {
         await accountsDatabase.addAccount(acc);
         await new Promise((r) => setTimeout(r, 20));
         const stored = await accountsDatabase.accountsDatabase.getItem(acc.id);
         expect(stored).toBeDefined();
       } finally {
-        setPlebbitJs(PlebbitJsMock);
+        setPkcJs(PkcJsMock);
       }
     });
 
-    test("validates custom plebbit options and destroys plebbit instance", async () => {
+    test("validates custom pkc options and destroys pkc instance", async () => {
       const customOpts = {
-        ...getDefaultPlebbitOptions(),
+        ...getDefaultPkcOptions(),
         ipfsGatewayUrls: ["https://custom.ipfs"],
       };
-      const acc = makeAccount({ plebbitOptions: customOpts });
+      const acc = makeAccount({ pkcOptions: customOpts });
       const destroySpy = vi.fn().mockResolvedValue(undefined);
-      const OrigPlebbit = (await import("../../lib/plebbit-js")).default.Plebbit;
-      const WrapperPlebbit = async (opts: any) => {
-        const p = await OrigPlebbit(opts);
+      const OrigPkc = (await import("../../lib/pkc-js")).default.PKC;
+      const WrapperPkc = async (opts: any) => {
+        const p = await OrigPkc(opts);
         p.destroy = destroySpy;
         return p;
       };
-      setPlebbitJs(WrapperPlebbit);
+      setPkcJs(WrapperPkc);
       try {
         await accountsDatabase.addAccount(acc);
         expect(destroySpy).toHaveBeenCalled();
       } finally {
-        setPlebbitJs(PlebbitJsMock);
+        setPkcJs(PkcJsMock);
       }
     });
 
-    test("addAccount completes when plebbit.destroy rejects (no catch, gc only)", async () => {
+    test("addAccount completes when pkc.destroy rejects (no catch, gc only)", async () => {
       const customOpts = {
-        ...getDefaultPlebbitOptions(),
+        ...getDefaultPkcOptions(),
         ipfsGatewayUrls: ["https://custom.ipfs"],
       };
-      const acc = makeAccount({ plebbitOptions: customOpts });
-      const OrigPlebbit = (await import("../../lib/plebbit-js")).default.Plebbit;
-      const WrapperPlebbit = async (opts: any) => {
-        const p = await OrigPlebbit(opts);
+      const acc = makeAccount({ pkcOptions: customOpts });
+      const OrigPkc = (await import("../../lib/pkc-js")).default.PKC;
+      const WrapperPkc = async (opts: any) => {
+        const p = await OrigPkc(opts);
         p.destroy = () => Promise.reject(new Error("destroy failed"));
         return p;
       };
-      setPlebbitJs(WrapperPlebbit);
+      setPkcJs(WrapperPkc);
       const handler = () => {}; // swallow unhandled rejection from destroy
       process.on("unhandledRejection", handler);
       try {
@@ -425,7 +425,7 @@ describe("accounts-database", () => {
         expect(stored).toBeDefined();
       } finally {
         process.off("unhandledRejection", handler);
-        setPlebbitJs(PlebbitJsMock);
+        setPkcJs(PkcJsMock);
       }
     });
   });
@@ -692,7 +692,7 @@ describe("accounts-database", () => {
       });
     });
 
-    test("builds compact edit indexes for community and subplebbit targets", async () => {
+    test("builds compact edit indexes for community and community targets", async () => {
       const acc = makeAccount({ id: "legacy-edit-targets", name: "LegacyEditTargets" });
       await accountsDatabase.addAccount(acc);
       const editsDb = createPerAccountDatabase("accountEdits", acc.id);
@@ -702,7 +702,7 @@ describe("accounts-database", () => {
         timestamp: 10,
       });
       await editsDb.setItem("1", {
-        subplebbitAddress: "legacy-community.eth",
+        communityAddress: "legacy-community.eth",
         description: "legacy",
         timestamp: 20,
       });
@@ -1194,19 +1194,19 @@ describe("accounts-database", () => {
       expect(account.name).toBe("GA1");
     });
 
-    test("plebbit error handler is invoked when error emitted (line 103)", async () => {
+    test("pkc error handler is invoked when error emitted (line 103)", async () => {
       const acc = makeAccount({ id: "err-acc", name: "ErrAcc" });
       await accountsDatabase.addAccount(acc);
       const account = await accountsDatabase.getAccount(acc.id);
-      account.plebbit.emit("error", new Error("test plebbit error"));
+      account.pkc.emit("error", new Error("test pkc error"));
     });
   });
 
-  describe("getAccounts with no plebbitOptions in stored account", () => {
-    test("applies getDefaultPlebbitOptions when stored account has no plebbitOptions", async () => {
+  describe("getAccounts with no pkcOptions in stored account", () => {
+    test("applies getDefaultPkcOptions when stored account has no pkcOptions", async () => {
       const acc = makeAccount({ id: "no-opts", name: "NoOpts" });
-      const toStore = { ...acc, plebbit: undefined };
-      delete (toStore as any).plebbitOptions;
+      const toStore = { ...acc, pkc: undefined };
+      delete (toStore as any).pkcOptions;
       await accountsDatabase.accountsDatabase.setItem(acc.id, toStore);
       await accountsDatabase.accountsMetadataDatabase.setItem("accountIds", [acc.id]);
       await accountsDatabase.accountsMetadataDatabase.setItem("activeAccountId", acc.id);
@@ -1214,8 +1214,8 @@ describe("accounts-database", () => {
         NoOpts: acc.id,
       });
       const accounts = await accountsDatabase.getAccounts([acc.id]);
-      expect(accounts[acc.id].plebbitOptions).toBeDefined();
-      expect(accounts[acc.id].plebbitOptions.ipfsGatewayUrls).toBeDefined();
+      expect(accounts[acc.id].pkcOptions).toBeDefined();
+      expect(accounts[acc.id].pkcOptions.ipfsGatewayUrls).toBeDefined();
     });
   });
 

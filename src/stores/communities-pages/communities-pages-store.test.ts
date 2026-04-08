@@ -70,7 +70,7 @@ class MockCommunity {
 
 const mockAccount: any = {
   id: "mock account id",
-  plebbit: {
+  pkc: {
     createCommunity: async ({ address }: any) => new MockCommunity({ address }),
   },
 };
@@ -192,7 +192,7 @@ describe("communities pages store", () => {
   });
 
   test("resetCommunitiesPagesStore after addNextCommunityPageToStore clears listeners and state", async () => {
-    const mockCommunity = await mockAccount.plebbit.createCommunity({
+    const mockCommunity = await mockAccount.pkc.createCommunity({
       address: "reset-listener-sub",
     });
     const sortType = "new";
@@ -234,8 +234,8 @@ describe("communities pages store", () => {
   test("addNextCommunityPageToStore scopes cached page clients per account", async () => {
     const createCommunityA = vi.fn(async ({ address }: any) => new MockCommunity({ address }));
     const createCommunityB = vi.fn(async ({ address }: any) => new MockCommunity({ address }));
-    const accountA = { id: "account-a", plebbit: { createCommunity: createCommunityA } };
-    const accountB = { id: "account-b", plebbit: { createCommunity: createCommunityB } };
+    const accountA = { id: "account-a", pkc: { createCommunity: createCommunityA } };
+    const accountB = { id: "account-b", pkc: { createCommunity: createCommunityB } };
     const community = new MockCommunity({ address: "shared-community-address" });
     const sortType = "new";
     const firstPageCid = community.posts.pageCids[sortType];
@@ -275,8 +275,8 @@ describe("communities pages store", () => {
     });
     const createCommunityA = vi.fn(async () => makeModQueueCommunity("account-a"));
     const createCommunityB = vi.fn(async () => makeModQueueCommunity("account-b"));
-    const accountA = { id: "account-a", plebbit: { createCommunity: createCommunityA } };
-    const accountB = { id: "account-b", plebbit: { createCommunity: createCommunityB } };
+    const accountA = { id: "account-a", pkc: { createCommunity: createCommunityA } };
+    const accountB = { id: "account-b", pkc: { createCommunity: createCommunityB } };
     const community = {
       address: "shared-community-address",
       modQueue: {
@@ -315,7 +315,7 @@ describe("communities pages store", () => {
   test("invalidateCommunityPages clears stored page chains for posts", async () => {
     const firstPageCid = "invalidate-posts-page-1";
     const secondPageCid = "invalidate-posts-page-2";
-    const db = localForageLru.createInstance({ name: "plebbitReactHooks-communitiesPages" });
+    const db = localForageLru.createInstance({ name: "bitsocialReactHooks-communitiesPages" });
 
     await db.setItem(firstPageCid, {
       nextCid: secondPageCid,
@@ -424,7 +424,7 @@ describe("communities pages store", () => {
   });
 
   test("fetchPage returns cached page when in database", async () => {
-    const mockCommunity = await mockAccount.plebbit.createCommunity({
+    const mockCommunity = await mockAccount.pkc.createCommunity({
       address: "community address 1",
     });
     const sortType = "new";
@@ -433,7 +433,7 @@ describe("communities pages store", () => {
       nextCid: firstPageCid + " - next",
       comments: [{ cid: "cached-1", communityAddress: "community address 1" }],
     };
-    const db = localForageLru.createInstance({ name: "plebbitReactHooks-communitiesPages" });
+    const db = localForageLru.createInstance({ name: "bitsocialReactHooks-communitiesPages" });
     await db.setItem(firstPageCid, cachedPage);
 
     act(() => {
@@ -449,12 +449,12 @@ describe("communities pages store", () => {
   });
 
   test("invalidateCommunityPages removes loaded page chain from store and database", async () => {
-    const mockCommunity = await mockAccount.plebbit.createCommunity({
+    const mockCommunity = await mockAccount.pkc.createCommunity({
       address: "invalidate-pages-community",
     });
     const sortType = "new";
     const firstPageCid = mockCommunity.posts.pageCids[sortType];
-    const db = localForageLru.createInstance({ name: "plebbitReactHooks-communitiesPages" });
+    const db = localForageLru.createInstance({ name: "bitsocialReactHooks-communitiesPages" });
 
     await act(async () => {
       await rendered.result.current.addNextCommunityPageToStore(
@@ -489,7 +489,7 @@ describe("communities pages store", () => {
   });
 
   test("fetchPage onError logs when getPage rejects", async () => {
-    const mockCommunity = await mockAccount.plebbit.createCommunity({
+    const mockCommunity = await mockAccount.pkc.createCommunity({
       address: "community address 1",
     });
     const sortType = "new";
@@ -543,7 +543,7 @@ describe("communities pages store", () => {
       accountsActionsInternal: { addCidToAccountComment: addCidSpy },
     });
 
-    const mockCommunity = await mockAccount.plebbit.createCommunity({
+    const mockCommunity = await mockAccount.pkc.createCommunity({
       address: "community address 1",
     });
     const sortType = "new";
@@ -573,7 +573,7 @@ describe("communities pages store", () => {
       capturedCb = cb;
     };
 
-    const mockCommunity = await mockAccount.plebbit.createCommunity({
+    const mockCommunity = await mockAccount.pkc.createCommunity({
       address: "client-state-sub-addr",
     });
     const sortType = "new";
@@ -604,7 +604,7 @@ describe("communities pages store", () => {
       capturedCb = cb;
     };
 
-    const mockCommunity = await mockAccount.plebbit.createCommunity({
+    const mockCommunity = await mockAccount.pkc.createCommunity({
       address: "client-state-live-sub-addr",
     });
     communitiesStore.setState({
@@ -634,7 +634,7 @@ describe("communities pages store", () => {
   });
 
   test("add next pages from community.posts.pageCids", async () => {
-    const mockCommunity = await mockAccount.plebbit.createCommunity({
+    const mockCommunity = await mockAccount.pkc.createCommunity({
       address: "community address 1",
     });
     // in the mock, sortType 'new' is only on community.pageCids
@@ -731,7 +731,7 @@ describe("communities pages store", () => {
   });
 
   test("add next pages from community.posts.pages", async () => {
-    const mockCommunity = await mockAccount.plebbit.createCommunity({
+    const mockCommunity = await mockAccount.pkc.createCommunity({
       address: "community address 1",
     });
     // in the mock, sortType 'hot' is only on community.pages
@@ -822,7 +822,7 @@ describe("communities pages store", () => {
   });
 
   test("page comments without updatedAt are still indexed on first insert", async () => {
-    const mockCommunity = await mockAccount.plebbit.createCommunity({
+    const mockCommunity = await mockAccount.pkc.createCommunity({
       address: "community address 1",
     });
     const sortType = "new";
@@ -857,7 +857,7 @@ describe("communities pages store", () => {
   });
 
   test("existing fresher indexed comment is not overwritten by older/empty-freshness page data", async () => {
-    const mockCommunity = await mockAccount.plebbit.createCommunity({
+    const mockCommunity = await mockAccount.pkc.createCommunity({
       address: "community address 2",
     });
     const sortType = "new";

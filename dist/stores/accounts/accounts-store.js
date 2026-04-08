@@ -101,7 +101,7 @@ const initializeAccountsStore = () => __awaiter(void 0, void 0, void 0, function
     }
 });
 // @ts-ignore
-const isInitializing = () => !!window.PLEBBIT_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZING;
+const isInitializing = () => !!window.BITSOCIAL_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZING;
 const waitForInitialized = () => __awaiter(void 0, void 0, void 0, function* () {
     while (isInitializing()) {
         // uncomment to debug accounts init
@@ -112,13 +112,13 @@ const waitForInitialized = () => __awaiter(void 0, void 0, void 0, function* () 
 (() => __awaiter(void 0, void 0, void 0, function* () {
     // don't initialize on load multiple times when loading the file multiple times during karma tests
     // @ts-ignore
-    if (window.PLEBBIT_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZED_ONCE) {
+    if (window.BITSOCIAL_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZED_ONCE) {
         return;
     }
     // @ts-ignore
-    window.PLEBBIT_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZED_ONCE = true;
+    window.BITSOCIAL_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZED_ONCE = true;
     // @ts-ignore
-    window.PLEBBIT_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZING = true;
+    window.BITSOCIAL_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZING = true;
     log("accounts store initializing started");
     try {
         yield initializeAccountsStore();
@@ -132,7 +132,7 @@ const waitForInitialized = () => __awaiter(void 0, void 0, void 0, function* () 
     }
     finally {
         // @ts-ignore
-        delete window.PLEBBIT_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZING;
+        delete window.BITSOCIAL_REACT_HOOKS_ACCOUNTS_STORE_INITIALIZING;
     }
     log("accounts store initializing finished");
 }))();
@@ -160,8 +160,8 @@ export const resetAccountsDatabaseAndStore = () => __awaiter(void 0, void 0, voi
     // don't reset while initializing, it could happen during quick successive tests
     yield waitForInitialized();
     yield Promise.all([
-        localForage.createInstance({ name: "plebbitReactHooks-accountsMetadata" }).clear(),
-        localForage.createInstance({ name: "plebbitReactHooks-accounts" }).clear(),
+        localForage.createInstance({ name: "bitsocialReactHooks-accountsMetadata" }).clear(),
+        localForage.createInstance({ name: "bitsocialReactHooks-accounts" }).clear(),
     ]);
     yield resetAccountsStore();
 });

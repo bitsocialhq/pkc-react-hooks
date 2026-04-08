@@ -1,4 +1,4 @@
-import PlebbitJs from "../../lib/plebbit-js";
+import PkcJs from "../../lib/pkc-js";
 import validator from "../../lib/validator";
 import chain from "../../lib/chain";
 import { v4 as uuid } from "uuid";
@@ -26,7 +26,7 @@ const chainProviders: ChainProviders = {
 };
 
 // force using these options or can cause bugs
-export const overwritePlebbitOptions = {
+export const overwritePkcOptions = {
   resolveAuthorNames: false,
   resolveAuthorAddresses: false,
   validatePages: false,
@@ -34,8 +34,6 @@ export const overwritePlebbitOptions = {
 
 const aliasProtocolOptions = (options: Record<string, any>) => ({
   ...options,
-  pkcRpcClientsOptions: options.pkcRpcClientsOptions ?? options.plebbitRpcClientsOptions,
-  plebbitRpcClientsOptions: options.plebbitRpcClientsOptions ?? options.pkcRpcClientsOptions,
   resolveAuthorNames: options.resolveAuthorNames ?? options.resolveAuthorAddresses ?? false,
   resolveAuthorAddresses: options.resolveAuthorAddresses ?? options.resolveAuthorNames ?? false,
 });
@@ -57,7 +55,7 @@ const addMissingChainProviders = (options: Record<string, any>) => {
 export const getDefaultPkcOptions = () => {
   // default PKC options defined by the electron process
   // @ts-ignore
-  const defaultWindowOptions = window.defaultPkcOptions || window.defaultPlebbitOptions;
+  const defaultWindowOptions = window.defaultPkcOptions;
   if (defaultWindowOptions) {
     // @ts-ignore
     const defaultPkcOptions: any = JSON.parse(
@@ -66,7 +64,7 @@ export const getDefaultPkcOptions = () => {
     // @ts-ignore
     defaultPkcOptions.libp2pJsClientsOptions = defaultWindowOptions.libp2pJsClientsOptions; // libp2pJsClientsOptions is not always just json
     return aliasProtocolOptions(
-      addMissingChainProviders({ ...defaultPkcOptions, ...overwritePlebbitOptions }),
+      addMissingChainProviders({ ...defaultPkcOptions, ...overwritePkcOptions }),
     );
   }
   // default PKC options for web client
@@ -89,11 +87,9 @@ export const getDefaultPkcOptions = () => {
       "https://peers.forumindex.com",
     ],
     chainProviders,
-    ...overwritePlebbitOptions,
+    ...overwritePkcOptions,
   });
 };
-
-export const getDefaultPlebbitOptions = getDefaultPkcOptions;
 
 // the gateway to use in <img src> for nft avatars
 // @ts-ignore
@@ -101,7 +97,7 @@ const defaultMediaIpfsGatewayUrl = window.defaultMediaIpfsGatewayUrl || "https:/
 
 const generateDefaultAccount = async () => {
   const pkcOptions = getDefaultPkcOptions();
-  const pkc = await PlebbitJs.PKC(normalizeOptionsForPkcClient(pkcOptions));
+  const pkc = await PkcJs.PKC(normalizeOptionsForPkcClient(pkcOptions));
   // handle errors or error events are uncaught
   // no need to log them because pkc-js already logs them
   pkc.on("error", (error: any) =>
@@ -112,7 +108,7 @@ const generateDefaultAccount = async () => {
   const author = {
     address: signer.address,
     wallets: {
-      eth: await chain.getEthWalletFromPlebbitPrivateKey(signer.privateKey, signer.address),
+      eth: await chain.getEthWalletFromPkcPrivateKey(signer.privateKey, signer.address),
     },
   };
 
@@ -170,7 +166,6 @@ const getNextAvailableDefaultAccountName = async () => {
 const accountGenerator = {
   generateDefaultAccount,
   getDefaultPkcOptions,
-  getDefaultPlebbitOptions,
 };
 
 export default accountGenerator;

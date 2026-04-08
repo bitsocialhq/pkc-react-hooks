@@ -435,17 +435,17 @@ export function useValidateComment(options?: UseValidateCommentOptions): UseVali
   const account = useAccount({ accountName });
 
   useEffect(() => {
-    if (!comment || !account?.plebbit) {
+    if (!comment || !account?.pkc) {
       setValidated(undefined);
       return;
     }
     // don't automatically block community because what community it comes from
     // a malicious community could try to block other communities, etc
     const blockCommunity = false;
-    commentIsValid(comment, { validateReplies, blockCommunity }, account.plebbit).then(
-      (validated) => setValidated(validated),
+    commentIsValid(comment, { validateReplies, blockCommunity }, account.pkc).then((validated) =>
+      setValidated(validated),
     );
-  }, [comment, validateReplies, account?.plebbit]);
+  }, [comment, validateReplies, account?.pkc]);
 
   let state = "initializing";
   if (validated === true) {

@@ -5,7 +5,7 @@ import {
   useCommunity,
   useFeed,
   useReplies,
-  setPlebbitJs,
+  setPkcJs,
   useClientsStates,
   useCommunitiesStates,
   useAccountComment,
@@ -13,7 +13,7 @@ import {
   useAccount,
 } from "..";
 import EventEmitter from "events";
-import PlebbitJsMock, { Plebbit } from "../lib/plebbit-js/plebbit-js-mock";
+import PkcJsMock, { PKC } from "../lib/pkc-js/pkc-js-mock";
 
 const ipfsGatewayUrl1 = "https://ipfsgateway1.com";
 const ipfsGatewayUrl2 = "https://ipfsgateway2.com";
@@ -24,9 +24,9 @@ const ipfsClientUrl3 = "https://ipfsclient3.com";
 const pubsubClientUrl1 = "https://pubsubclient1.com";
 const pubsubClientUrl2 = "https://pubsubclient2.com";
 const pubsubClientUrl3 = "https://pubsubclient3.com";
-const plebbitRpcClientUrl1 = "https://plebbitrpcclienturl1.com";
-const plebbitRpcClientUrl2 = "https://plebbitrpcclienturl2.com";
-const plebbitRpcClientUrl3 = "https://plebbitrpcclienturl3.com";
+const pkcRpcClientUrl1 = "https://pkcrpcclienturl1.com";
+const pkcRpcClientUrl2 = "https://pkcrpcclienturl2.com";
+const pkcRpcClientUrl3 = "https://pkcrpcclienturl3.com";
 const ethChainProviderUrl1 = "https://ethchainprovider1.com";
 const ethChainProviderUrl2 = "https://ethchainprovider2.com";
 const ethChainProviderUrl3 = "https://ethchainprovider3.com";
@@ -78,10 +78,10 @@ class Comment extends EventEmitter {
       [pubsubClientUrl2]: new Client(),
       [pubsubClientUrl3]: new Client(),
     },
-    plebbitRpcClients: {
-      [plebbitRpcClientUrl1]: new Client(),
-      [plebbitRpcClientUrl2]: new Client(),
-      [plebbitRpcClientUrl3]: new Client(),
+    pkcRpcClients: {
+      [pkcRpcClientUrl1]: new Client(),
+      [pkcRpcClientUrl2]: new Client(),
+      [pkcRpcClientUrl3]: new Client(),
     },
     chainProviders: {
       eth: {
@@ -120,8 +120,8 @@ class Comment extends EventEmitter {
       );
       changeClientsStates(
         this.clients,
-        "plebbitRpcClients",
-        [plebbitRpcClientUrl1, plebbitRpcClientUrl2],
+        "pkcRpcClients",
+        [pkcRpcClientUrl1, pkcRpcClientUrl2],
         "fetching-ipfs",
       );
       await simulateLoadingTime(20);
@@ -146,8 +146,8 @@ class Comment extends EventEmitter {
       );
       changeClientsStates(
         this.clients,
-        "plebbitRpcClients",
-        [plebbitRpcClientUrl1, plebbitRpcClientUrl2],
+        "pkcRpcClients",
+        [pkcRpcClientUrl1, pkcRpcClientUrl2],
         "fetching-ipns",
       );
       await simulateLoadingTime(20);
@@ -167,8 +167,8 @@ class Comment extends EventEmitter {
       );
       changeClientsStates(
         this.clients,
-        "plebbitRpcClients",
-        [plebbitRpcClientUrl1, plebbitRpcClientUrl2],
+        "pkcRpcClients",
+        [pkcRpcClientUrl1, pkcRpcClientUrl2],
         "stopped",
       );
       changeClientsStates(
@@ -238,8 +238,8 @@ class Comment extends EventEmitter {
       );
       changeClientsStates(
         this.clients,
-        "plebbitRpcClients",
-        [plebbitRpcClientUrl1, plebbitRpcClientUrl2],
+        "pkcRpcClients",
+        [pkcRpcClientUrl1, pkcRpcClientUrl2],
         "publishing-challenge-request",
       );
       await simulateLoadingTime(20);
@@ -259,8 +259,8 @@ class Comment extends EventEmitter {
       );
       changeClientsStates(
         this.clients,
-        "plebbitRpcClients",
-        [plebbitRpcClientUrl1, plebbitRpcClientUrl2],
+        "pkcRpcClients",
+        [pkcRpcClientUrl1, pkcRpcClientUrl2],
         "waiting-challenge",
       );
       await simulateLoadingTime(20);
@@ -293,8 +293,8 @@ class Comment extends EventEmitter {
       );
       changeClientsStates(
         this.clients,
-        "plebbitRpcClients",
-        [plebbitRpcClientUrl1, plebbitRpcClientUrl2],
+        "pkcRpcClients",
+        [pkcRpcClientUrl1, pkcRpcClientUrl2],
         "publishing-challenge-answer",
       );
       await simulateLoadingTime(20);
@@ -314,8 +314,8 @@ class Comment extends EventEmitter {
       );
       changeClientsStates(
         this.clients,
-        "plebbitRpcClients",
-        [plebbitRpcClientUrl1, plebbitRpcClientUrl2],
+        "pkcRpcClients",
+        [pkcRpcClientUrl1, pkcRpcClientUrl2],
         "waiting-challenge-verification",
       );
       await simulateLoadingTime(20);
@@ -344,8 +344,8 @@ class Comment extends EventEmitter {
       );
       changeClientsStates(
         this.clients,
-        "plebbitRpcClients",
-        [plebbitRpcClientUrl1, plebbitRpcClientUrl2],
+        "pkcRpcClients",
+        [pkcRpcClientUrl1, pkcRpcClientUrl2],
         "stopped",
       );
     })();
@@ -368,11 +368,11 @@ class Pages {
         [ipfsClientUrl3]: new Client(),
       },
     },
-    plebbitRpcClients: {
+    pkcRpcClients: {
       new: {
-        [plebbitRpcClientUrl1]: new Client(),
-        [plebbitRpcClientUrl2]: new Client(),
-        [plebbitRpcClientUrl3]: new Client(),
+        [pkcRpcClientUrl1]: new Client(),
+        [pkcRpcClientUrl2]: new Client(),
+        [pkcRpcClientUrl3]: new Client(),
       },
     },
   };
@@ -401,8 +401,8 @@ class Pages {
     );
     changeClientsStates(
       this.clients,
-      "plebbitRpcClients",
-      [plebbitRpcClientUrl1, plebbitRpcClientUrl2],
+      "pkcRpcClients",
+      [pkcRpcClientUrl1, pkcRpcClientUrl2],
       "fetching-ipfs",
       "new",
     );
@@ -423,8 +423,8 @@ class Pages {
     );
     changeClientsStates(
       this.clients,
-      "plebbitRpcClients",
-      [plebbitRpcClientUrl1, plebbitRpcClientUrl2],
+      "pkcRpcClients",
+      [pkcRpcClientUrl1, pkcRpcClientUrl2],
       "stopped",
       "new",
     );
@@ -457,10 +457,10 @@ class Community extends EventEmitter {
       [pubsubClientUrl2]: new Client(),
       [pubsubClientUrl3]: new Client(),
     },
-    plebbitRpcClients: {
-      [plebbitRpcClientUrl1]: new Client(),
-      [plebbitRpcClientUrl2]: new Client(),
-      [plebbitRpcClientUrl3]: new Client(),
+    pkcRpcClients: {
+      [pkcRpcClientUrl1]: new Client(),
+      [pkcRpcClientUrl2]: new Client(),
+      [pkcRpcClientUrl3]: new Client(),
     },
     chainProviders: {
       eth: {
@@ -518,8 +518,8 @@ class Community extends EventEmitter {
       );
       changeClientsStates(
         this.clients,
-        "plebbitRpcClients",
-        [plebbitRpcClientUrl1, plebbitRpcClientUrl2],
+        "pkcRpcClients",
+        [pkcRpcClientUrl1, pkcRpcClientUrl2],
         "fetching-ipns",
       );
       await simulateLoadingTime(100);
@@ -541,8 +541,8 @@ class Community extends EventEmitter {
       );
       changeClientsStates(
         this.clients,
-        "plebbitRpcClients",
-        [plebbitRpcClientUrl1, plebbitRpcClientUrl2],
+        "pkcRpcClients",
+        [pkcRpcClientUrl1, pkcRpcClientUrl2],
         "stopped",
       );
       await simulateLoadingTime(100);
@@ -564,21 +564,21 @@ class Community extends EventEmitter {
   }
 }
 
-const createComment = Plebbit.prototype.createComment;
-const createCommunity = Plebbit.prototype.createCommunity;
+const createComment = PKC.prototype.createComment;
+const createCommunity = PKC.prototype.createCommunity;
 
 describe("states", () => {
   beforeAll(async () => {
-    // set plebbit-js mock and reset dbs
-    setPlebbitJs(PlebbitJsMock);
+    // set pkc-js mock and reset dbs
+    setPkcJs(PkcJsMock);
     await testUtils.resetDatabasesAndStores();
 
     // mock create to add clients states
-    Plebbit.prototype.createComment = async ({ cid }: any) => {
+    PKC.prototype.createComment = async ({ cid }: any) => {
       const comment: any = new Comment({ cid });
       return comment;
     };
-    Plebbit.prototype.createCommunity = async ({ address }: any) => {
+    PKC.prototype.createCommunity = async ({ address }: any) => {
       const community: any = new Community({ address });
       return community;
     };
@@ -586,8 +586,8 @@ describe("states", () => {
   });
   afterAll(() => {
     // restore
-    Plebbit.prototype.createComment = createComment;
-    Plebbit.prototype.createCommunity = createCommunity;
+    PKC.prototype.createComment = createComment;
+    PKC.prototype.createCommunity = createCommunity;
     testUtils.restoreAll();
   });
   afterEach(async () => {
@@ -691,8 +691,8 @@ describe("states", () => {
             "https://ipfsgateway2.com",
             "https://ipfsclient1.com",
             "https://ipfsclient2.com",
-            "https://plebbitrpcclienturl1.com",
-            "https://plebbitrpcclienturl2.com",
+            "https://pkcrpcclienturl1.com",
+            "https://pkcrpcclienturl2.com",
           ],
         });
       }
@@ -715,8 +715,8 @@ describe("states", () => {
             "https://ipfsgateway2.com",
             "https://ipfsclient1.com",
             "https://ipfsclient2.com",
-            "https://plebbitrpcclienturl1.com",
-            "https://plebbitrpcclienturl2.com",
+            "https://pkcrpcclienturl1.com",
+            "https://pkcrpcclienturl2.com",
           ],
         });
       }
@@ -754,8 +754,8 @@ describe("states", () => {
             "https://ipfsgateway2.com",
             "https://ipfsclient1.com",
             "https://ipfsclient2.com",
-            "https://plebbitrpcclienturl1.com",
-            "https://plebbitrpcclienturl2.com",
+            "https://pkcrpcclienturl1.com",
+            "https://pkcrpcclienturl2.com",
           ],
         });
       }
@@ -799,8 +799,8 @@ describe("states", () => {
           "https://ipfsgateway2.com",
           "https://ipfsclient1.com",
           "https://ipfsclient2.com",
-          "https://plebbitrpcclienturl1.com",
-          "https://plebbitrpcclienturl2.com",
+          "https://pkcrpcclienturl1.com",
+          "https://pkcrpcclienturl2.com",
         ],
       });
 
@@ -821,8 +821,8 @@ describe("states", () => {
           "https://ipfsgateway2.com",
           "https://ipfsclient1.com",
           "https://ipfsclient2.com",
-          "https://plebbitrpcclienturl1.com",
-          "https://plebbitrpcclienturl2.com",
+          "https://pkcrpcclienturl1.com",
+          "https://pkcrpcclienturl2.com",
         ],
       });
 
@@ -887,8 +887,8 @@ describe("states", () => {
             "https://ipfsclient2.com",
             "https://pubsubclient1.com",
             "https://pubsubclient2.com",
-            "https://plebbitrpcclienturl1.com",
-            "https://plebbitrpcclienturl2.com",
+            "https://pkcrpcclienturl1.com",
+            "https://pkcrpcclienturl2.com",
           ],
         });
       }
@@ -907,8 +907,8 @@ describe("states", () => {
             "https://ipfsclient2.com",
             "https://pubsubclient1.com",
             "https://pubsubclient2.com",
-            "https://plebbitrpcclienturl1.com",
-            "https://plebbitrpcclienturl2.com",
+            "https://pkcrpcclienturl1.com",
+            "https://pkcrpcclienturl2.com",
           ],
         });
       }
@@ -927,8 +927,8 @@ describe("states", () => {
             "https://ipfsclient2.com",
             "https://pubsubclient1.com",
             "https://pubsubclient2.com",
-            "https://plebbitrpcclienturl1.com",
-            "https://plebbitrpcclienturl2.com",
+            "https://pkcrpcclienturl1.com",
+            "https://pkcrpcclienturl2.com",
           ],
         });
       }
@@ -946,8 +946,8 @@ describe("states", () => {
             "https://ipfsclient2.com",
             "https://pubsubclient1.com",
             "https://pubsubclient2.com",
-            "https://plebbitrpcclienturl1.com",
-            "https://plebbitrpcclienturl2.com",
+            "https://pkcrpcclienturl1.com",
+            "https://pkcrpcclienturl2.com",
           ],
         });
       }
@@ -1043,8 +1043,8 @@ describe("states", () => {
                 "https://ipfsgateway2.com",
                 "https://ipfsclient1.com",
                 "https://ipfsclient2.com",
-                "https://plebbitrpcclienturl1.com",
-                "https://plebbitrpcclienturl2.com",
+                "https://pkcrpcclienturl1.com",
+                "https://pkcrpcclienturl2.com",
               ],
             },
           });
@@ -1074,8 +1074,8 @@ describe("states", () => {
                 "https://ipfsgateway2.com",
                 "https://ipfsclient1.com",
                 "https://ipfsclient2.com",
-                "https://plebbitrpcclienturl1.com",
-                "https://plebbitrpcclienturl2.com",
+                "https://pkcrpcclienturl1.com",
+                "https://pkcrpcclienturl2.com",
               ],
             },
           });

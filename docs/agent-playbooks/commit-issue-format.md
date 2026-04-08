@@ -10,7 +10,7 @@ Use this when proposing or implementing meaningful code changes.
 
 Example:
 
-> **Commit title:** `fix(feeds): handle empty subplebbit addresses in useFeed`
+> **Commit title:** `fix(feeds): handle empty community addresses in useFeed`
 >
 > Updated `useFeed` in `feeds.ts` to early-return when given an empty addresses array instead of creating a broken store subscription.
 
@@ -23,5 +23,5 @@ Example:
 
 > **GitHub issue:**
 >
-> - **Title:** `useFeed crashes with empty subplebbit addresses`
-> - **Description:** Passing an empty `subplebbitAddresses` array to `useFeed` causes the feeds store to create an invalid subscription key. This triggers an unhandled error in downstream consumers.
+> - **Title:** `useFeed crashes with empty community addresses`
+> - **Description:** Passing an empty `communityAddresses` array to `useFeed` causes the feeds store to create an invalid subscription key. This triggers an unhandled error in downstream consumers.

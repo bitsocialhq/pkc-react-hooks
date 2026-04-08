@@ -1,7 +1,7 @@
 import { act } from "@testing-library/react";
 import testUtils, { renderHook } from "../../lib/test-utils";
 import { Comment } from "../../types";
-import { useFeed, useBufferedFeeds, useAccount, useCommunity, setPlebbitJs } from "../..";
+import { useFeed, useBufferedFeeds, useAccount, useCommunity, setPkcJs } from "../..";
 import * as accountsActions from "../../stores/accounts/accounts-actions";
 import { getCommentCidsToAccountsComments } from "../../stores/accounts/utils";
 import localForageLru from "../../lib/localforage-lru";
@@ -10,19 +10,19 @@ import feedsStore, { defaultPostsPerPage as postsPerPage } from "../../stores/fe
 import communitiesStore from "../../stores/communities";
 import communitiesPagesStore from "../../stores/communities-pages";
 import accountsStore from "../../stores/accounts";
-import PlebbitJsMock, {
-  Plebbit,
+import PkcJsMock, {
+  PKC,
   Community,
   Pages,
   simulateLoadingTime,
-} from "../../lib/plebbit-js/plebbit-js-mock";
+} from "../../lib/pkc-js/pkc-js-mock";
 
-const plebbitJsMockCommunityPageLength = 100;
+const pkcJsMockCommunityPageLength = 100;
 
 describe("feeds", () => {
   beforeAll(async () => {
-    // set plebbit-js mock and reset dbs
-    setPlebbitJs(PlebbitJsMock);
+    // set pkc-js mock and reset dbs
+    setPkcJs(PkcJsMock);
     await testUtils.resetDatabasesAndStores();
 
     testUtils.silenceReactWarnings();
@@ -146,7 +146,7 @@ describe("feeds", () => {
       );
       expect(rendered.result.current.feed.length).toBe(postsPerPage);
       expect(rendered.result.current.bufferedFeed.length).toBe(
-        plebbitJsMockCommunityPageLength - postsPerPage,
+        pkcJsMockCommunityPageLength - postsPerPage,
       );
 
       // reset stores to force using the db
@@ -2302,10 +2302,10 @@ describe("feeds", () => {
       });
 
       test("modQueue reset refreshes the latest community snapshot before rebuilding", async () => {
-        const getCommunity = Plebbit.prototype.getCommunity;
+        const getCommunity = PKC.prototype.getCommunity;
         let hidePendingApprovalPage = false;
 
-        Plebbit.prototype.getCommunity = async function (options: { address: string }) {
+        PKC.prototype.getCommunity = async function (options: { address: string }) {
           const community = await getCommunity.call(this, options);
           if (hidePendingApprovalPage) {
             community.modQueue.pageCids = {};
@@ -2337,7 +2337,7 @@ describe("feeds", () => {
           await waitFor(() => rendered.result.current.feed.length === 0);
           expect(rendered.result.current.feed).toEqual([]);
         } finally {
-          Plebbit.prototype.getCommunity = getCommunity;
+          PKC.prototype.getCommunity = getCommunity;
         }
       });
 

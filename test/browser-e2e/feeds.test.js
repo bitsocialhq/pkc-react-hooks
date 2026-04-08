@@ -11,7 +11,7 @@ import {
 import debugUtils from "../../dist/lib/debug-utils";
 import * as accountsActions from "../../dist/stores/accounts/accounts-actions";
 import testUtils from "../../dist/lib/test-utils";
-import { offlineIpfs, pubsubIpfs, plebbitRpc } from "../test-server/config";
+import { offlineIpfs, pubsubIpfs, pkcRpc } from "../test-server/config";
 import signers from "../fixtures/signers";
 const communityAddress = signers[0].address;
 const isBase64 = (testString) =>
@@ -20,12 +20,12 @@ const isBase64 = (testString) =>
 // large value for manual debugging
 const timeout = 600000;
 
-// run tests using plebbit options gateway and httpClient
+// run tests using pkc options gateway and httpClient
 const localGatewayUrl = `http://localhost:${offlineIpfs.gatewayPort}`;
 const localIpfsProviderUrl = `http://localhost:${offlineIpfs.apiPort}`;
 const localPubsubProviderUrl = `http://localhost:${pubsubIpfs.apiPort}/api/v0`;
-const localPlebbitRpcUrl = `ws://127.0.0.1:${plebbitRpc.port}`;
-const plebbitOptionsTypes = {
+const localPkcRpcUrl = `ws://127.0.0.1:${pkcRpc.port}`;
+const pkcOptionsTypes = {
   "kubo rpc client": {
     kuboRpcClientsOptions: [localIpfsProviderUrl],
     // define pubsubKuboRpcClientsOptions with localPubsubProviderUrl because
@@ -40,17 +40,17 @@ const plebbitOptionsTypes = {
     resolveAuthorAddresses: false,
     validatePages: false,
   },
-  "plebbit rpc client": {
-    plebbitRpcClientsOptions: [localPlebbitRpcUrl],
+  "pkc rpc client": {
+    pkcRpcClientsOptions: [localPkcRpcUrl],
     resolveAuthorAddresses: false,
     validatePages: false,
   },
 };
 
-for (const plebbitOptionsType in plebbitOptionsTypes) {
-  describe(`feeds (${plebbitOptionsType})`, () => {
+for (const pkcOptionsType in pkcOptionsTypes) {
+  describe(`feeds (${pkcOptionsType})`, () => {
     beforeAll(async () => {
-      console.log(`before feeds tests (${plebbitOptionsType})`);
+      console.log(`before feeds tests (${pkcOptionsType})`);
       testUtils.silenceReactWarnings();
       // reset before or init accounts sometimes fails
       await testUtils.resetDatabasesAndStores();
@@ -81,14 +81,14 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
       expect(typeof rendered.result.current.publishComment).to.equal("function");
       expect(typeof rendered.result.current.publishVote).to.equal("function");
 
-      const plebbitOptions = { ...plebbitOptionsTypes[plebbitOptionsType] };
+      const pkcOptions = { ...pkcOptionsTypes[pkcOptionsType] };
 
       console.log("before set account");
       await act(async () => {
-        const account = { ...rendered.result.current.account, plebbitOptions };
+        const account = { ...rendered.result.current.account, pkcOptions };
         await rendered.result.current.setAccount(account);
       });
-      expect(rendered.result.current.account.plebbitOptions).to.deep.equal(plebbitOptions);
+      expect(rendered.result.current.account.pkcOptions).to.deep.equal(pkcOptions);
       console.log("after set account");
     });
 
@@ -105,7 +105,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
     });
 
     it("change sort type", async () => {
-      console.log(`starting feeds tests (${plebbitOptionsType})`);
+      console.log(`starting feeds tests (${pkcOptionsType})`);
 
       rendered.rerender({ communityAddresses: [communityAddress], sortType: "hot" });
       await waitFor(() => !!rendered.result.current.feed[0].cid);
@@ -125,7 +125,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
     });
 
     it("validate comments", async () => {
-      console.log(`starting validate comments tests (${plebbitOptionsType})`);
+      console.log(`starting validate comments tests (${pkcOptionsType})`);
 
       // useValidateComment relies on useEffect + async promises whose state
       // updates land outside act() in Vitest browser mode, making the hook
@@ -137,7 +137,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
       await waitFor(() => !!rendered.result.current.feed[0]?.cid);
       expect(rendered.result.current.feed[0].communityAddress).to.equal(communityAddress);
       const comment = rendered.result.current.feed[0];
-      const plebbit = rendered.result.current.account.plebbit;
+      const pkc = rendered.result.current.account.pkc;
       console.log("after first render");
 
       // validate invalid comment (corrupted signature)
@@ -149,7 +149,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
       const invalidResult = await commentIsValid(
         invalidComment,
         { validateReplies: true, blockCommunity: false },
-        plebbit,
+        pkc,
       );
       expect(invalidResult).to.equal(false);
       console.log("after validate invalid comment");
@@ -158,7 +158,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
       const validResult = await commentIsValid(
         comment,
         { validateReplies: true, blockCommunity: false },
-        plebbit,
+        pkc,
       );
       expect(validResult).to.equal(true);
       console.log("after validate comment");
@@ -167,7 +167,7 @@ for (const plebbitOptionsType in plebbitOptionsTypes) {
       const validWithoutRepliesResult = await commentIsValid(
         comment,
         { validateReplies: false, blockCommunity: false },
-        plebbit,
+        pkc,
       );
       expect(validWithoutRepliesResult).to.equal(true);
       console.log("after validate comment without replies");

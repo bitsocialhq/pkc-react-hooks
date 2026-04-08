@@ -131,7 +131,7 @@ export const getLoadedFeeds = (feedsOptions, loadedFeeds, bufferedFeeds, account
             !pageNumberIncreased(feedName, pageNumber, loadedFeeds[feedName], bufferedFeeds[feedName])) {
             continue;
         }
-        const plebbit = (_a = accounts[accountId]) === null || _a === void 0 ? void 0 : _a.plebbit;
+        const pkc = (_a = accounts[accountId]) === null || _a === void 0 ? void 0 : _a.pkc;
         const loadedFeedReplyCount = pageNumber * repliesPerPage;
         const currentLoadedFeed = loadedFeeds[feedName] || [];
         // don't count account replies
@@ -141,7 +141,7 @@ export const getLoadedFeeds = (feedsOptions, loadedFeeds, bufferedFeeds, account
         let missingReplies = [];
         for (const reply of bufferedFeed) {
             if (missingReplies.length >= missingRepliesCount) {
-                missingReplies = yield removeInvalidComments(missingReplies, { validateReplies: false }, plebbit);
+                missingReplies = yield removeInvalidComments(missingReplies, { validateReplies: false }, pkc);
                 // only stop if there were no invalid comments
                 if (missingReplies.length >= missingRepliesCount) {
                     break;
@@ -309,7 +309,7 @@ export const getUpdatedFeeds = (feedsOptions, filteredSortedFeeds, updatedFeeds,
         ...Object.keys(updatedFeeds || {}),
     ]);
     for (const feedName of feedNames) {
-        const plebbit = (_b = accounts[(_a = feedsOptions[feedName]) === null || _a === void 0 ? void 0 : _a.accountId]) === null || _b === void 0 ? void 0 : _b.plebbit;
+        const pkc = (_b = accounts[(_a = feedsOptions[feedName]) === null || _a === void 0 ? void 0 : _a.accountId]) === null || _b === void 0 ? void 0 : _b.pkc;
         const loadedFeed = loadedFeeds[feedName] || [];
         const previousUpdatedFeed = updatedFeeds[feedName] || [];
         const updatedFeed = [...loadedFeed];
@@ -343,7 +343,7 @@ export const getUpdatedFeeds = (feedsOptions, filteredSortedFeeds, updatedFeeds,
             if ((candidateReply.updatedAt || 0) <= (((_c = updatedFeed[i]) === null || _c === void 0 ? void 0 : _c.updatedAt) || 0)) {
                 continue;
             }
-            if (!(yield commentIsValid(candidateReply, { validateReplies: false }, plebbit))) {
+            if (!(yield commentIsValid(candidateReply, { validateReplies: false }, pkc))) {
                 continue;
             }
             updatedFeed[i] = candidateReply;

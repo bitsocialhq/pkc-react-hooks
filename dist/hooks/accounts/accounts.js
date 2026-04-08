@@ -149,7 +149,7 @@ export function useAccountCommunities(options) {
                 accountCommunities[canonicalAddress] = Object.assign(Object.assign(Object.assign({}, accountCommunities[canonicalAddress]), accountsStoreAccountCommunities[communityAddress]), { address: canonicalAddress });
             }
         }
-        // add plebbit.communities data
+        // add pkc.communities data
         for (const communityAddress of ownerCommunityAddresses) {
             const groupKey = getEquivalentCommunityAddressGroupKey(communityAddress);
             const canonicalAddress = canonicalAddressByGroupKey[groupKey];
@@ -213,7 +213,7 @@ export function useNotifications(options) {
     }), [notifications, errors]);
 }
 const getAccountCommentsStates = (accountComments) => {
-    // Without a cid, the account comment is still a local pending publish. plebbit-js marks
+    // Without a cid, the account comment is still a local pending publish. pkc-js marks
     // terminal publish failures when `publishingState === "failed"` and publication `state`
     // is `"stopped"`, so we derive failed from that terminal pair or recorded publish errors.
     const now = Math.round(Date.now() / 1000);
@@ -655,29 +655,29 @@ export function usePubsubSubscribe(options) {
     const [state, setState] = useState("initializing");
     const [errors, setErrors] = useState([]);
     useEffect(() => {
-        if (!(account === null || account === void 0 ? void 0 : account.plebbit) || !communityAddress) {
+        if (!(account === null || account === void 0 ? void 0 : account.pkc) || !communityAddress) {
             return;
         }
         setState("subscribing");
-        account.plebbit
+        account.pkc
             .pubsubSubscribe(communityAddress)
             .then(() => setState("succeeded"))
             .catch((error) => {
             setErrors([...errors, error]);
             setState("failed");
-            log.error("usePubsubSubscribe plebbit.pubsubSubscribe error", { communityAddress, error });
+            log.error("usePubsubSubscribe pkc.pubsubSubscribe error", { communityAddress, error });
         });
         // unsub on component unmount
         return function () {
-            account.plebbit.pubsubUnsubscribe(communityAddress).catch((error) => {
+            account.pkc.pubsubUnsubscribe(communityAddress).catch((error) => {
                 setErrors([...errors, error]);
-                log.error("usePubsubSubscribe plebbit.pubsubUnsubscribe error", {
+                log.error("usePubsubSubscribe pkc.pubsubUnsubscribe error", {
                     communityAddress,
                     error,
                 });
             });
         };
-    }, [account === null || account === void 0 ? void 0 : account.plebbit, communityAddress]);
+    }, [account === null || account === void 0 ? void 0 : account.pkc, communityAddress]);
     return useMemo(() => ({
         state,
         error: errors[errors.length - 1],

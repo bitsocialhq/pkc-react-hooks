@@ -10,8 +10,8 @@ import repliesCommentsStore from "./replies-comments-store";
 import repliesPagesStore from "../replies-pages";
 import EventEmitter from "events";
 import accountsStore from "../accounts";
-import { setPlebbitJs } from "../..";
-import PlebbitJsMock from "../../lib/plebbit-js/plebbit-js-mock";
+import { setPkcJs } from "../..";
+import PkcJsMock from "../../lib/pkc-js/pkc-js-mock";
 
 const getPageCommentCount = 100;
 
@@ -81,7 +81,7 @@ class MockComment extends EventEmitter {
 
 const mockAccount: any = {
   id: "mock account id",
-  plebbit: {
+  pkc: {
     createCommunity: async ({ address }: any) => new MockCommunity({ address }),
     createComment: async ({ cid }: any) => new MockComment({ cid }),
     getCommunity: async (options: { address: string }) =>
@@ -96,8 +96,8 @@ const mockAccount: any = {
 describe("replies store", () => {
   let accountsStoreGetState = accountsStore.getState;
   beforeAll(() => {
-    // set plebbit-js mock
-    setPlebbitJs(PlebbitJsMock);
+    // set pkc-js mock
+    setPkcJs(PkcJsMock);
 
     testUtils.silenceReactWarnings();
 
@@ -232,9 +232,9 @@ describe("replies store", () => {
     const repliesPagesCount = Object.keys(repliesPagesStore.getState().repliesPages).length;
   });
 
-  test("addFeedToStoreOrUpdateComment accepts legacy plebbit accounts without getCommunity", async () => {
-    const getCommunity = mockAccount.plebbit.getCommunity;
-    delete mockAccount.plebbit.getCommunity;
+  test("addFeedToStoreOrUpdateComment accepts legacy pkc accounts without getCommunity", async () => {
+    const getCommunity = mockAccount.pkc.getCommunity;
+    delete mockAccount.pkc.getCommunity;
 
     try {
       const commentCid = "legacy comment cid";
@@ -251,7 +251,7 @@ describe("replies store", () => {
       await waitFor(() => rendered.result.current.loadedFeeds[feedName]?.length > 0);
       expect(rendered.result.current.loadedFeeds[feedName].length).toBe(repliesPerPage);
     } finally {
-      mockAccount.plebbit.getCommunity = getCommunity;
+      mockAccount.pkc.getCommunity = getCommunity;
     }
   });
 

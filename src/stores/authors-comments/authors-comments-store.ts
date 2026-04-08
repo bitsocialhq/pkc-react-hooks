@@ -78,7 +78,7 @@ const authorsCommentsStore = createStore<AuthorsCommentsState>(
         `authorsCommentsStore.addAuthorCommentsToStore invalid argument filter.key '${filter?.key}'`,
       );
       assert(
-        typeof account?.plebbit?.getComment === "function",
+        typeof account?.pkc?.getComment === "function",
         `authorsCommentsStore.addAuthorCommentsToStore account '${account}' invalid`,
       );
 

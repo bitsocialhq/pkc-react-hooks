@@ -1,18 +1,18 @@
-import accountGenerator, { getDefaultPlebbitOptions } from "./account-generator";
-import { setPlebbitJs, restorePlebbitJs } from "../../lib/plebbit-js";
-import PlebbitJsMock from "../../lib/plebbit-js/plebbit-js-mock";
+import accountGenerator, { getDefaultPkcOptions } from "./account-generator";
+import { setPkcJs, restorePkcJs } from "../../lib/pkc-js";
+import PkcJsMock from "../../lib/pkc-js/pkc-js-mock";
 import accountsDatabase from "./accounts-database";
 
 describe("account-generator", () => {
-  beforeAll(() => setPlebbitJs(PlebbitJsMock));
-  afterAll(() => restorePlebbitJs());
+  beforeAll(() => setPkcJs(PkcJsMock));
+  afterAll(() => restorePkcJs());
 
-  describe("getDefaultPlebbitOptions", () => {
-    test("returns web defaults when window.defaultPlebbitOptions is absent", () => {
-      const orig = (global as any).window?.defaultPlebbitOptions;
-      delete (global as any).window?.defaultPlebbitOptions;
+  describe("getDefaultPkcOptions", () => {
+    test("returns web defaults when window.defaultPkcOptions is absent", () => {
+      const orig = (global as any).window?.defaultPkcOptions;
+      delete (global as any).window?.defaultPkcOptions;
       try {
-        const opts = getDefaultPlebbitOptions();
+        const opts = getDefaultPkcOptions();
         expect(opts.ipfsGatewayUrls).toBeDefined();
         expect(opts.chainProviders).toBeDefined();
         expect(opts.chainProviders.eth).toBeDefined();
@@ -21,23 +21,23 @@ describe("account-generator", () => {
         expect(opts.resolveAuthorAddresses).toBe(false);
         expect(opts.validatePages).toBe(false);
       } finally {
-        if (orig !== undefined) (global as any).window.defaultPlebbitOptions = orig;
+        if (orig !== undefined) (global as any).window.defaultPkcOptions = orig;
       }
     });
 
-    test("uses window.defaultPlebbitOptions when present", () => {
+    test("uses window.defaultPkcOptions when present", () => {
       const custom = {
         ipfsGatewayUrls: ["https://custom.ipfs.io"],
         chainProviders: { eth: { urls: ["custom"], chainId: 1 } },
       };
       (global as any).window = (global as any).window || {};
-      (global as any).window.defaultPlebbitOptions = custom;
+      (global as any).window.defaultPkcOptions = custom;
       try {
-        const opts = getDefaultPlebbitOptions();
+        const opts = getDefaultPkcOptions();
         expect(opts.ipfsGatewayUrls).toEqual(["https://custom.ipfs.io"]);
         expect(opts.chainProviders.eth.urls).toEqual(["custom"]);
       } finally {
-        delete (global as any).window.defaultPlebbitOptions;
+        delete (global as any).window.defaultPkcOptions;
       }
     });
 
@@ -47,13 +47,13 @@ describe("account-generator", () => {
         chainProviders: { eth: { urls: ["custom"], chainId: 1 } },
       };
       (global as any).window = (global as any).window || {};
-      (global as any).window.defaultPlebbitOptions = custom;
+      (global as any).window.defaultPkcOptions = custom;
       try {
-        const opts = getDefaultPlebbitOptions();
+        const opts = getDefaultPkcOptions();
         expect(opts.chainProviders.matic).toBeDefined();
         expect(opts.chainProviders.sol).toBeDefined();
       } finally {
-        delete (global as any).window.defaultPlebbitOptions;
+        delete (global as any).window.defaultPkcOptions;
       }
     });
 
@@ -64,12 +64,12 @@ describe("account-generator", () => {
         libp2pJsClientsOptions: libp2pOpts,
       };
       (global as any).window = (global as any).window || {};
-      (global as any).window.defaultPlebbitOptions = custom;
+      (global as any).window.defaultPkcOptions = custom;
       try {
-        const opts = getDefaultPlebbitOptions();
+        const opts = getDefaultPkcOptions();
         expect(opts.libp2pJsClientsOptions).toBe(libp2pOpts);
       } finally {
-        delete (global as any).window.defaultPlebbitOptions;
+        delete (global as any).window.defaultPkcOptions;
       }
     });
   });
@@ -80,23 +80,23 @@ describe("account-generator", () => {
       await accountsDatabase.accountsDatabase.clear();
     });
 
-    test("creates account with plebbit, signer, author, and only an eth wallet", async () => {
+    test("creates account with pkc, signer, author, and only an eth wallet", async () => {
       const account = await accountGenerator.generateDefaultAccount();
       expect(account.id).toBeDefined();
       expect(account.name).toBe("Account 1");
       expect(account.author.address).toBeDefined();
       expect(account.author.wallets?.sol).toBeUndefined();
       expect(account.signer).toBeDefined();
-      expect(account.plebbit).toBeDefined();
-      expect(account.plebbitOptions).toBeDefined();
+      expect(account.pkc).toBeDefined();
+      expect(account.pkcOptions).toBeDefined();
       expect(account.version).toBe(accountsDatabase.accountVersion);
     });
 
-    test("registers error handler on plebbit instance", async () => {
+    test("registers error handler on pkc instance", async () => {
       let errorHandler: ((err: any) => void) | null = null;
-      const OrigPlebbit = PlebbitJsMock;
-      const WrapperPlebbit = async (opts: any) => {
-        const p = await OrigPlebbit(opts);
+      const OrigPkc = PkcJsMock;
+      const WrapperPkc = async (opts: any) => {
+        const p = await OrigPkc(opts);
         const origOn = p.on.bind(p);
         p.on = (event: string, fn: any) => {
           if (event === "error") errorHandler = fn;
@@ -104,14 +104,14 @@ describe("account-generator", () => {
         };
         return p;
       };
-      setPlebbitJs(WrapperPlebbit);
+      setPkcJs(WrapperPkc);
       try {
         const account = await accountGenerator.generateDefaultAccount();
         expect(errorHandler).toBeDefined();
         expect(typeof errorHandler).toBe("function");
-        account.plebbit.emit("error", new Error("test error"));
+        account.pkc.emit("error", new Error("test error"));
       } finally {
-        setPlebbitJs(PlebbitJsMock);
+        setPkcJs(PkcJsMock);
       }
     });
 

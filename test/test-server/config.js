@@ -12,6 +12,6 @@ export const pubsubIpfs = {
   args: "--enable-pubsub-experiment",
 };
 
-export const plebbitRpc = {
+export const pkcRpc = {
   port: 48392,
 };

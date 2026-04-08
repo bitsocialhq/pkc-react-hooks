@@ -8,7 +8,7 @@ AccountsCommentsReplies are found on the comment update events and are stored in
 
 #### Feed pages and infinite scrolling
 
-A "feed" is a combination of a list of communities to fetch, a sort type (hot/top/new/etc) and an account (for its IPFS settings). After using `useFeed(useFeedOptions)`, a feed with those options is added to the feedsStore. After a feed is added to store, its communities are fetched, then the first page of the community.posts `Pages` are fetched (if needed, usually the 'hot' sort is included with `plebbit.getCommunity()`). Each feed has a `pageNumber` which gets incremented on `loadMore` (used by infinite scrolling). Each feed has a list of `CommunitiesPostsInfo` which keep track of `CommunityPostsInfo.bufferedPostCount` for each combination of community and sort type. When `CommunityPostsInfo.bufferedPostCount` gets below 50, the next page for the community and sort type is fetched.
+A "feed" is a combination of a list of communities to fetch, a sort type (hot/top/new/etc) and an account (for its IPFS settings). After using `useFeed(useFeedOptions)`, a feed with those options is added to the feedsStore. After a feed is added to store, its communities are fetched, then the first page of the community.posts `Pages` are fetched (if needed, usually the 'hot' sort is included with `pkc.getCommunity()`). Each feed has a `pageNumber` which gets incremented on `loadMore` (used by infinite scrolling). Each feed has a list of `CommunitiesPostsInfo` which keep track of `CommunityPostsInfo.bufferedPostCount` for each combination of community and sort type. When `CommunityPostsInfo.bufferedPostCount` gets below 50, the next page for the community and sort type is fetched.
 
 When a new post page is received from IPFS, the `feedsStore.bufferedFeeds` are recalculated, but the `feedsStore.loadedFeeds` (which are displayed to the user) are not, new posts fetched will only be displayed to the user the next time he calls `loadMore`. If we detect that a `loadedFeed` is stale, we can prompt the user to load more posts, like Reddit/Facebook/Twitter do.
 
@@ -78,7 +78,7 @@ Similar to feeds store, but with a some differences:
 
 All accounts settings, accounts comments and accounts votes are stored permanently in the various IndexedDb databases. Import from file and export to file are possible but not yet implemented. Ephemeral data like random communities, comments and feeds are stored in last recently used IndexedDb databases, and eventually erased.
 
-#### Editing account.plebbitOptions and replacing the account.plebbit instance
+#### Editing account.pkcOptions and replacing the account.pkc instance
 
 Not implemented, but the easiest method would be to force a page reload, which will reset setting up all the comments and community listeners.
 
@@ -107,7 +107,7 @@ Not implemented, but the easiest method would be to force a page reload, which w
 
 #### Replies pages and infinite scrolling
 
-A "replies feed" is a combination of a comment update to fetch, a sort type (best/new/old/etc) and an account (for its IPFS settings). After using `useReplies(useRepliesOptions)`, a replies feed with those options is added to the repliesStore. After a replies feed is added to store, its comment is fetched, then the first page of the comment.replies `Pages` are fetched (if needed, usually the 'best' sort is included with `plebbit.getComment()`). Each replies feed has a `pageNumber` which gets incremented on `loadMore` (used by infinite scrolling). Each feed has a `CommentsRepliesInfo` which keep track of `CommentRepliesInfo.bufferedPostCount` for each combination of sort type. When `CommentRepliesInfo.bufferedPostCount` gets below 50, the next page for the comment and sort type is fetched.
+A "replies feed" is a combination of a comment update to fetch, a sort type (best/new/old/etc) and an account (for its IPFS settings). After using `useReplies(useRepliesOptions)`, a replies feed with those options is added to the repliesStore. After a replies feed is added to store, its comment is fetched, then the first page of the comment.replies `Pages` are fetched (if needed, usually the 'best' sort is included with `pkc.getComment()`). Each replies feed has a `pageNumber` which gets incremented on `loadMore` (used by infinite scrolling). Each feed has a `CommentsRepliesInfo` which keep track of `CommentRepliesInfo.bufferedPostCount` for each combination of sort type. When `CommentRepliesInfo.bufferedPostCount` gets below 50, the next page for the comment and sort type is fetched.
 
 When a new replies page is received from IPFS, the `repliesStore.bufferedFeeds` are recalculated, but the `repliesStore.loadedFeeds` (which are displayed to the user) are not, new replies fetched will only be displayed to the user the next time he calls `loadMore`. If we detect that a `loadedFeed` is stale, we can prompt the user to load more replies, like Reddit/Facebook/Twitter do.
 

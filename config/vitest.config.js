@@ -25,8 +25,8 @@ const config = {
   },
 };
 
-// handle plebbit-js-mock-content.donttest.ts
-const mockContentTestPath = "src/lib/plebbit-js/plebbit-js-mock-content.donttest.ts";
+// handle pkc-js-mock-content.donttest.ts
+const mockContentTestPath = "src/lib/pkc-js/pkc-js-mock-content.donttest.ts";
 if (process.argv.includes(mockContentTestPath)) {
   config.test.include = ["../" + mockContentTestPath];
 }

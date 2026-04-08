@@ -7,7 +7,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import PlebbitJs from "../../lib/plebbit-js";
+import PkcJs from "../../lib/pkc-js";
 import validator from "../../lib/validator";
 import chain from "../../lib/chain";
 import assert from "assert";
@@ -15,12 +15,13 @@ import localForage from "localforage";
 import isEqual from "lodash.isequal";
 import localForageLru from "../../lib/localforage-lru";
 import utils from "../../lib/utils";
-import { getDefaultPlebbitOptions, overwritePlebbitOptions } from "./account-generator";
+import { getDefaultPkcOptions, overwritePkcOptions } from "./account-generator";
 import { getAccountsEditsSummary, sanitizeStoredAccountComment } from "./utils";
+import { normalizeOptionsForPkcClient, withProtocolAliases } from "../../lib/pkc-compat";
 import Logger from "@pkc/pkc-logger";
 const log = Logger("bitsocial-react-hooks:accounts:stores");
-// Storage keeps the legacy namespace so existing installs reuse the same IndexedDB data.
-const accountsDatabaseNamespace = "plebbitReactHooks";
+// Storage keeps the existing namespace so current installs reuse the same IndexedDB data.
+const accountsDatabaseNamespace = "bitsocialReactHooks";
 const getAccountsDatabaseName = (databaseName) => `${accountsDatabaseNamespace}-${databaseName}`;
 const getPerAccountDatabaseName = (databaseName, accountId) => `${getAccountsDatabaseName(databaseName)}-${accountId}`;
 const accountsDatabase = localForage.createInstance({ name: getAccountsDatabaseName("accounts") });
@@ -92,33 +93,39 @@ const getAccounts = (accountIds) => __awaiter(void 0, void 0, void 0, function* 
     for (const [i, accountId] of accountIds.entries()) {
         assert(accountsArray[i], `accountId '${accountId}' not found in database`);
         accounts[accountId] = yield migrateAccount(accountsArray[i]);
-        // plebbit options aren't saved to database if they are default
-        if (!accounts[accountId].plebbitOptions) {
-            accounts[accountId].plebbitOptions = getDefaultPlebbitOptions();
+        // protocol options aren't saved to database if they are default
+        if (!accounts[accountId].pkcOptions && !accounts[accountId].pkcOptions) {
+            accounts[accountId].pkcOptions = getDefaultPkcOptions();
         }
-        accounts[accountId].plebbitOptions = Object.assign(Object.assign({}, accounts[accountId].plebbitOptions), overwritePlebbitOptions);
-        accounts[accountId].plebbit = yield PlebbitJs.Plebbit(accounts[accountId].plebbitOptions);
+        const protocolOptions = Object.assign(Object.assign({}, (accounts[accountId].pkcOptions || accounts[accountId].pkcOptions)), overwritePkcOptions);
+        const pkc = yield PkcJs.PKC(normalizeOptionsForPkcClient(protocolOptions));
         // handle errors or error events are uncaught
-        // no need to log them because plebbit-js already logs them
-        accounts[accountId].plebbit.on("error", (error) => log.error("uncaught plebbit instance error, should never happen", { error }));
+        // no need to log them because pkc-js already logs them
+        pkc.on("error", (error) => log.error("uncaught pkc instance error, should never happen", { error }));
+        accounts[accountId] = withProtocolAliases(accounts[accountId], pkc, protocolOptions);
     }
     return accounts;
 });
 const accountVersion = 4;
 const migrateAccount = (account) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c, _d, _e;
+    if ((account === null || account === void 0 ? void 0 : account.pkcOptions) && !(account === null || account === void 0 ? void 0 : account.pkcOptions)) {
+        account.pkcOptions = account.pkcOptions;
+    }
+    if ((account === null || account === void 0 ? void 0 : account.pkcOptions) && !(account === null || account === void 0 ? void 0 : account.pkcOptions)) {
+        account.pkcOptions = account.pkcOptions;
+    }
     let version = account.version || 1;
     // version 2
     if (version === 1) {
         version++;
-        if ((_a = account.plebbitOptions) === null || _a === void 0 ? void 0 : _a.ipfsHttpClientsOptions) {
-            account.plebbitOptions.kuboRpcClientsOptions = account.plebbitOptions.ipfsHttpClientsOptions;
-            delete account.plebbitOptions.ipfsHttpClientsOptions;
+        if ((_a = account.pkcOptions) === null || _a === void 0 ? void 0 : _a.ipfsHttpClientsOptions) {
+            account.pkcOptions.kuboRpcClientsOptions = account.pkcOptions.ipfsHttpClientsOptions;
+            delete account.pkcOptions.ipfsHttpClientsOptions;
         }
-        if ((_b = account.plebbitOptions) === null || _b === void 0 ? void 0 : _b.pubsubHttpClientsOptions) {
-            account.plebbitOptions.pubsubKuboRpcClientsOptions =
-                account.plebbitOptions.pubsubHttpClientsOptions;
-            delete account.plebbitOptions.pubsubHttpClientsOptions;
+        if ((_b = account.pkcOptions) === null || _b === void 0 ? void 0 : _b.pubsubHttpClientsOptions) {
+            account.pkcOptions.pubsubKuboRpcClientsOptions = account.pkcOptions.pubsubHttpClientsOptions;
+            delete account.pkcOptions.pubsubHttpClientsOptions;
         }
     }
     // version 3
@@ -128,14 +135,14 @@ const migrateAccount = (account) => __awaiter(void 0, void 0, void 0, function* 
             account.author.wallets = {};
         }
         if (!account.author.wallets.eth) {
-            account.author.wallets.eth = yield chain.getEthWalletFromPlebbitPrivateKey(account.signer.privateKey, account.address);
+            account.author.wallets.eth = yield chain.getEthWalletFromPkcPrivateKey(account.signer.privateKey, account.address);
         }
     }
     if (version === 3) {
         version++;
         // in version 3, wallets had timestamps in ms, should be seconds
         if (((_e = (_d = (_c = account.author) === null || _c === void 0 ? void 0 : _c.wallets) === null || _d === void 0 ? void 0 : _d.eth) === null || _e === void 0 ? void 0 : _e.timestamp) > 1e12) {
-            account.author.wallets.eth = yield chain.getEthWalletFromPlebbitPrivateKey(account.signer.privateKey, account.address);
+            account.author.wallets.eth = yield chain.getEthWalletFromPkcPrivateKey(account.signer.privateKey, account.address);
         }
     }
     account.version = accountVersion;
@@ -223,17 +230,18 @@ const addAccount = (account) => __awaiter(void 0, void 0, void 0, function* () {
         }
     }
     // handle updating accounts database
-    const accountToPutInDatabase = Object.assign(Object.assign({}, account), { plebbit: undefined });
-    // don't save default plebbit options in database in case they change
-    if (JSON.stringify(accountToPutInDatabase.plebbitOptions) ===
-        JSON.stringify(getDefaultPlebbitOptions())) {
-        delete accountToPutInDatabase.plebbitOptions;
+    const accountToPutInDatabase = Object.assign(Object.assign({}, account), { pkc: undefined });
+    const protocolOptions = accountToPutInDatabase.pkcOptions;
+    accountToPutInDatabase.pkcOptions = protocolOptions;
+    // don't save default protocol options in database in case they change
+    if (JSON.stringify(protocolOptions) === JSON.stringify(getDefaultPkcOptions())) {
+        delete accountToPutInDatabase.pkcOptions;
     }
-    // make sure accountToPutInDatabase.plebbitOptions are valid
-    if (accountToPutInDatabase.plebbitOptions) {
-        const plebbit = yield PlebbitJs.Plebbit(accountToPutInDatabase.plebbitOptions);
-        plebbit.on("error", () => { });
-        void ((_a = plebbit.destroy) === null || _a === void 0 ? void 0 : _a.call(plebbit)); // gc; errors intentionally unhandled to avoid uncounted callback
+    // make sure accountToPutInDatabase protocol options are valid
+    if (protocolOptions) {
+        const pkc = yield PkcJs.PKC(normalizeOptionsForPkcClient(protocolOptions));
+        pkc.on("error", () => { });
+        void ((_a = pkc.destroy) === null || _a === void 0 ? void 0 : _a.call(pkc)); // gc; errors intentionally unhandled to avoid uncounted callback
     }
     yield accountsDatabase.setItem(accountToPutInDatabase.id, accountToPutInDatabase);
     // handle updating accountNamesToAccountIds database
@@ -524,7 +532,7 @@ const getAccountEditsDatabase = (accountId) => {
     }
     return accountsEditsDatabases[accountId];
 };
-const getAccountEditTarget = (edit) => (edit === null || edit === void 0 ? void 0 : edit.commentCid) || (edit === null || edit === void 0 ? void 0 : edit.communityAddress) || (edit === null || edit === void 0 ? void 0 : edit.subplebbitAddress);
+const getAccountEditTarget = (edit) => (edit === null || edit === void 0 ? void 0 : edit.commentCid) || (edit === null || edit === void 0 ? void 0 : edit.communityAddress) || (edit === null || edit === void 0 ? void 0 : edit.communityAddress);
 const persistAccountEditsIndexes = (accountId, edits) => __awaiter(void 0, void 0, void 0, function* () {
     const accountEditsDatabase = getAccountEditsDatabase(accountId);
     const targetToIndices = rebuildEditsTargetIndexes(edits);

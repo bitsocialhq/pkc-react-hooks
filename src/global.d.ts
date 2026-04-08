@@ -5,7 +5,7 @@ declare global {
       chainProviders?: Record<string, unknown>;
       [key: string]: unknown;
     };
-    defaultPlebbitOptions?: {
+    defaultPkcOptions?: {
       libp2pJsClientsOptions?: unknown;
       chainProviders?: Record<string, unknown>;
       [key: string]: unknown;

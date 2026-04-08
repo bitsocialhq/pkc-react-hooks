@@ -4,7 +4,7 @@ export declare const getNftMetadataUrl: (...args: any) => Promise<any>;
 export declare const getNftOwner: (...args: any) => Promise<any>;
 export declare const resolveEnsTxtRecord: (...args: any) => Promise<any>;
 export declare const getWalletMessageToSign: (authorAddress: string, timestamp: number) => string;
-export declare const getEthWalletFromPlebbitPrivateKey: (privateKeyBase64: string, authorAddress: string) => Promise<{
+export declare const getEthWalletFromPkcPrivateKey: (privateKeyBase64: string, authorAddress: string) => Promise<{
     address: string;
     timestamp: number;
     signature: {
@@ -12,8 +12,8 @@ export declare const getEthWalletFromPlebbitPrivateKey: (privateKeyBase64: strin
         type: string;
     };
 } | undefined>;
-export declare const getEthPrivateKeyFromPlebbitPrivateKey: (privateKeyBase64: string, authorAddress: string) => Promise<string | undefined>;
-export declare const getSolWalletFromPlebbitPrivateKey: (privateKeyBase64: string, authorAddress: string) => Promise<{
+export declare const getEthPrivateKeyFromPkcPrivateKey: (privateKeyBase64: string, authorAddress: string) => Promise<string | undefined>;
+export declare const getSolWalletFromPkcPrivateKey: (privateKeyBase64: string, authorAddress: string) => Promise<{
     address: string;
     timestamp: number;
     signature: {
@@ -21,7 +21,7 @@ export declare const getSolWalletFromPlebbitPrivateKey: (privateKeyBase64: strin
         type: string;
     };
 } | undefined>;
-export declare const getSolPrivateKeyFromPlebbitPrivateKey: (privateKeyBase64: string, authorAddress: string) => Promise<string | undefined>;
+export declare const getSolPrivateKeyFromPkcPrivateKey: (privateKeyBase64: string, authorAddress: string) => Promise<string | undefined>;
 export declare const validateEthWallet: (wallet: Wallet, authorAddress: string) => Promise<void>;
 export declare const validateEthWalletViem: (wallet: Wallet, authorAddress: string) => Promise<void>;
 export declare const validateSolWallet: (wallet: Wallet, authorAddress: string) => Promise<void>;
@@ -30,7 +30,7 @@ declare const _default: {
     getNftMetadataUrl: (...args: any) => Promise<any>;
     getNftImageUrl: (...args: any) => Promise<any>;
     resolveEnsTxtRecord: (...args: any) => Promise<any>;
-    getEthWalletFromPlebbitPrivateKey: (privateKeyBase64: string, authorAddress: string) => Promise<{
+    getEthWalletFromPkcPrivateKey: (privateKeyBase64: string, authorAddress: string) => Promise<{
         address: string;
         timestamp: number;
         signature: {
@@ -38,7 +38,7 @@ declare const _default: {
             type: string;
         };
     } | undefined>;
-    getSolWalletFromPlebbitPrivateKey: (privateKeyBase64: string, authorAddress: string) => Promise<{
+    getSolWalletFromPkcPrivateKey: (privateKeyBase64: string, authorAddress: string) => Promise<{
         address: string;
         timestamp: number;
         signature: {
@@ -46,8 +46,8 @@ declare const _default: {
             type: string;
         };
     } | undefined>;
-    getEthPrivateKeyFromPlebbitPrivateKey: (privateKeyBase64: string, authorAddress: string) => Promise<string | undefined>;
-    getSolPrivateKeyFromPlebbitPrivateKey: (privateKeyBase64: string, authorAddress: string) => Promise<string | undefined>;
+    getEthPrivateKeyFromPkcPrivateKey: (privateKeyBase64: string, authorAddress: string) => Promise<string | undefined>;
+    getSolPrivateKeyFromPkcPrivateKey: (privateKeyBase64: string, authorAddress: string) => Promise<string | undefined>;
     validateEthWallet: (wallet: Wallet, authorAddress: string) => Promise<void>;
     validateEthWalletViem: (wallet: Wallet, authorAddress: string) => Promise<void>;
     validateSolWallet: (wallet: Wallet, authorAddress: string) => Promise<void>;
