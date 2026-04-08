@@ -12,7 +12,7 @@ import validator from "../../lib/validator";
 import chain from "../../lib/chain";
 import { v4 as uuid } from "uuid";
 import accountsDatabase from "./accounts-database";
-import { normalizeOptionsForPkcClient, withProtocolAliases } from "../../lib/pkc-compat";
+import { getPkcClientOptions, normalizeAccountProtocolConfig, withProtocolAliases, } from "../../lib/pkc-compat";
 import Logger from "@pkc/pkc-logger";
 const log = Logger("bitsocial-react-hooks:accounts:stores");
 // default chain providers
@@ -49,6 +49,16 @@ const addMissingChainProviders = (options) => {
     }
     return optionsWithChainProviders;
 };
+export const getDefaultChainProviders = () => {
+    // @ts-ignore
+    const defaultWindowOptions = window.defaultPkcOptions;
+    const windowChainProviders = (defaultWindowOptions === null || defaultWindowOptions === void 0 ? void 0 : defaultWindowOptions.chainProviders)
+        ? JSON.parse(JSON.stringify(defaultWindowOptions.chainProviders))
+        : undefined;
+    return addMissingChainProviders({
+        chainProviders: windowChainProviders,
+    }).chainProviders;
+};
 // default options aren't saved to database so they can be changed
 export const getDefaultPkcOptions = () => {
     // default PKC options defined by the electron process
@@ -57,9 +67,11 @@ export const getDefaultPkcOptions = () => {
     if (defaultWindowOptions) {
         // @ts-ignore
         const defaultPkcOptions = JSON.parse(JSON.stringify(Object.assign(Object.assign({}, defaultWindowOptions), { libp2pJsClientsOptions: undefined })));
+        delete defaultPkcOptions.chainProviders;
+        delete defaultPkcOptions.nameResolversChainProviders;
         // @ts-ignore
         defaultPkcOptions.libp2pJsClientsOptions = defaultWindowOptions.libp2pJsClientsOptions; // libp2pJsClientsOptions is not always just json
-        return aliasProtocolOptions(addMissingChainProviders(Object.assign(Object.assign({}, defaultPkcOptions), overwritePkcOptions)));
+        return aliasProtocolOptions(Object.assign(Object.assign({}, defaultPkcOptions), overwritePkcOptions));
     }
     // default PKC options for web client
     return aliasProtocolOptions(Object.assign({ ipfsGatewayUrls: [
@@ -75,14 +87,18 @@ export const getDefaultPkcOptions = () => {
             "https://peers.pleb.bot",
             "https://peers.plebpubsub.xyz",
             "https://peers.forumindex.com",
-        ], chainProviders }, overwritePkcOptions));
+        ] }, overwritePkcOptions));
 };
 // the gateway to use in <img src> for nft avatars
 // @ts-ignore
 const defaultMediaIpfsGatewayUrl = window.defaultMediaIpfsGatewayUrl || "https://ipfs.io";
 const generateDefaultAccount = () => __awaiter(void 0, void 0, void 0, function* () {
     const pkcOptions = getDefaultPkcOptions();
-    const pkc = yield PkcJs.PKC(normalizeOptionsForPkcClient(pkcOptions));
+    const chainProviders = getDefaultChainProviders();
+    const pkc = yield PkcJs.PKC(getPkcClientOptions({
+        chainProviders,
+        pkcOptions,
+    }, pkcOptions));
     // handle errors or error events are uncaught
     // no need to log them because pkc-js already logs them
     pkc.on("error", (error) => log.error("uncaught pkc instance error, should never happen", { error }));
@@ -96,19 +112,20 @@ const generateDefaultAccount = () => __awaiter(void 0, void 0, void 0, function*
     const accountName = yield getNextAvailableDefaultAccountName();
     // communities where the account has a role, like moderator, admin, owner, etc.
     const communities = {};
-    const account = withProtocolAliases({
+    const account = normalizeAccountProtocolConfig(withProtocolAliases({
         id: uuid(),
         version: accountsDatabase.accountVersion,
         name: accountName,
         author,
         signer,
+        chainProviders,
         pkcOptions,
         subscriptions: [],
         blockedAddresses: {},
         blockedCids: {},
         communities,
         mediaIpfsGatewayUrl: defaultMediaIpfsGatewayUrl,
-    }, pkc, pkcOptions);
+    }, pkc, pkcOptions), chainProviders);
     return account;
 });
 const getNextAvailableDefaultAccountName = () => __awaiter(void 0, void 0, void 0, function* () {

@@ -19,7 +19,7 @@ import { resolveEnsTxtRecord } from "../lib/chain";
 import useCommunitiesStore from "../stores/communities";
 import useAccountsStore from "../stores/accounts";
 import shallow from "zustand/shallow";
-import { getPkcCommunityAddresses } from "../lib/pkc-compat";
+import { getChainProviders, getPkcCommunityAddresses } from "../lib/pkc-compat";
 /**
  * @param communityAddress - The address of the community, e.g. 'memes.eth', '12D3KooW...', etc
  * @param acountName - The nickname of the account, e.g. 'Account 1'. If no accountName is provided, use
@@ -222,7 +222,6 @@ export function useListCommunities(accountName) {
  */
 // NOTE: useResolvedCommunityAddress tests are skipped, if changes are made they must be tested manually
 export function useResolvedCommunityAddress(options) {
-    var _a;
     assert(!options || typeof options === "object", `useResolvedCommunityAddress options argument '${options}' not an object`);
     let { communityAddress, accountName, cache } = options !== null && options !== void 0 ? options : {};
     // cache by default
@@ -236,8 +235,7 @@ export function useResolvedCommunityAddress(options) {
         interval = 1000 * 60 * 60 * 25;
     }
     const account = useAccount({ accountName });
-    // possible to use account.pkc instead of account.pkcOptions
-    const chainProviders = (_a = account === null || account === void 0 ? void 0 : account.pkcOptions) === null || _a === void 0 ? void 0 : _a.chainProviders;
+    const chainProviders = getChainProviders(account);
     const [resolvedAddress, setResolvedAddress] = useState();
     const [errors, setErrors] = useState([]);
     const [state, setState] = useState();

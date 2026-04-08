@@ -2,7 +2,19 @@ import EventEmitter from "events";
 export declare const simulateLoadingTime: () => Promise<unknown>;
 export declare const resetPkcJsMock: () => void;
 export declare const debugPkcJsMock: () => void;
+declare class NameResolverClient extends EventEmitter {
+    state: string;
+}
 export declare class PKC extends EventEmitter {
+    nameResolvers: any[];
+    _clientsManager: {
+        clients: {
+            nameResolvers: {
+                [resolverKey: string]: NameResolverClient;
+            };
+        };
+    };
+    constructor(options?: any);
     resolveAuthorAddress(options: {
         address: string;
     }): Promise<string>;

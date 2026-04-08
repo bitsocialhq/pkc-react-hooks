@@ -10,6 +10,13 @@ export interface Result {
     error: Error | undefined;
     errors: Error[];
 }
+export interface NameResolverInfo {
+    key: string;
+    nameSystem: string;
+    chainTicker: string;
+    provider: string;
+    providerLabel: string;
+}
 export interface UseAccountOptions extends Options {
 }
 export interface UseAccountResult extends Result, Account {
@@ -221,6 +228,7 @@ export interface UseResolvedAuthorAddressOptions extends Options {
 export interface UseResolvedAuthorAddressResult extends Result {
     resolvedAddress: string | undefined;
     chainProvider: ChainProvider | undefined;
+    nameResolver: NameResolverInfo | undefined;
 }
 export interface UseAuthorAvatarOptions extends Options {
     author?: Author;

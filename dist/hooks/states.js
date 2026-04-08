@@ -21,7 +21,7 @@ export function useClientsStates(options) {
     assert(!(comment && community), `useClientsStates options.comment and options.community arguments cannot be defined at the same time`);
     const commentOrCommunity = comment || community;
     const states = useMemo(() => {
-        var _a, _b, _c, _d, _e, _f;
+        var _a, _b, _c, _d, _e, _f, _g;
         const states = {};
         // if comment is newer than 5 minutes, don't show updating state so user knows it finished
         if ((commentOrCommunity === null || commentOrCommunity === void 0 ? void 0 : commentOrCommunity.cid) && commentOrCommunity.timestamp + 5 * 60 > Date.now() / 1000) {
@@ -62,6 +62,9 @@ export function useClientsStates(options) {
                 for (const clientUrl in clients.chainProviders[chainTicker]) {
                     addState((_f = clients.chainProviders[chainTicker][clientUrl]) === null || _f === void 0 ? void 0 : _f.state, clientUrl);
                 }
+            }
+            for (const resolverKey in clients === null || clients === void 0 ? void 0 : clients.nameResolvers) {
+                addState((_g = clients.nameResolvers[resolverKey]) === null || _g === void 0 ? void 0 : _g.state, resolverKey);
             }
         }
         // find community pages and comment replies pages states

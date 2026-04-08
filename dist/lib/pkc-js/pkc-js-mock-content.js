@@ -697,9 +697,15 @@ const getCommentsPage = (pageCid, communityOrComment) => __awaiter(void 0, void 
 });
 // array of communities probably created by the user
 const createdCommunities = {};
-class PKC extends EventEmitter {
+class NameResolverClient extends EventEmitter {
     constructor() {
         super(...arguments);
+        this.state = "stopped";
+    }
+}
+class PKC extends EventEmitter {
+    constructor(options = {}) {
+        super();
         this.clients = (() => {
             const pkcRpcClients = {
                 "http://localhost:9138": new PkcRpcClient(),
@@ -708,6 +714,12 @@ class PKC extends EventEmitter {
                 pkcRpcClients,
             };
         })();
+        this.nameResolvers = (options === null || options === void 0 ? void 0 : options.nameResolvers) || [];
+        this._clientsManager = {
+            clients: {
+                nameResolvers: this.nameResolvers.reduce((resolverClients, resolver) => (Object.assign(Object.assign({}, resolverClients), { [resolver.key]: new NameResolverClient() })), {}),
+            },
+        };
     }
     createSigner() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -719,6 +731,17 @@ class PKC extends EventEmitter {
     }
     resolveAuthorAddress(options) {
         return __awaiter(this, void 0, void 0, function* () {
+            const resolver = this.nameResolvers.find((nameResolver) => { var _a; return (_a = nameResolver === null || nameResolver === void 0 ? void 0 : nameResolver.canResolve) === null || _a === void 0 ? void 0 : _a.call(nameResolver, { name: options.address }); });
+            const resolverClient = resolver && this._clientsManager.clients.nameResolvers[resolver.key];
+            if (resolverClient) {
+                resolverClient.state = "resolving-author-name";
+                resolverClient.emit("statechange", resolverClient.state);
+            }
+            yield new Promise((resolve) => setTimeout(resolve, 10));
+            if (resolverClient) {
+                resolverClient.state = "stopped";
+                resolverClient.emit("statechange", resolverClient.state);
+            }
             return "resolved author address";
         });
     }

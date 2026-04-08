@@ -193,7 +193,7 @@ const memoSync = (functionToMemo, memoOptions) => {
     return obj[memoedFunctionName];
 };
 const clientsOnStateChange = (clients, onStateChange) => {
-    var _a, _b, _c, _d, _e, _f, _g;
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     for (const clientUrl in clients === null || clients === void 0 ? void 0 : clients.ipfsGateways) {
         (_a = clients === null || clients === void 0 ? void 0 : clients.ipfsGateways) === null || _a === void 0 ? void 0 : _a[clientUrl].on("statechange", (state) => onStateChange(state, "ipfsGateways", clientUrl));
     }
@@ -214,6 +214,9 @@ const clientsOnStateChange = (clients, onStateChange) => {
         for (const clientUrl in (_e = clients === null || clients === void 0 ? void 0 : clients.chainProviders) === null || _e === void 0 ? void 0 : _e[chainTicker]) {
             (_g = (_f = clients === null || clients === void 0 ? void 0 : clients.chainProviders) === null || _f === void 0 ? void 0 : _f[chainTicker]) === null || _g === void 0 ? void 0 : _g[clientUrl].on("statechange", (state) => onStateChange(state, "chainProviders", clientUrl, chainTicker));
         }
+    }
+    for (const resolverKey in clients === null || clients === void 0 ? void 0 : clients.nameResolvers) {
+        (_h = clients === null || clients === void 0 ? void 0 : clients.nameResolvers) === null || _h === void 0 ? void 0 : _h[resolverKey].on("statechange", (state) => onStateChange(state, "nameResolvers", resolverKey));
     }
 };
 const pageClientsOnStateChange = (clients, onStateChange) => {

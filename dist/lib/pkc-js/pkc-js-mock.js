@@ -22,9 +22,15 @@ export const resetPkcJsMock = () => {
 export const debugPkcJsMock = () => {
     console.log({ createdOwnerCommunities, editedOwnerCommunities });
 };
-export class PKC extends EventEmitter {
+class NameResolverClient extends EventEmitter {
     constructor() {
         super(...arguments);
+        this.state = "stopped";
+    }
+}
+export class PKC extends EventEmitter {
+    constructor(options = {}) {
+        super();
         this.clients = (() => {
             const pkcRpcClients = {
                 "http://localhost:9138": new PkcRpcClient(),
@@ -33,9 +39,26 @@ export class PKC extends EventEmitter {
                 pkcRpcClients,
             };
         })();
+        this.nameResolvers = (options === null || options === void 0 ? void 0 : options.nameResolvers) || [];
+        this._clientsManager = {
+            clients: {
+                nameResolvers: this.nameResolvers.reduce((resolverClients, resolver) => (Object.assign(Object.assign({}, resolverClients), { [resolver.key]: new NameResolverClient() })), {}),
+            },
+        };
     }
     resolveAuthorAddress(options) {
         return __awaiter(this, void 0, void 0, function* () {
+            const resolver = this.nameResolvers.find((nameResolver) => { var _a; return (_a = nameResolver === null || nameResolver === void 0 ? void 0 : nameResolver.canResolve) === null || _a === void 0 ? void 0 : _a.call(nameResolver, { name: options.address }); });
+            const resolverClient = resolver && this._clientsManager.clients.nameResolvers[resolver.key];
+            if (resolverClient) {
+                resolverClient.state = "resolving-author-name";
+                resolverClient.emit("statechange", resolverClient.state);
+            }
+            yield simulateLoadingTime();
+            if (resolverClient) {
+                resolverClient.state = "stopped";
+                resolverClient.emit("statechange", resolverClient.state);
+            }
             return "resolved author address";
         });
     }
