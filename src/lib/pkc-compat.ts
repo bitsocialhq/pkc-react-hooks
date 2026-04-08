@@ -1,14 +1,109 @@
 import assert from "assert";
+import { BsoResolver } from "@bitsocial/bso-resolver";
 
 export const getProtocolClient = (account: any) => account?.pkc;
 
 export const getProtocolOptions = (account: any) => account?.pkcOptions;
 
-export const getChainProviders = (account: any) => getProtocolOptions(account)?.chainProviders;
+export const getChainProviders = (account: any) =>
+  account?.chainProviders || getProtocolOptions(account)?.chainProviders;
+
+export const getNameResolversChainProviders = (account: any) =>
+  account?.nameResolversChainProviders || getProtocolOptions(account)?.nameResolversChainProviders;
 
 export const getRpcClients = (protocolClient: any) => protocolClient?.clients?.pkcRpcClients || {};
 
 export const getPageRpcClients = (clients: any) => clients?.pkcRpcClients || {};
+
+export const getProtocolNameResolverClients = (protocolClient: any) =>
+  protocolClient?.clients?.nameResolvers ||
+  protocolClient?._clientsManager?.clients?.nameResolvers ||
+  {};
+
+export type NameResolverInfo = {
+  key: string;
+  nameSystem: string;
+  chainTicker: string;
+  provider: string;
+  providerLabel: string;
+};
+
+const isEthAliasDomain = (address?: string) =>
+  typeof address === "string" &&
+  (address.toLowerCase().endsWith(".eth") || address.toLowerCase().endsWith(".bso"));
+
+const isSupportedBsoResolverProvider = (provider: string) =>
+  provider === "viem" || /^(https?:\/\/|wss?:\/\/)/i.test(provider);
+
+const getNameResolverProviderLabel = (provider: string) => {
+  try {
+    return new URL(provider).hostname;
+  } catch (error) {
+    return provider;
+  }
+};
+
+const getConfiguredEthNameResolverProviders = (account: any): string[] => {
+  const nameResolverUrls = getNameResolversChainProviders(account)?.eth?.urls;
+  const chainProviderUrls = getChainProviders(account)?.eth?.urls;
+  const urls =
+    Array.isArray(nameResolverUrls) && nameResolverUrls.length
+      ? nameResolverUrls
+      : chainProviderUrls;
+
+  if (!Array.isArray(urls)) {
+    return [];
+  }
+
+  return urls.filter(
+    (provider): provider is string => typeof provider === "string" && provider.length > 0,
+  );
+};
+
+export const getConfiguredNameResolverInfoByKey = (
+  account: any,
+): Record<string, NameResolverInfo> => {
+  const infoByKey: Record<string, NameResolverInfo> = {};
+
+  for (const provider of getConfiguredEthNameResolverProviders(account)) {
+    if (!isSupportedBsoResolverProvider(provider)) {
+      continue;
+    }
+
+    const providerLabel = getNameResolverProviderLabel(provider);
+    const key = `eth-${providerLabel}`;
+
+    if (!infoByKey[key]) {
+      infoByKey[key] = {
+        key,
+        nameSystem: "eth",
+        chainTicker: "eth",
+        provider,
+        providerLabel,
+      };
+    }
+  }
+
+  return infoByKey;
+};
+
+export const getMatchingNameResolvers = (account: any, address?: string): NameResolverInfo[] => {
+  if (!isEthAliasDomain(address)) {
+    return [];
+  }
+
+  return Object.values(getConfiguredNameResolverInfoByKey(account));
+};
+
+const buildConfiguredNameResolvers = (account: any, dataPath?: string) =>
+  Object.values(getConfiguredNameResolverInfoByKey(account)).map(
+    (resolverInfo) =>
+      new BsoResolver({
+        key: resolverInfo.key,
+        provider: resolverInfo.provider,
+        dataPath,
+      }),
+  );
 
 export const resolveAuthorNameWithProtocol = (
   protocolClient: any,
@@ -38,8 +133,63 @@ export const normalizeOptionsForPkcClient = <T extends Record<string, any> | und
 
   delete normalized.resolveAuthorAddresses;
   delete normalized.chainProviders;
+  delete normalized.nameResolversChainProviders;
 
   return normalized as T;
+};
+
+export const getPkcClientOptions = <T extends Record<string, any> | undefined>(
+  account: any,
+  options: T,
+): T => {
+  const normalized = normalizeOptionsForPkcClient(options);
+
+  if (!normalized) {
+    return normalized;
+  }
+
+  const nameResolvers = buildConfiguredNameResolvers(account, normalized.dataPath);
+  if (nameResolvers.length) {
+    normalized.nameResolvers = nameResolvers;
+  }
+
+  return normalized as T;
+};
+
+export const normalizeAccountProtocolConfig = <T extends Record<string, any> | undefined>(
+  account: T,
+  defaultChainProviders?: Record<string, any>,
+): T => {
+  if (!account) {
+    return account;
+  }
+
+  const nextAccount: Record<string, any> = { ...account };
+  const protocolOptions =
+    nextAccount.pkcOptions && typeof nextAccount.pkcOptions === "object"
+      ? { ...nextAccount.pkcOptions }
+      : nextAccount.pkcOptions;
+
+  const chainProviders =
+    nextAccount.chainProviders || protocolOptions?.chainProviders || defaultChainProviders;
+  if (chainProviders !== undefined) {
+    nextAccount.chainProviders = chainProviders;
+  }
+
+  if (
+    nextAccount.nameResolversChainProviders === undefined &&
+    protocolOptions?.nameResolversChainProviders !== undefined
+  ) {
+    nextAccount.nameResolversChainProviders = protocolOptions.nameResolversChainProviders;
+  }
+
+  if (protocolOptions && typeof protocolOptions === "object") {
+    delete protocolOptions.chainProviders;
+    delete protocolOptions.nameResolversChainProviders;
+    nextAccount.pkcOptions = protocolOptions;
+  }
+
+  return nextAccount as T;
 };
 
 export const withProtocolAliases = <T extends Record<string, any>>(

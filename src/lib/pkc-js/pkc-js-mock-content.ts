@@ -906,7 +906,34 @@ const getCommentsPage = async (pageCid: string, communityOrComment: any) => {
 // array of communities probably created by the user
 const createdCommunities: any = {};
 
+class NameResolverClient extends EventEmitter {
+  state = "stopped";
+}
+
 class PKC extends EventEmitter {
+  nameResolvers: any[];
+  _clientsManager: {
+    clients: {
+      nameResolvers: { [resolverKey: string]: NameResolverClient };
+    };
+  };
+
+  constructor(options: any = {}) {
+    super();
+    this.nameResolvers = options?.nameResolvers || [];
+    this._clientsManager = {
+      clients: {
+        nameResolvers: this.nameResolvers.reduce(
+          (resolverClients: { [resolverKey: string]: NameResolverClient }, resolver: any) => ({
+            ...resolverClients,
+            [resolver.key]: new NameResolverClient(),
+          }),
+          {},
+        ),
+      },
+    };
+  }
+
   async createSigner() {
     return {
       privateKey: "private key",
@@ -915,6 +942,19 @@ class PKC extends EventEmitter {
   }
 
   async resolveAuthorAddress(options: { address: string }) {
+    const resolver = this.nameResolvers.find((nameResolver) =>
+      nameResolver?.canResolve?.({ name: options.address }),
+    );
+    const resolverClient = resolver && this._clientsManager.clients.nameResolvers[resolver.key];
+    if (resolverClient) {
+      resolverClient.state = "resolving-author-name";
+      resolverClient.emit("statechange", resolverClient.state);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    if (resolverClient) {
+      resolverClient.state = "stopped";
+      resolverClient.emit("statechange", resolverClient.state);
+    }
     return "resolved author address";
   }
   async resolveAuthorName(options: { address: string }) {

@@ -15,6 +15,14 @@ export interface Result {
   errors: Error[];
 }
 
+export interface NameResolverInfo {
+  key: string;
+  nameSystem: string;
+  chainTicker: string;
+  provider: string;
+  providerLabel: string;
+}
+
 // useAccount(options): result
 export interface UseAccountOptions extends Options {}
 export interface UseAccountResult extends Result, Account {}
@@ -272,6 +280,7 @@ export interface UseResolvedAuthorAddressOptions extends Options {
 export interface UseResolvedAuthorAddressResult extends Result {
   resolvedAddress: string | undefined;
   chainProvider: ChainProvider | undefined;
+  nameResolver: NameResolverInfo | undefined;
 }
 
 // useAuthorAvatar(options): result

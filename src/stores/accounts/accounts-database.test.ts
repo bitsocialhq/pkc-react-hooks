@@ -2,7 +2,7 @@ import accountsDatabase from "./accounts-database";
 import { setPkcJs, restorePkcJs } from "../../lib/pkc-js";
 import PkcJsMock from "../../lib/pkc-js/pkc-js-mock";
 import localForage from "localforage";
-import { getDefaultPkcOptions } from "./account-generator";
+import { getDefaultChainProviders, getDefaultPkcOptions } from "./account-generator";
 
 const createPerAccountDatabase = (databaseName: string, accountId: string) =>
   localForage.createInstance({
@@ -21,12 +21,13 @@ describe("accounts-database", () => {
   const makeAccount = (overrides: any = {}) => ({
     id: "acc-1",
     name: "Test Account",
-    version: 4,
+    version: 5,
     author: {
       address: "address",
       wallets: { eth: undefined },
     },
     signer: { privateKey: "private key", address: "address" },
+    chainProviders: getDefaultChainProviders(),
     pkcOptions: getDefaultPkcOptions(),
     subscriptions: [],
     blockedAddresses: {},
@@ -132,7 +133,7 @@ describe("accounts-database", () => {
         "http://pubsub:5001",
       ]);
       expect(accounts["v1-acc"].pkcOptions.ipfsHttpClientsOptions).toBeUndefined();
-      expect(accounts["v1-acc"].version).toBe(4);
+      expect(accounts["v1-acc"].version).toBe(5);
     });
 
     test("v1 migration when pkcOptions absent (branch 111)", async () => {
@@ -150,7 +151,7 @@ describe("accounts-database", () => {
         V1NoOpts: "v1-no-opts",
       });
       const accounts = await accountsDatabase.getAccounts(["v1-no-opts"]);
-      expect(accounts["v1-no-opts"].version).toBe(4);
+      expect(accounts["v1-no-opts"].version).toBe(5);
     });
 
     test("migrateAccount when account.version is falsy uses 1 (branch 111)", async () => {
@@ -167,7 +168,7 @@ describe("accounts-database", () => {
         NoVer: "no-ver-acc",
       });
       const accounts = await accountsDatabase.getAccounts(["no-ver-acc"]);
-      expect(accounts["no-ver-acc"].version).toBe(4);
+      expect(accounts["no-ver-acc"].version).toBe(5);
     });
 
     test("v1 migration skips when ipfsHttpClientsOptions absent", async () => {
@@ -257,7 +258,7 @@ describe("accounts-database", () => {
       const accounts = await accountsDatabase.getAccounts(["v2-acc"]);
       expect(accounts["v2-acc"].author.wallets).toBeDefined();
       expect(accounts["v2-acc"].author.wallets.sol).toBeUndefined();
-      expect(accounts["v2-acc"].version).toBe(4);
+      expect(accounts["v2-acc"].version).toBe(5);
     });
 
     test("v3 regenerates only eth wallet when timestamp is in ms", async () => {
@@ -284,7 +285,7 @@ describe("accounts-database", () => {
       const accounts = await accountsDatabase.getAccounts(["v3-acc"]);
       expect(accounts["v3-acc"].author.wallets.eth).toBeUndefined();
       expect(accounts["v3-acc"].author.wallets.sol.timestamp).toBe(1e13);
-      expect(accounts["v3-acc"].version).toBe(4);
+      expect(accounts["v3-acc"].version).toBe(5);
     });
 
     test("v3 migration skips when wallet timestamps already in seconds", async () => {
@@ -311,6 +312,44 @@ describe("accounts-database", () => {
       const accounts = await accountsDatabase.getAccounts(["v3-seconds"]);
       expect(accounts["v3-seconds"].author.wallets.eth.timestamp).toBe(1000);
       expect(accounts["v3-seconds"].author.wallets.sol.timestamp).toBe(1000);
+    });
+
+    test("moves chain providers config out of pkcOptions during migration", async () => {
+      const v4Account = {
+        id: "v4-chain-providers",
+        name: "V4ChainProviders",
+        version: 4,
+        author: { address: "address", wallets: {} },
+        signer: { privateKey: "private key", address: "address" },
+        pkcOptions: {
+          ...getDefaultPkcOptions(),
+          chainProviders: {
+            eth: { urls: ["https://custom.eth"], chainId: 1 },
+          },
+          nameResolversChainProviders: {
+            eth: { urls: ["https://resolver.eth"], chainId: 1 },
+          },
+        },
+      };
+      await accountsDatabase.accountsDatabase.setItem("v4-chain-providers", v4Account);
+      await accountsDatabase.accountsMetadataDatabase.setItem("accountIds", ["v4-chain-providers"]);
+      await accountsDatabase.accountsMetadataDatabase.setItem(
+        "activeAccountId",
+        "v4-chain-providers",
+      );
+      await accountsDatabase.accountsMetadataDatabase.setItem("accountNamesToAccountIds", {
+        V4ChainProviders: "v4-chain-providers",
+      });
+      const accounts = await accountsDatabase.getAccounts(["v4-chain-providers"]);
+      expect(accounts["v4-chain-providers"].version).toBe(5);
+      expect(accounts["v4-chain-providers"].chainProviders).toEqual({
+        eth: { urls: ["https://custom.eth"], chainId: 1 },
+      });
+      expect(accounts["v4-chain-providers"].nameResolversChainProviders).toEqual({
+        eth: { urls: ["https://resolver.eth"], chainId: 1 },
+      });
+      expect(accounts["v4-chain-providers"].pkcOptions.chainProviders).toBeUndefined();
+      expect(accounts["v4-chain-providers"].pkcOptions.nameResolversChainProviders).toBeUndefined();
     });
   });
 
@@ -353,6 +392,13 @@ describe("accounts-database", () => {
       await accountsDatabase.addAccount(acc);
       const stored = await accountsDatabase.accountsDatabase.getItem(acc.id);
       expect(stored.pkcOptions).toBeUndefined();
+    });
+
+    test("strips default chain providers from stored account", async () => {
+      const acc = makeAccount({ chainProviders: getDefaultChainProviders() });
+      await accountsDatabase.addAccount(acc);
+      const stored = await accountsDatabase.accountsDatabase.getItem(acc.id);
+      expect(stored.chainProviders).toBeUndefined();
     });
 
     test("pkc error handler is invoked when pkc emits error (func coverage)", async () => {

@@ -248,6 +248,11 @@ const clientsOnStateChange = (clients: any, onStateChange: Function) => {
       );
     }
   }
+  for (const resolverKey in clients?.nameResolvers) {
+    clients?.nameResolvers?.[resolverKey].on("statechange", (state: string) =>
+      onStateChange(state, "nameResolvers", resolverKey),
+    );
+  }
 };
 
 const pageClientsOnStateChange = (clients: any, onStateChange: Function) => {

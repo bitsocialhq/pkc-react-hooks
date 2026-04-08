@@ -141,7 +141,7 @@ useResolvedCommunityAddress({communityAddress: string, cache: boolean}): {resolv
 useAuthor({authorAddress: string, commentCid: string}): {author: Author | undefined}
 useAuthorAddress({comment: Comment}): {authorAddress: string | undefined, shortAuthorAddress: string | undefined, authorAddressChanged: boolean}
 useAuthorComments({authorAddress: string, commentCid: string, filter?: CommentsFilter}): {authorComments: Comment[], hasMore: boolean, loadMore: Promise<void>}
-useResolvedAuthorAddress({author?: Author, cache?: boolean}): {resolvedAddress: string | undefined} // supports .eth/.bso aliases and .sol; use {cache: false} when checking the user's own author address
+useResolvedAuthorAddress({author?: Author, cache?: boolean}): {resolvedAddress: string | undefined, nameResolver: NameResolverInfo | undefined} // supports .eth/.bso aliases; use {cache: false} when checking the user's own author address
 useAuthorAvatar({author?: Author}): {imageUrl: string | undefined}
 setAuthorAvatarsWhitelistedTokenAddresses(tokenAddresses: string[])
 ```
@@ -844,18 +844,30 @@ console.log(error);
 import {useAccount, setAccount, useResolvedAuthorAddress} from '@bitsocialnet/bitsocial-react-hooks'
 const account = useAccount() // or useAccount('Account 2') to use an account other than the active one
 
-// `account.author.wallets` only auto-generates an `eth` wallet by default
+// `account.author.wallets` only auto-generates an `eth` wallet by default.
+// `account.chainProviders` is the canonical chain config for wallets, NFT lookups, and other chain reads.
+// `account.nameResolversChainProviders` optionally overrides only the RPCs used for `.eth` / `.bso` author-name resolution.
 console.log(account.author.wallets.eth)
 
 const author: {...account.author, displayName: 'John'}
-const editedAccount = {...account, author}
+const editedAccount = {
+  ...account,
+  author,
+  chainProviders: {
+    ...account.chainProviders,
+    eth: { urls: ['https://ethrpc.xyz', 'viem', 'ethers.js'], chainId: 1 },
+  },
+  nameResolversChainProviders: {
+    eth: { urls: ['https://ethrpc.xyz', 'viem'], chainId: 1 },
+  },
+}
 
 await setAccount(editedAccount)
 
 // check if the user has set their .eth or .bso author name properly, use {cache: false} or it won't update
 const author = {...account.author, address: 'username.bso'} // or 'username.eth'
 // authorAddress should equal to account.signer.address
-const {resolvedAddress, state, error, chainProvider} = useResolvedAuthorAddress({author, cache: false})
+const {resolvedAddress, state, error, chainProvider, nameResolver} = useResolvedAuthorAddress({author, cache: false})
 
 // result
 if (state === 'succeeded') {
@@ -866,8 +878,9 @@ if (state === 'failed') {
 }
 
 // pending
-if (state === 'resolving') {
-  console.log('Resolving address from chain provider URL', chainProvider.urls)
+if (state === 'resolving' && nameResolver) {
+  console.log(`Resolving ${nameResolver.nameSystem} address from ${nameResolver.providerLabel}`)
+  console.log('Matching chain provider URLs', chainProvider?.urls)
 }
 ```
 

@@ -5,6 +5,10 @@
     "module": "ES2020",
     "declaration": true,
     "moduleResolution": "Node",
+    "baseUrl": ".",
+    "paths": {
+      "@bitsocial/bso-resolver": ["../node_modules/@bitsocial/bso-resolver/dist/index.d.ts"]
+    },
     "rootDir": "../src",
     "outDir": "../dist",
     "jsx": "react",

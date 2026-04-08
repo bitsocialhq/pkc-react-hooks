@@ -18,9 +18,17 @@ import {
   AccountEditsSummary,
 } from "../../types";
 import utils from "../../lib/utils";
-import { getDefaultPkcOptions, overwritePkcOptions } from "./account-generator";
+import {
+  getDefaultChainProviders,
+  getDefaultPkcOptions,
+  overwritePkcOptions,
+} from "./account-generator";
 import { getAccountsEditsSummary, sanitizeStoredAccountComment } from "./utils";
-import { normalizeOptionsForPkcClient, withProtocolAliases } from "../../lib/pkc-compat";
+import {
+  getPkcClientOptions,
+  normalizeAccountProtocolConfig,
+  withProtocolAliases,
+} from "../../lib/pkc-compat";
 import Logger from "@pkc/pkc-logger";
 const log = Logger("bitsocial-react-hooks:accounts:stores");
 // Storage keeps the existing namespace so current installs reuse the same IndexedDB data.
@@ -105,7 +113,10 @@ const getAccounts = async (accountIds: string[]) => {
   const accountsArray: any = await Promise.all(promises);
   for (const [i, accountId] of accountIds.entries()) {
     assert(accountsArray[i], `accountId '${accountId}' not found in database`);
-    accounts[accountId] = await migrateAccount(accountsArray[i]);
+    accounts[accountId] = normalizeAccountProtocolConfig(
+      await migrateAccount(accountsArray[i]),
+      getDefaultChainProviders(),
+    );
     // protocol options aren't saved to database if they are default
     if (!accounts[accountId].pkcOptions && !accounts[accountId].pkcOptions) {
       accounts[accountId].pkcOptions = getDefaultPkcOptions();
@@ -114,7 +125,7 @@ const getAccounts = async (accountIds: string[]) => {
       ...(accounts[accountId].pkcOptions || accounts[accountId].pkcOptions),
       ...overwritePkcOptions,
     };
-    const pkc = await PkcJs.PKC(normalizeOptionsForPkcClient(protocolOptions));
+    const pkc = await PkcJs.PKC(getPkcClientOptions(accounts[accountId], protocolOptions));
     // handle errors or error events are uncaught
     // no need to log them because pkc-js already logs them
     pkc.on("error", (error: any) =>
@@ -125,14 +136,9 @@ const getAccounts = async (accountIds: string[]) => {
   return accounts;
 };
 
-const accountVersion = 4;
+const accountVersion = 5;
 const migrateAccount = async (account: any) => {
-  if (account?.pkcOptions && !account?.pkcOptions) {
-    account.pkcOptions = account.pkcOptions;
-  }
-  if (account?.pkcOptions && !account?.pkcOptions) {
-    account.pkcOptions = account.pkcOptions;
-  }
+  account = normalizeAccountProtocolConfig(account);
 
   let version = account.version || 1;
 
@@ -172,6 +178,11 @@ const migrateAccount = async (account: any) => {
         account.address,
       );
     }
+  }
+
+  if (version === 4) {
+    version++;
+    account = normalizeAccountProtocolConfig(account);
   }
 
   account.version = accountVersion;
@@ -271,19 +282,25 @@ const addAccount = async (account: Account) => {
   }
 
   // handle updating accounts database
-  const accountToPutInDatabase: any = {
+  const accountToPutInDatabase: any = normalizeAccountProtocolConfig({
     ...account,
     pkc: undefined,
-  };
+  });
   const protocolOptions = accountToPutInDatabase.pkcOptions;
   accountToPutInDatabase.pkcOptions = protocolOptions;
   // don't save default protocol options in database in case they change
   if (JSON.stringify(protocolOptions) === JSON.stringify(getDefaultPkcOptions())) {
     delete accountToPutInDatabase.pkcOptions;
   }
+  if (
+    JSON.stringify(accountToPutInDatabase.chainProviders) ===
+    JSON.stringify(getDefaultChainProviders())
+  ) {
+    delete accountToPutInDatabase.chainProviders;
+  }
   // make sure accountToPutInDatabase protocol options are valid
   if (protocolOptions) {
-    const pkc = await PkcJs.PKC(normalizeOptionsForPkcClient(protocolOptions));
+    const pkc = await PkcJs.PKC(getPkcClientOptions(accountToPutInDatabase, protocolOptions));
     pkc.on("error", () => {});
     void pkc.destroy?.(); // gc; errors intentionally unhandled to avoid uncounted callback
   }

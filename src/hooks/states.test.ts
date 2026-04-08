@@ -662,6 +662,28 @@ describe("states", () => {
       expect(rendered.result.current.states["fetching-ipfs"]).toContain("https://libp2p2.com");
     });
 
+    test("nameResolvers state included", () => {
+      const commentWithNameResolvers = {
+        cid: "cid",
+        timestamp: 1,
+        clients: {
+          nameResolvers: {
+            "eth-ethrpc.xyz": new Client(),
+            "eth-viem": new Client(),
+          },
+        },
+      };
+      (commentWithNameResolvers.clients.nameResolvers["eth-ethrpc.xyz"] as any).state =
+        "resolving-author-name";
+      (commentWithNameResolvers.clients.nameResolvers["eth-viem"] as any).state =
+        "resolving-author-name";
+      const rendered = renderHook(() =>
+        useClientsStates({ comment: commentWithNameResolvers as any }),
+      );
+      expect(rendered.result.current.states["resolving-author-name"]).toContain("eth-ethrpc.xyz");
+      expect(rendered.result.current.states["resolving-author-name"]).toContain("eth-viem");
+    });
+
     test("fetch comment", async () => {
       const rendered = renderHook<any, any>((commentCid) => {
         const comment = useComment({ commentCid });

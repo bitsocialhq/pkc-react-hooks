@@ -23,7 +23,7 @@ import { resolveEnsTxtRecord } from "../lib/chain";
 import useCommunitiesStore from "../stores/communities";
 import useAccountsStore from "../stores/accounts";
 import shallow from "zustand/shallow";
-import { getPkcCommunityAddresses } from "../lib/pkc-compat";
+import { getChainProviders, getPkcCommunityAddresses } from "../lib/pkc-compat";
 
 /**
  * @param communityAddress - The address of the community, e.g. 'memes.eth', '12D3KooW...', etc
@@ -335,8 +335,7 @@ export function useResolvedCommunityAddress(
   }
 
   const account = useAccount({ accountName });
-  // possible to use account.pkc instead of account.pkcOptions
-  const chainProviders = account?.pkcOptions?.chainProviders;
+  const chainProviders = getChainProviders(account);
   const [resolvedAddress, setResolvedAddress] = useState<string>();
   const [errors, setErrors] = useState<Error[]>([]);
   const [state, setState] = useState<string>();

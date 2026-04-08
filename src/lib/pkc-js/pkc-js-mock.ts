@@ -17,8 +17,48 @@ export const debugPkcJsMock = () => {
   console.log({ createdOwnerCommunities, editedOwnerCommunities });
 };
 
+class NameResolverClient extends EventEmitter {
+  state = "stopped";
+}
+
 export class PKC extends EventEmitter {
+  nameResolvers: any[];
+  _clientsManager: {
+    clients: {
+      nameResolvers: { [resolverKey: string]: NameResolverClient };
+    };
+  };
+
+  constructor(options: any = {}) {
+    super();
+    this.nameResolvers = options?.nameResolvers || [];
+    this._clientsManager = {
+      clients: {
+        nameResolvers: this.nameResolvers.reduce(
+          (resolverClients: { [resolverKey: string]: NameResolverClient }, resolver: any) => ({
+            ...resolverClients,
+            [resolver.key]: new NameResolverClient(),
+          }),
+          {},
+        ),
+      },
+    };
+  }
+
   async resolveAuthorAddress(options: { address: string }) {
+    const resolver = this.nameResolvers.find((nameResolver) =>
+      nameResolver?.canResolve?.({ name: options.address }),
+    );
+    const resolverClient = resolver && this._clientsManager.clients.nameResolvers[resolver.key];
+    if (resolverClient) {
+      resolverClient.state = "resolving-author-name";
+      resolverClient.emit("statechange", resolverClient.state);
+    }
+    await simulateLoadingTime();
+    if (resolverClient) {
+      resolverClient.state = "stopped";
+      resolverClient.emit("statechange", resolverClient.state);
+    }
     return "resolved author address";
   }
 

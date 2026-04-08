@@ -4,7 +4,11 @@ import chain from "../../lib/chain";
 import { v4 as uuid } from "uuid";
 import accountsDatabase from "./accounts-database";
 import { Accounts, AccountCommunity, ChainProviders } from "../../types";
-import { normalizeOptionsForPkcClient, withProtocolAliases } from "../../lib/pkc-compat";
+import {
+  getPkcClientOptions,
+  normalizeAccountProtocolConfig,
+  withProtocolAliases,
+} from "../../lib/pkc-compat";
 import Logger from "@pkc/pkc-logger";
 const log = Logger("bitsocial-react-hooks:accounts:stores");
 
@@ -47,6 +51,17 @@ const addMissingChainProviders = (options: Record<string, any>) => {
   return optionsWithChainProviders;
 };
 
+export const getDefaultChainProviders = () => {
+  // @ts-ignore
+  const defaultWindowOptions = window.defaultPkcOptions;
+  const windowChainProviders = defaultWindowOptions?.chainProviders
+    ? JSON.parse(JSON.stringify(defaultWindowOptions.chainProviders))
+    : undefined;
+  return addMissingChainProviders({
+    chainProviders: windowChainProviders,
+  }).chainProviders as ChainProviders;
+};
+
 // default options aren't saved to database so they can be changed
 export const getDefaultPkcOptions = () => {
   // default PKC options defined by the electron process
@@ -57,11 +72,11 @@ export const getDefaultPkcOptions = () => {
     const defaultPkcOptions: any = JSON.parse(
       JSON.stringify({ ...defaultWindowOptions, libp2pJsClientsOptions: undefined }),
     );
+    delete defaultPkcOptions.chainProviders;
+    delete defaultPkcOptions.nameResolversChainProviders;
     // @ts-ignore
     defaultPkcOptions.libp2pJsClientsOptions = defaultWindowOptions.libp2pJsClientsOptions; // libp2pJsClientsOptions is not always just json
-    return aliasProtocolOptions(
-      addMissingChainProviders({ ...defaultPkcOptions, ...overwritePkcOptions }),
-    );
+    return aliasProtocolOptions({ ...defaultPkcOptions, ...overwritePkcOptions });
   }
   // default PKC options for web client
   return aliasProtocolOptions({
@@ -82,7 +97,6 @@ export const getDefaultPkcOptions = () => {
       "https://peers.plebpubsub.xyz",
       "https://peers.forumindex.com",
     ],
-    chainProviders,
     ...overwritePkcOptions,
   });
 };
@@ -93,7 +107,16 @@ const defaultMediaIpfsGatewayUrl = window.defaultMediaIpfsGatewayUrl || "https:/
 
 const generateDefaultAccount = async () => {
   const pkcOptions = getDefaultPkcOptions();
-  const pkc = await PkcJs.PKC(normalizeOptionsForPkcClient(pkcOptions));
+  const chainProviders = getDefaultChainProviders();
+  const pkc = await PkcJs.PKC(
+    getPkcClientOptions(
+      {
+        chainProviders,
+        pkcOptions,
+      },
+      pkcOptions,
+    ),
+  );
   // handle errors or error events are uncaught
   // no need to log them because pkc-js already logs them
   pkc.on("error", (error: any) =>
@@ -113,22 +136,26 @@ const generateDefaultAccount = async () => {
   // communities where the account has a role, like moderator, admin, owner, etc.
   const communities: { [communityAddress: string]: AccountCommunity } = {};
 
-  const account = withProtocolAliases(
-    {
-      id: uuid(),
-      version: accountsDatabase.accountVersion,
-      name: accountName,
-      author,
-      signer,
+  const account = normalizeAccountProtocolConfig(
+    withProtocolAliases(
+      {
+        id: uuid(),
+        version: accountsDatabase.accountVersion,
+        name: accountName,
+        author,
+        signer,
+        chainProviders,
+        pkcOptions,
+        subscriptions: [],
+        blockedAddresses: {},
+        blockedCids: {},
+        communities,
+        mediaIpfsGatewayUrl: defaultMediaIpfsGatewayUrl,
+      },
+      pkc,
       pkcOptions,
-      subscriptions: [],
-      blockedAddresses: {},
-      blockedCids: {},
-      communities,
-      mediaIpfsGatewayUrl: defaultMediaIpfsGatewayUrl,
-    },
-    pkc,
-    pkcOptions,
+    ),
+    chainProviders,
   );
   return account;
 };

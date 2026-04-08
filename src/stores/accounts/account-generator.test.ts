@@ -1,4 +1,7 @@
-import accountGenerator, { getDefaultPkcOptions } from "./account-generator";
+import accountGenerator, {
+  getDefaultChainProviders,
+  getDefaultPkcOptions,
+} from "./account-generator";
 import { setPkcJs, restorePkcJs } from "../../lib/pkc-js";
 import PkcJsMock from "../../lib/pkc-js/pkc-js-mock";
 import accountsDatabase from "./accounts-database";
@@ -13,10 +16,12 @@ describe("account-generator", () => {
       delete (global as any).window?.defaultPkcOptions;
       try {
         const opts = getDefaultPkcOptions();
+        const chainProviders = getDefaultChainProviders();
         expect(opts.ipfsGatewayUrls).toBeDefined();
-        expect(opts.chainProviders).toBeDefined();
-        expect(opts.chainProviders.eth).toBeDefined();
-        expect(opts.chainProviders.matic).toBeDefined();
+        expect(opts.chainProviders).toBeUndefined();
+        expect(chainProviders).toBeDefined();
+        expect(chainProviders.eth).toBeDefined();
+        expect(chainProviders.matic).toBeDefined();
         expect(opts.resolveAuthorAddresses).toBe(false);
         expect(opts.validatePages).toBe(false);
       } finally {
@@ -33,8 +38,10 @@ describe("account-generator", () => {
       (global as any).window.defaultPkcOptions = custom;
       try {
         const opts = getDefaultPkcOptions();
+        const chainProviders = getDefaultChainProviders();
         expect(opts.ipfsGatewayUrls).toEqual(["https://custom.ipfs.io"]);
-        expect(opts.chainProviders.eth.urls).toEqual(["custom"]);
+        expect(opts.chainProviders).toBeUndefined();
+        expect(chainProviders.eth.urls).toEqual(["custom"]);
       } finally {
         delete (global as any).window.defaultPkcOptions;
       }
@@ -48,8 +55,8 @@ describe("account-generator", () => {
       (global as any).window = (global as any).window || {};
       (global as any).window.defaultPkcOptions = custom;
       try {
-        const opts = getDefaultPkcOptions();
-        expect(opts.chainProviders.matic).toBeDefined();
+        const chainProviders = getDefaultChainProviders();
+        expect(chainProviders.matic).toBeDefined();
       } finally {
         delete (global as any).window.defaultPkcOptions;
       }
@@ -87,6 +94,12 @@ describe("account-generator", () => {
       expect(account.signer).toBeDefined();
       expect(account.pkc).toBeDefined();
       expect(account.pkcOptions).toBeDefined();
+      expect(account.chainProviders?.eth).toBeDefined();
+      expect(account.pkcOptions.chainProviders).toBeUndefined();
+      expect(account.pkc.nameResolvers.map((resolver: any) => resolver.key)).toEqual([
+        "eth-ethrpc.xyz",
+        "eth-viem",
+      ]);
       expect(account.version).toBe(accountsDatabase.accountVersion);
     });
 

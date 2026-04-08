@@ -862,13 +862,14 @@ describe("authors", () => {
       expect(rendered.result.current.error).toBe(undefined);
     });
 
-    test("useResolvedAuthorAddress .sol has no error", { timeout }, async () => {
+    test("useResolvedAuthorAddress .sol is unsupported", { timeout }, async () => {
       const rendered = renderHook<any, any>((author) => useResolvedAuthorAddress({ author }));
       const waitFor = testUtils.createWaitFor(rendered);
       expect(rendered.result.current.resolvedAddress).toBe(undefined);
 
       rendered.rerender({ address: "abc.sol" });
-      expect(rendered.result.current.error).toBe(undefined);
+      await waitFor(() => rendered.result.current.error);
+      expect(rendered.result.current.error.message).toBe("crypto domain type unsupported");
     });
 
     test("useResolvedAuthorAddress .bso resolves with the eth chain provider", async () => {
@@ -889,7 +890,7 @@ describe("authors", () => {
           });
           return {
             ...resolvedAuthorAddress,
-            ethChainProvider: account?.pkcOptions?.chainProviders?.eth,
+            ethChainProvider: account?.chainProviders?.eth,
           };
         });
         const waitFor = testUtils.createWaitFor(rendered, { timeout: 20000 });
@@ -899,6 +900,13 @@ describe("authors", () => {
         expect(rendered.result.current.chainProvider).toEqual(
           rendered.result.current.ethChainProvider,
         );
+        expect(rendered.result.current.nameResolver).toEqual({
+          key: "eth-ethrpc.xyz",
+          nameSystem: "eth",
+          chainTicker: "eth",
+          provider: "https://ethrpc.xyz",
+          providerLabel: "ethrpc.xyz",
+        });
       } finally {
         PKC.prototype.resolveAuthorAddress = origResolve;
       }

@@ -28,10 +28,12 @@ import { useComment, useComments } from "../comments";
 import { useAuthorCommentsName, usePkcAddress } from "./utils";
 import useAuthorsCommentsStore from "../../stores/authors-comments";
 import PkcJs from "../../lib/pkc-js";
-import { normalizeEthAliasDomain } from "../../lib/community-address";
 import {
+  getConfiguredNameResolverInfoByKey,
   getChainProviders,
+  getMatchingNameResolvers,
   getProtocolClient,
+  getProtocolNameResolverClients,
   resolveAuthorNameWithProtocol,
 } from "../../lib/pkc-compat";
 import QuickLRU from "quick-lru";
@@ -49,6 +51,14 @@ const cacheResolveAuthorAddressPromise = (
   };
   void promise.then(clearCachedPromise, clearCachedPromise);
   return promise;
+};
+
+const removeStateChangeListener = (client: any, listener: (state: string) => void) => {
+  if (typeof client?.off === "function") {
+    client.off("statechange", listener);
+    return;
+  }
+  client?.removeListener?.("statechange", listener);
 };
 
 /**
@@ -423,9 +433,18 @@ export function useResolvedAuthorAddress(
   const account = useAccount({ accountName });
   const protocolClient = getProtocolClient(account);
   const chainProviders = getChainProviders(account);
+  const configuredNameResolvers = useMemo(
+    () => getMatchingNameResolvers(account, author?.address),
+    [account, author?.address],
+  );
+  const configuredNameResolversByKey = useMemo(
+    () => getConfiguredNameResolverInfoByKey(account),
+    [account],
+  );
   const [resolvedAddress, setResolvedAddress] = useState<string>();
   const [errors, setErrors] = useState<Error[]>([]);
   const [state, setState] = useState<string>();
+  const [activeNameResolverKey, setActiveNameResolverKey] = useState<string>();
 
   let initialState = "initializing";
   // before those defined, nothing can happen
@@ -433,12 +452,7 @@ export function useResolvedAuthorAddress(
     initialState = "ready";
   }
 
-  const isCryptoName = author?.address.includes(".");
-  const normalizedCryptoDomain =
-    isCryptoName && author?.address
-      ? normalizeEthAliasDomain(author.address.toLowerCase())
-      : undefined;
-  const chainProviderKey = normalizedCryptoDomain?.split(".").pop();
+  const isCryptoName = author?.address?.includes?.(".");
 
   const resolveAuthorAddressNoCache = () => {
     if (Boolean(resolveAuthorAddressPromises[author?.address])) {
@@ -462,6 +476,65 @@ export function useResolvedAuthorAddress(
     return res;
   };
 
+  useEffect(() => {
+    if (!protocolClient || !author?.address) {
+      setActiveNameResolverKey(undefined);
+      return;
+    }
+
+    const nameResolverClients = getProtocolNameResolverClients(protocolClient);
+    const entries = Object.entries(nameResolverClients);
+    if (!entries.length) {
+      setActiveNameResolverKey(undefined);
+      return;
+    }
+
+    const syncFromCurrentClients = () => {
+      const nextActiveKey = entries.find(
+        ([, client]: [string, any]) => client?.state && client.state !== "stopped",
+      )?.[0];
+      if (nextActiveKey) {
+        setActiveNameResolverKey(nextActiveKey);
+      }
+    };
+
+    syncFromCurrentClients();
+
+    const disposers = entries.map(([resolverKey, client]: [string, any]) => {
+      if (typeof client?.on !== "function") {
+        return undefined;
+      }
+
+      const onStateChange = (resolverState: string) => {
+        setActiveNameResolverKey((previousResolverKey) => {
+          if (resolverState !== "stopped") {
+            return resolverKey;
+          }
+          if (previousResolverKey !== resolverKey) {
+            return previousResolverKey;
+          }
+          return (
+            entries.find(
+              ([candidateResolverKey, candidateClient]: [string, any]) =>
+                candidateResolverKey !== resolverKey &&
+                candidateClient?.state &&
+                candidateClient.state !== "stopped",
+            )?.[0] || previousResolverKey
+          );
+        });
+      };
+
+      client.on("statechange", onStateChange);
+      return () => removeStateChangeListener(client, onStateChange);
+    });
+
+    return () => {
+      for (const dispose of disposers) {
+        dispose?.();
+      }
+    };
+  }, [author?.address, protocolClient]);
+
   useInterval(
     () => {
       // no options, do nothing or reset
@@ -475,6 +548,9 @@ export function useResolvedAuthorAddress(
         if (errors.length) {
           setErrors([]);
         }
+        if (activeNameResolverKey !== undefined) {
+          setActiveNameResolverKey(undefined);
+        }
         return;
       }
 
@@ -484,22 +560,26 @@ export function useResolvedAuthorAddress(
           setErrors([Error("not a crypto domain")]);
           setState("failed");
           setResolvedAddress(undefined);
+          setActiveNameResolverKey(undefined);
         }
         return;
       }
 
-      // only support resolving '.eth/.bso' aliases and '.sol' for now
-      if (chainProviderKey !== "eth" && chainProviderKey !== "sol") {
+      if (!configuredNameResolvers.length) {
         if (state !== "failed") {
           setErrors([Error("crypto domain type unsupported")]);
           setState("failed");
           setResolvedAddress(undefined);
+          setActiveNameResolverKey(undefined);
         }
         return;
       }
 
       (async () => {
         try {
+          setActiveNameResolverKey(
+            (previousResolverKey) => previousResolverKey || configuredNameResolvers[0]?.key,
+          );
           setState("resolving");
           let res;
           if (cache) {
@@ -515,7 +595,7 @@ export function useResolvedAuthorAddress(
             setResolvedAddress(res);
           }
         } catch (error: any) {
-          setErrors([...errors, error]);
+          setErrors((previousErrors) => [...previousErrors, error]);
           setState("failed");
           setResolvedAddress(undefined);
           log.error("useResolvedAuthorAddress resolveAuthorAddress error", {
@@ -528,21 +608,34 @@ export function useResolvedAuthorAddress(
     },
     interval,
     true,
-    [author?.address, chainProviders, protocolClient],
+    [author?.address, configuredNameResolvers, protocolClient],
   );
 
-  log("useResolvedAuthorAddress", { author, state, errors, resolvedAddress, chainProviders });
+  const nameResolver =
+    (activeNameResolverKey && configuredNameResolversByKey[activeNameResolverKey]) ||
+    configuredNameResolvers[0];
+  const chainProvider = nameResolver?.chainTicker
+    ? chainProviders?.[nameResolver.chainTicker]
+    : undefined;
 
-  const chainProvider = chainProviderKey ? chainProviders?.[chainProviderKey] : undefined;
+  log("useResolvedAuthorAddress", {
+    author,
+    state,
+    errors,
+    resolvedAddress,
+    chainProviders,
+    nameResolver,
+  });
 
   return useMemo(
     () => ({
       resolvedAddress,
       chainProvider,
+      nameResolver,
       state: state || initialState,
       error: errors[errors.length - 1],
       errors,
     }),
-    [resolvedAddress, chainProvider, state, errors],
+    [resolvedAddress, chainProvider, nameResolver, state, errors],
   );
 }

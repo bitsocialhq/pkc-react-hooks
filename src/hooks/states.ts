@@ -87,6 +87,9 @@ export function useClientsStates(options?: UseClientsStatesOptions): UseClientsS
           addState(clients.chainProviders[chainTicker][clientUrl]?.state, clientUrl);
         }
       }
+      for (const resolverKey in clients?.nameResolvers) {
+        addState(clients.nameResolvers[resolverKey]?.state, resolverKey);
+      }
     }
 
     // find community pages and comment replies pages states
