@@ -16,7 +16,7 @@ Only record items that are repo-specific, likely to recur, and have a concrete m
 
 bitsocial-react-hooks (`@bitsocialnet/bitsocial-react-hooks`) is a React hooks library for the Bitsocial protocol. It provides React hooks and Zustand stores for interacting with decentralized communities — fetching comments, feeds, author data, publishing, account management, and more.
 
-This repo is a temporary fork of [plebbit/plebbit-react-hooks](https://github.com/plebbit/plebbit-react-hooks) under the bitsocialnet org for AI-aided development. Changes made here will be merged upstream when the original maintainer is ready. The codebase still uses "plebbit" naming (e.g. `subplebbit`, `plebbit-js`) — do not rename these yet; rebranding depends on the upstream `plebbit-js` dependency rebranding first.
+This repository is its own project under the bitsocialnet org. The codebase is actively rebranding legacy `plebbit` / `subplebbit` terminology toward `pkc` / `community`; prefer current naming in new or updated code, but preserve compatibility where public APIs, stored data, or migrations still need legacy aliases.
 
 ## Instruction Priority
 
@@ -59,9 +59,9 @@ This repo is a temporary fork of [plebbit/plebbit-react-hooks](https://github.co
 
 ```text
 src/
-├── hooks/         # React hooks (accounts, actions, authors, comments, feeds, replies, states, plebbit-rpc)
-├── stores/        # Zustand stores (accounts, authors-comments, comments, feeds, replies, replies-pages, subplebbits, subplebbits-pages)
-├── lib/           # Utilities (chain, debug-utils, localforage-lru, plebbit-js mock/integration, utils, validator)
+├── hooks/         # React hooks (accounts, actions, authors, comments, feeds, replies, states, rpc)
+├── stores/        # Zustand stores (accounts, authors-comments, comments, feeds, replies, replies-pages, communities, communities-pages)
+├── lib/           # Utilities (chain, debug-utils, localforage-lru, protocol client mock/integration, utils, validator)
 ├── index.ts       # Public API exports
 └── types.ts       # Type definitions
 ```
@@ -109,9 +109,9 @@ src/
 
 ### Naming and Branding Rules
 
-- Do **not** rename `plebbit`, `subplebbit`, or related terms in source code yet. The upstream dependency `plebbit-js` has not rebranded, and this repo must stay compatible.
+- Prefer `pkc`, `community`, and `pkc-js` naming in new or renamed code.
+- Preserve backward compatibility when legacy `plebbit` / `subplebbit` names remain part of the current public API, persisted data, or migration logic.
 - Package name and import path is `@bitsocialnet/bitsocial-react-hooks`. Use this in README examples and docs.
-- The future rebrand: `plebbit` → `pkc`, `subplebbit` → `community`. But not yet.
 
 ### Bug Investigation Rules
 

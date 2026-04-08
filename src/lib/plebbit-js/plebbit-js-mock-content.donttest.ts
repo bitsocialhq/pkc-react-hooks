@@ -4,10 +4,10 @@
 
 const timeout = 4000;
 
-// process.env.REACT_APP_PLEBBIT_REACT_HOOKS_NO_CACHE = '1'
-// process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT_DOUBLE_MEDIA = '1'
-process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT = "1";
-process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT_LOADING_TIME = "100";
+// process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_NO_CACHE = '1'
+// process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT_DOUBLE_MEDIA = '1'
+process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT = "1";
+process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT_LOADING_TIME = "100";
 
 import { act } from "@testing-library/react";
 import testUtils, { renderHook } from "../../lib/test-utils";

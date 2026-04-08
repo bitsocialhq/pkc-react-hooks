@@ -32,7 +32,7 @@
     "test:e2e:chrome": "vitest run --config config/vitest-e2e.config.js",
     "test:e2e:firefox": "cross-env FIREFOX=1 vitest run --config config/vitest-e2e.config.js",
     "test:e2e:browser": "yarn test:e2e:chrome",
-    "test:server": "rm -rf .plebbit/ && node test/test-server",
+    "test:server": "rm -rf .pkc/ .plebbit/ && node test/test-server",
     "test:server:wait-on": "wait-on http://localhost:59281 --timeout 120000",
     "test:mock-content": "vitest run --config config/vitest.config.ts src/lib/plebbit-js/plebbit-js-mock-content.donttest.ts",
     "lint": "oxlint src/**/*.{js,ts,tsx}",
@@ -43,7 +43,7 @@
   "dependencies": {
     "@noble/ed25519": "1.7.5",
     "@pkc/pkc-logger": "https://github.com/pkcprotocol/pkc-logger.git",
-    "@plebbit/plebbit-js": "https://github.com/plebbit/plebbit-js.git#10ed04e3866dd986a7f802bc9efd027f0e7d465b",
+    "@pkcprotocol/pkc-js": "https://github.com/pkcprotocol/pkc-js.git#e63026e6cd33df5af3a3b5e6473b1e364d89fbdb",
     "assert": "2.0.0",
     "ethers": "5.8.0",
     "localforage": "1.10.0",

@@ -6,6 +6,7 @@ import assert from "assert";
 import { Nft, ChainProviders, Author } from "../../types";
 import { ethers } from "ethers";
 import { getNftMetadataUrl, getNftImageUrl, getNftOwner } from "../../lib/chain";
+import { getChainProviders } from "../../lib/pkc-compat";
 import createStore from "zustand";
 
 const noMediaIpfsGatewayUrl = "http://no-media-ipfs-gateway-url";
@@ -18,9 +19,8 @@ const noMediaIpfsGatewayUrl = "http://no-media-ipfs-gateway-url";
 // NOTE: useNftMetadataUrl tests are skipped, if changes are made they must be tested manually
 export function useNftMetadataUrl(nft?: Nft, accountName?: string) {
   const account = useAccount({ accountName });
-  // possible to use account.plebbit instead of account.plebbitOptions
   const ipfsGatewayUrl = account?.mediaIpfsGatewayUrl || noMediaIpfsGatewayUrl;
-  const chainProviders = account?.plebbitOptions?.chainProviders;
+  const chainProviders = getChainProviders(account);
   const [nftMetadataUrl, setNftMetadataUrl] = useState();
   const [error, setError] = useState<Error | undefined>();
 
@@ -74,7 +74,6 @@ export function useNftImageUrl(nftMetadataUrl?: string, accountName?: string) {
     `useNftImageUrl invalid argument nftMetadataUrl '${nftMetadataUrl}' not a string`,
   );
   const account = useAccount({ accountName });
-  // possible to use account.plebbit instead of account.plebbitOptions
   const ipfsGatewayUrl = account?.mediaIpfsGatewayUrl || noMediaIpfsGatewayUrl;
   const [imageUrl, setImageUrl] = useState();
   const [error, setError] = useState<Error | undefined>();
@@ -106,8 +105,7 @@ export function useNftImageUrl(nftMetadataUrl?: string, accountName?: string) {
 // NOTE: useVerifiedAuthorAvatarSignature tests are skipped, if changes are made they must be tested manually
 export function useVerifiedAuthorAvatarSignature(author?: Author, accountName?: string) {
   const account = useAccount({ accountName });
-  // possible to use account.plebbit instead of account.plebbitOptions
-  const chainProviders = account?.plebbitOptions?.chainProviders;
+  const chainProviders = getChainProviders(account);
   const [verified, setVerified] = useState<boolean>();
   const [error, setError] = useState<Error | undefined>();
 
@@ -140,7 +138,10 @@ export function useVerifiedAuthorAvatarSignature(author?: Author, accountName?: 
   }, [author?.avatar, author?.address, chainProviders]);
 
   // don't verify nft signature when using mock content during development
-  if (process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT) {
+  if (
+    process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT ||
+    process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT
+  ) {
     return { verified: true, error: undefined };
   }
 

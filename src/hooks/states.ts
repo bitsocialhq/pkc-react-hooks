@@ -8,6 +8,7 @@ import {
   UseCommunitiesStatesOptions,
   UseCommunitiesStatesResult,
 } from "../types";
+import { getPageRpcClients } from "../lib/pkc-compat";
 import { useCommunities } from "./communities";
 import { communityPostsCacheExpired } from "../lib/utils";
 
@@ -74,8 +75,9 @@ export function useClientsStates(options?: UseClientsStatesOptions): UseClientsS
       for (const clientUrl in clients?.pubsubKuboRpcClients) {
         addState(clients.pubsubKuboRpcClients[clientUrl]?.state, clientUrl);
       }
-      for (const clientUrl in clients?.plebbitRpcClients) {
-        addState(clients.plebbitRpcClients[clientUrl]?.state, clientUrl);
+      const rpcClients = getPageRpcClients(clients);
+      for (const clientUrl in rpcClients) {
+        addState(rpcClients[clientUrl]?.state, clientUrl);
       }
       for (const clientUrl in clients?.libp2pJsClients) {
         addState(clients.libp2pJsClients[clientUrl]?.state, clientUrl);
@@ -184,7 +186,7 @@ export function useCommunitiesStates(
               for (const clientUrl in community.clients.chainProviders[chainTicker]) {
                 const state = community.clients.chainProviders[chainTicker][clientUrl].state;
                 // TODO: client states should always be the same as community.updatingState
-                // but possibly because of a plebbit-js bug they are sometimes not
+                // but possibly because of a pkc-js bug they are sometimes not
                 if (state !== "stopped" && state === community.updatingState) {
                   states[community.updatingState].clientUrls.add(clientUrl);
                 }
@@ -194,7 +196,7 @@ export function useCommunitiesStates(
             for (const clientUrl in community.clients[clientType]) {
               const state = community.clients[clientType][clientUrl].state;
               // TODO: client states should always be the same as community.updatingState
-              // but possibly because of a plebbit-js bug they are sometimes not
+              // but possibly because of a pkc-js bug they are sometimes not
               if (state !== "stopped" && state === community.updatingState) {
                 states[community.updatingState].clientUrls.add(clientUrl);
               }

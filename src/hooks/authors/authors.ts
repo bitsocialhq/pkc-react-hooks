@@ -29,6 +29,11 @@ import { useAuthorCommentsName, usePlebbitAddress } from "./utils";
 import useAuthorsCommentsStore from "../../stores/authors-comments";
 import PlebbitJs from "../../lib/plebbit-js";
 import { normalizeEthAliasDomain } from "../../lib/community-address";
+import {
+  getChainProviders,
+  getProtocolClient,
+  resolveAuthorNameWithProtocol,
+} from "../../lib/pkc-compat";
 import QuickLRU from "quick-lru";
 export { setAuthorAvatarsWhitelistedTokenAddresses } from "./author-avatars";
 
@@ -235,7 +240,7 @@ export function useAuthorAvatar(options?: UseAuthorAvatarOptions): UseAuthorAvat
   const avatar = verified && isWhitelisted ? author?.avatar : undefined;
   const { metadataUrl, error: nftMetadataError } = useNftMetadataUrl(avatar, accountName);
   const { imageUrl, error: nftImageUrlError } = useNftImageUrl(metadataUrl, accountName);
-  const chainProvider = account?.plebbitOptions?.chainProviders?.[avatar?.chainTicker];
+  const chainProvider = getChainProviders(account)?.[avatar?.chainTicker];
 
   const error =
     whitelistedError ||
@@ -290,6 +295,7 @@ export function useAuthorAddress(options?: UseAuthorAddressOptions): UseAuthorAd
   );
   const { comment, accountName } = options || {};
   const account = useAccount({ accountName });
+  const protocolClient = getProtocolClient(account);
   const isCryptoName = !!comment?.author?.address?.includes?.(".");
   const [resolvedAddress, setResolvedAddress] = useState<string | undefined>(
     isCryptoName ? resolvedAuthorAddressCache.get(comment?.author?.address) : undefined,
@@ -300,17 +306,17 @@ export function useAuthorAddress(options?: UseAuthorAddressOptions): UseAuthorAd
   const [authorAddressChanged, setAuthorAddressChanged] = useState(false);
 
   useEffect(() => {
-    if (!account?.plebbit || !comment?.author?.address || !isCryptoName) {
+    if (!protocolClient || !comment?.author?.address || !isCryptoName) {
       return;
     }
     const addr = comment?.author?.address;
     const resolveAuthorAddressNoCache = () => {
       const existing = resolveAuthorAddressPromises[addr];
       if (existing) return existing;
-      log("useAuthorAddress plebbit.resolveAuthorAddress", { address: addr });
+      log("useAuthorAddress protocol.resolveAuthorName", { address: addr });
       return cacheResolveAuthorAddressPromise(
         addr,
-        account.plebbit.resolveAuthorAddress({ address: addr }),
+        resolveAuthorNameWithProtocol(protocolClient, { address: addr }),
       );
     };
     const resolveAuthorAddress = async () => {
@@ -328,7 +334,7 @@ export function useAuthorAddress(options?: UseAuthorAddressOptions): UseAuthorAd
         }
       })
       .catch((error: any) => log.error("useAuthorAddress error", { error, comment }));
-  }, [account?.plebbit, comment?.author?.address, isCryptoName]);
+  }, [protocolClient, comment?.author?.address, isCryptoName]);
 
   // use signer address by default
   let authorAddress = signerAddress;
@@ -416,8 +422,8 @@ export function useResolvedAuthorAddress(
   }
 
   const account = useAccount({ accountName });
-  // possible to use account.plebbit instead of account.plebbitOptions
-  const chainProviders = account?.plebbitOptions?.chainProviders;
+  const protocolClient = getProtocolClient(account);
+  const chainProviders = getChainProviders(account);
   const [resolvedAddress, setResolvedAddress] = useState<string>();
   const [errors, setErrors] = useState<Error[]>([]);
   const [state, setState] = useState<string>();
@@ -439,10 +445,10 @@ export function useResolvedAuthorAddress(
     if (Boolean(resolveAuthorAddressPromises[author?.address])) {
       return resolveAuthorAddressPromises[author?.address];
     }
-    log("useResolvedAuthorAddress plebbit.resolveAuthorAddress", { address: author?.address });
+    log("useResolvedAuthorAddress protocol.resolveAuthorName", { address: author?.address });
     return cacheResolveAuthorAddressPromise(
       author?.address,
-      account.plebbit.resolveAuthorAddress({
+      resolveAuthorNameWithProtocol(protocolClient, {
         address: author?.address,
       }),
     );
@@ -523,7 +529,7 @@ export function useResolvedAuthorAddress(
     },
     interval,
     true,
-    [author?.address, chainProviders],
+    [author?.address, chainProviders, protocolClient],
   );
 
   log("useResolvedAuthorAddress", { author, state, errors, resolvedAddress, chainProviders });

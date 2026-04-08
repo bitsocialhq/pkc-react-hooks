@@ -20,6 +20,7 @@ import {
 import utils from "../../lib/utils";
 import { getDefaultPlebbitOptions, overwritePlebbitOptions } from "./account-generator";
 import { getAccountsEditsSummary, sanitizeStoredAccountComment } from "./utils";
+import { normalizeOptionsForPkcClient, withProtocolAliases } from "../../lib/pkc-compat";
 import Logger from "@pkc/pkc-logger";
 const log = Logger("bitsocial-react-hooks:accounts:stores");
 // Storage keeps the legacy namespace so existing installs reuse the same IndexedDB data.
@@ -105,26 +106,34 @@ const getAccounts = async (accountIds: string[]) => {
   for (const [i, accountId] of accountIds.entries()) {
     assert(accountsArray[i], `accountId '${accountId}' not found in database`);
     accounts[accountId] = await migrateAccount(accountsArray[i]);
-    // plebbit options aren't saved to database if they are default
-    if (!accounts[accountId].plebbitOptions) {
-      accounts[accountId].plebbitOptions = getDefaultPlebbitOptions();
+    // protocol options aren't saved to database if they are default
+    if (!accounts[accountId].pkcOptions && !accounts[accountId].plebbitOptions) {
+      accounts[accountId].pkcOptions = getDefaultPlebbitOptions();
     }
-    accounts[accountId].plebbitOptions = {
-      ...accounts[accountId].plebbitOptions,
+    const protocolOptions = {
+      ...(accounts[accountId].pkcOptions || accounts[accountId].plebbitOptions),
       ...overwritePlebbitOptions,
     };
-    accounts[accountId].plebbit = await PlebbitJs.Plebbit(accounts[accountId].plebbitOptions);
+    const pkc = await PlebbitJs.PKC(normalizeOptionsForPkcClient(protocolOptions));
     // handle errors or error events are uncaught
-    // no need to log them because plebbit-js already logs them
-    accounts[accountId].plebbit.on("error", (error: any) =>
-      log.error("uncaught plebbit instance error, should never happen", { error }),
+    // no need to log them because pkc-js already logs them
+    pkc.on("error", (error: any) =>
+      log.error("uncaught pkc instance error, should never happen", { error }),
     );
+    accounts[accountId] = withProtocolAliases(accounts[accountId], pkc, protocolOptions);
   }
   return accounts;
 };
 
 const accountVersion = 4;
 const migrateAccount = async (account: any) => {
+  if (account?.pkcOptions && !account?.plebbitOptions) {
+    account.plebbitOptions = account.pkcOptions;
+  }
+  if (account?.plebbitOptions && !account?.pkcOptions) {
+    account.pkcOptions = account.plebbitOptions;
+  }
+
   let version = account.version || 1;
 
   // version 2
@@ -263,19 +272,25 @@ const addAccount = async (account: Account) => {
   }
 
   // handle updating accounts database
-  const accountToPutInDatabase: any = { ...account, plebbit: undefined };
-  // don't save default plebbit options in database in case they change
-  if (
-    JSON.stringify(accountToPutInDatabase.plebbitOptions) ===
-    JSON.stringify(getDefaultPlebbitOptions())
-  ) {
+  const accountToPutInDatabase: any = {
+    ...account,
+    pkc: undefined,
+    plebbit: undefined,
+  };
+  const protocolOptions =
+    accountToPutInDatabase.pkcOptions || accountToPutInDatabase.plebbitOptions;
+  accountToPutInDatabase.pkcOptions = protocolOptions;
+  accountToPutInDatabase.plebbitOptions = protocolOptions;
+  // don't save default protocol options in database in case they change
+  if (JSON.stringify(protocolOptions) === JSON.stringify(getDefaultPlebbitOptions())) {
+    delete accountToPutInDatabase.pkcOptions;
     delete accountToPutInDatabase.plebbitOptions;
   }
-  // make sure accountToPutInDatabase.plebbitOptions are valid
-  if (accountToPutInDatabase.plebbitOptions) {
-    const plebbit = await PlebbitJs.Plebbit(accountToPutInDatabase.plebbitOptions);
-    plebbit.on("error", () => {});
-    void plebbit.destroy?.(); // gc; errors intentionally unhandled to avoid uncounted callback
+  // make sure accountToPutInDatabase protocol options are valid
+  if (protocolOptions) {
+    const pkc = await PlebbitJs.PKC(normalizeOptionsForPkcClient(protocolOptions));
+    pkc.on("error", () => {});
+    void pkc.destroy?.(); // gc; errors intentionally unhandled to avoid uncounted callback
   }
   await accountsDatabase.setItem(accountToPutInDatabase.id, accountToPutInDatabase);
 

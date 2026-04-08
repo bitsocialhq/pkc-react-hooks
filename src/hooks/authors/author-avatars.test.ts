@@ -50,6 +50,7 @@ describe("author-avatars", () => {
     vi.mocked(getNftMetadataUrl).mockReset();
     vi.mocked(getNftImageUrl).mockReset();
     vi.mocked(getNftOwner).mockReset();
+    delete process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT;
     delete process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT;
   });
 
@@ -169,16 +170,17 @@ describe("author-avatars", () => {
       expect(rendered.result.current.error?.message).toBe("chain error");
     });
 
-    it("returns verified true when REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT is set", async () => {
-      const orig = process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT;
-      process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT = "1";
+    it("returns verified true when REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT is set", async () => {
+      const orig = process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT;
+      process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT = "1";
       const rendered = renderHook(() => useVerifiedAuthorAvatarSignature(author));
       expect(rendered.result.current.verified).toBe(true);
       expect(rendered.result.current.error).toBe(undefined);
-      process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT = orig;
+      process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT = orig;
     });
 
     it("returns undefined when no account", async () => {
+      delete process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT;
       delete process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT;
       const rendered = renderHook(() => useVerifiedAuthorAvatarSignature(author, "nonexistent"));
       await act(() => {});
@@ -187,6 +189,7 @@ describe("author-avatars", () => {
     });
 
     it("returns undefined when no author avatar", async () => {
+      delete process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT;
       delete process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT;
       const rendered = renderHook(() =>
         useVerifiedAuthorAvatarSignature({ ...author, avatar: undefined }),

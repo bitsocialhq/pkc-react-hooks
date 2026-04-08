@@ -44,4 +44,4 @@ When refactoring, watch for these anti-patterns from AGENTS.md:
 - Don't introduce new dependencies
 - Format edited files with `yarn prettier` after changes
 - If the build/tests fail after refactoring, fix before finishing
-- Do not rename `plebbit`/`subplebbit` terms
+- Prefer `pkc`/`community` naming when it does not introduce compatibility regressions

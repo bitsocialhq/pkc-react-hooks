@@ -4,6 +4,7 @@ import chain from "../../lib/chain";
 import { v4 as uuid } from "uuid";
 import accountsDatabase from "./accounts-database";
 import { Accounts, AccountCommunity, ChainProviders } from "../../types";
+import { normalizeOptionsForPkcClient, withProtocolAliases } from "../../lib/pkc-compat";
 import Logger from "@pkc/pkc-logger";
 const log = Logger("bitsocial-react-hooks:accounts:stores");
 
@@ -26,37 +27,50 @@ const chainProviders: ChainProviders = {
 
 // force using these options or can cause bugs
 export const overwritePlebbitOptions = {
+  resolveAuthorNames: false,
   resolveAuthorAddresses: false,
   validatePages: false,
 };
 
+const aliasProtocolOptions = (options: Record<string, any>) => ({
+  ...options,
+  pkcRpcClientsOptions: options.pkcRpcClientsOptions ?? options.plebbitRpcClientsOptions,
+  plebbitRpcClientsOptions: options.plebbitRpcClientsOptions ?? options.pkcRpcClientsOptions,
+  resolveAuthorNames: options.resolveAuthorNames ?? options.resolveAuthorAddresses ?? false,
+  resolveAuthorAddresses: options.resolveAuthorAddresses ?? options.resolveAuthorNames ?? false,
+});
+
+const addMissingChainProviders = (options: Record<string, any>) => {
+  const optionsWithChainProviders = { ...options };
+  if (!optionsWithChainProviders.chainProviders) {
+    optionsWithChainProviders.chainProviders = {};
+  }
+  for (const chainTicker in chainProviders) {
+    if (!optionsWithChainProviders.chainProviders[chainTicker]) {
+      optionsWithChainProviders.chainProviders[chainTicker] = chainProviders[chainTicker];
+    }
+  }
+  return optionsWithChainProviders;
+};
+
 // default options aren't saved to database so they can be changed
-export const getDefaultPlebbitOptions = () => {
-  // default plebbit options defined by the electron process
+export const getDefaultPkcOptions = () => {
+  // default PKC options defined by the electron process
   // @ts-ignore
-  if (window.defaultPlebbitOptions) {
+  const defaultWindowOptions = window.defaultPkcOptions || window.defaultPlebbitOptions;
+  if (defaultWindowOptions) {
     // @ts-ignore
-    const defaultPlebbitOptions: any = JSON.parse(
-      JSON.stringify({ ...window.defaultPlebbitOptions, libp2pJsClientsOptions: undefined }),
+    const defaultPkcOptions: any = JSON.parse(
+      JSON.stringify({ ...defaultWindowOptions, libp2pJsClientsOptions: undefined }),
     );
     // @ts-ignore
-    defaultPlebbitOptions.libp2pJsClientsOptions =
-      window.defaultPlebbitOptions.libp2pJsClientsOptions; // libp2pJsClientsOptions is not always just json
-
-    // add missing chain providers
-    if (!defaultPlebbitOptions.chainProviders) {
-      defaultPlebbitOptions.chainProviders = {};
-    }
-    // add default chain providers if missing
-    for (const chainTicker in chainProviders) {
-      if (!defaultPlebbitOptions.chainProviders[chainTicker]) {
-        defaultPlebbitOptions.chainProviders[chainTicker] = chainProviders[chainTicker];
-      }
-    }
-    return defaultPlebbitOptions;
+    defaultPkcOptions.libp2pJsClientsOptions = defaultWindowOptions.libp2pJsClientsOptions; // libp2pJsClientsOptions is not always just json
+    return aliasProtocolOptions(
+      addMissingChainProviders({ ...defaultPkcOptions, ...overwritePlebbitOptions }),
+    );
   }
-  // default plebbit options for web client
-  return {
+  // default PKC options for web client
+  return aliasProtocolOptions({
     ipfsGatewayUrls: [
       "https://ipfsgateway.xyz",
       "https://gateway.plebpubsub.xyz",
@@ -76,23 +90,25 @@ export const getDefaultPlebbitOptions = () => {
     ],
     chainProviders,
     ...overwritePlebbitOptions,
-  };
+  });
 };
+
+export const getDefaultPlebbitOptions = getDefaultPkcOptions;
 
 // the gateway to use in <img src> for nft avatars
 // @ts-ignore
 const defaultMediaIpfsGatewayUrl = window.defaultMediaIpfsGatewayUrl || "https://ipfs.io";
 
 const generateDefaultAccount = async () => {
-  const plebbitOptions = getDefaultPlebbitOptions();
-  const plebbit = await PlebbitJs.Plebbit(plebbitOptions);
+  const pkcOptions = getDefaultPkcOptions();
+  const pkc = await PlebbitJs.PKC(normalizeOptionsForPkcClient(pkcOptions));
   // handle errors or error events are uncaught
-  // no need to log them because plebbit-js already logs them
-  plebbit.on("error", (error: any) =>
-    log.error("uncaught plebbit instance error, should never happen", { error }),
+  // no need to log them because pkc-js already logs them
+  pkc.on("error", (error: any) =>
+    log.error("uncaught pkc instance error, should never happen", { error }),
   );
 
-  const signer = await plebbit.createSigner();
+  const signer = await pkc.createSigner();
   const author = {
     address: signer.address,
     wallets: {
@@ -105,20 +121,23 @@ const generateDefaultAccount = async () => {
   // communities where the account has a role, like moderator, admin, owner, etc.
   const communities: { [communityAddress: string]: AccountCommunity } = {};
 
-  const account = {
-    id: uuid(),
-    version: accountsDatabase.accountVersion,
-    name: accountName,
-    author,
-    signer,
-    plebbitOptions,
-    plebbit: plebbit,
-    subscriptions: [],
-    blockedAddresses: {},
-    blockedCids: {},
-    communities,
-    mediaIpfsGatewayUrl: defaultMediaIpfsGatewayUrl,
-  };
+  const account = withProtocolAliases(
+    {
+      id: uuid(),
+      version: accountsDatabase.accountVersion,
+      name: accountName,
+      author,
+      signer,
+      pkcOptions,
+      subscriptions: [],
+      blockedAddresses: {},
+      blockedCids: {},
+      communities,
+      mediaIpfsGatewayUrl: defaultMediaIpfsGatewayUrl,
+    },
+    pkc,
+    pkcOptions,
+  );
   return account;
 };
 
@@ -150,6 +169,7 @@ const getNextAvailableDefaultAccountName = async () => {
 
 const accountGenerator = {
   generateDefaultAccount,
+  getDefaultPkcOptions,
   getDefaultPlebbitOptions,
 };
 

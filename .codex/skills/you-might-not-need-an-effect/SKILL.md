@@ -102,12 +102,12 @@ if (typeof window !== 'undefined') {
 
 ## Project-Specific Context
 
-This is a hooks library, not an app. Effects in this codebase are more likely to be legitimate (subscribing to plebbit-js events, managing store listeners) than in a typical React app. Be extra careful before removing effects that manage subscriptions or event listeners with cleanup functions.
+This is a hooks library, not an app. Effects in this codebase are more likely to be legitimate (subscribing to pkc-js events, managing store listeners) than in a typical React app. Be extra careful before removing effects that manage subscriptions or event listeners with cleanup functions.
 
 | Pattern | Likely legitimate |
 |---------|------------------|
 | Store subscription with cleanup | Yes — keep |
-| plebbit-js event listener with cleanup | Yes — keep |
+| pkc-js event listener with cleanup | Yes — keep |
 | Deriving state from other state | No — compute during render |
 | Setting state from props | No — derive or use key |
 | One-time initialization | Maybe — consider module scope |
@@ -115,7 +115,7 @@ This is a hooks library, not an app. Effects in this codebase are more likely to
 ## When useEffect IS Appropriate
 
 Not every effect is wrong. Keep `useEffect` for:
-- Subscribing to plebbit-js events with proper cleanup
+- Subscribing to pkc-js events with proper cleanup
 - Managing Zustand store subscriptions with cleanup
 - Synchronizing with browser APIs (resize, intersection observer, etc.)
 - Running code on mount that genuinely has no alternative

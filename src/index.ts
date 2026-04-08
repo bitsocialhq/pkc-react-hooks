@@ -83,8 +83,8 @@ import {
 // states
 import { useClientsStates, useCommunitiesStates } from "./hooks/states";
 
-// plebbit-rpc
-import { usePlebbitRpcSettings } from "./hooks/plebbit-rpc";
+// pkc-rpc
+import { usePkcRpcSettings, usePlebbitRpcSettings } from "./hooks/plebbit-rpc";
 
 // chain
 import {
@@ -97,7 +97,7 @@ import {
 } from "./lib/chain";
 
 // utils
-import { setPlebbitJs, restorePlebbitJs } from "./lib/plebbit-js";
+import { setPkcJs, restorePkcJs, setPlebbitJs, restorePlebbitJs } from "./lib/plebbit-js";
 import { deleteDatabases, deleteCaches } from "./lib/debug-utils";
 
 // types
@@ -162,7 +162,8 @@ export {
   // states
   useClientsStates,
   useCommunitiesStates,
-  // plebbit-rpc
+  // pkc-rpc
+  usePkcRpcSettings,
   usePlebbitRpcSettings,
   // chain
   getEthWalletFromPlebbitPrivateKey,
@@ -172,6 +173,8 @@ export {
   validateEthWallet,
   validateSolWallet,
   // utils
+  setPkcJs,
+  restorePkcJs,
   setPlebbitJs,
   restorePlebbitJs,
   deleteDatabases,
@@ -237,7 +240,8 @@ const hooks = {
   // states
   useClientsStates,
   useCommunitiesStates,
-  // plebbit-rpc
+  // pkc-rpc
+  usePkcRpcSettings,
   usePlebbitRpcSettings,
   // chain
   getEthWalletFromPlebbitPrivateKey,
@@ -247,6 +251,8 @@ const hooks = {
   validateEthWallet,
   validateSolWallet,
   // utils
+  setPkcJs,
+  restorePkcJs,
   setPlebbitJs,
   restorePlebbitJs,
   deleteDatabases,

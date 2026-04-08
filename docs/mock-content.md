@@ -11,9 +11,11 @@ If you are developing in this repo, run `corepack enable` once first so `yarn` u
 - Create a .env file in your react project with the content:
 
 ```sh
-REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT=1
-REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT_LOADING_TIME=1000
+REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT=1
+REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT_LOADING_TIME=1000
 ```
+
+Legacy `REACT_APP_PLEBBIT_REACT_HOOKS_*` names are still accepted during the transition.
 
 #### Get a mock feed
 
@@ -35,7 +37,7 @@ function App() {
 - Add to your .env file:
 
 ```sh
-REACT_APP_PLEBBIT_REACT_HOOKS_NO_CACHE=1
+REACT_APP_BITSOCIAL_REACT_HOOKS_NO_CACHE=1
 ```
 
 #### Delete databases and caches

@@ -178,7 +178,7 @@ useCommunitiesStates({communityAddresses: string[]}): {states, peers}
 #### RPC Hooks
 
 ```
-usePlebbitRpcSettings(): {plebbitRpcSettings: {plebbitOptions, challenges}, setPlebbitRpcSettings: Function}
+usePkcRpcSettings(): {pkcRpcSettings: {pkcOptions, challenges}, setPkcRpcSettings: Function} // legacy usePlebbitRpcSettings aliases still work
 ```
 
 #### Actions with no hooks implementations yet
@@ -198,7 +198,7 @@ deleteComment(commentCidOrAccountCommentIndex: string | number, accountName?: st
 #### Utility functions
 
 ```
-setPlebbitJs(PlebbitJs) // swap the underlying protocol client implementation, e.g. for mocks or Electron
+setPkcJs(PKC) // swap the underlying protocol client implementation, e.g. for mocks or Electron; legacy setPlebbitJs alias still works
 deleteDatabases() // delete all databases, including all caches and accounts data
 deleteCaches() // delete the cached comments, cached communities and cached pages only, no accounts data
 ```
@@ -559,7 +559,7 @@ await publishComment();
 
 ```jsx
 const account = useAccount();
-const signer = await account.plebbit.createSigner();
+const signer = await account.pkc.createSigner();
 
 const publishCommentOptions = {
   content: "hello",

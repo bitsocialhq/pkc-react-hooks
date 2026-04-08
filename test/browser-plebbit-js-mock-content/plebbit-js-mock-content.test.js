@@ -1,8 +1,8 @@
 // test plebbit-js mock content https://github.com/bitsocialnet/bitsocial-react-hooks/blob/master/docs/mock-content.md
 
 window.process = { env: {} };
-window.process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT = "1";
-window.process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT_LOADING_TIME = "1000";
+window.process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT = "1";
+window.process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT_LOADING_TIME = "1000";
 
 import {
   useComment,

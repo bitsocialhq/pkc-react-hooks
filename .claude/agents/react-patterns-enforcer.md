@@ -74,4 +74,4 @@ If the build breaks due to your changes, fix and re-run.
 - Follow patterns defined in AGENTS.md
 - If a fix would require significant restructuring, report it instead of applying it
 - Use `yarn`, not `npm`
-- Do not rename `plebbit`/`subplebbit` terms
+- Prefer `pkc`/`community` naming when editing or adding code, while preserving compatibility aliases when needed

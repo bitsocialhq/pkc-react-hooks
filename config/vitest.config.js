@@ -17,8 +17,8 @@ const config = {
     outputFile: "./.vitest-reports/tests.json",
     server: { deps: { inline: true } },
     alias: {
-      // mock plebbit-js because it throws in jsdom
-      "@plebbit/plebbit-js": path.resolve(__dirname, "vitest-empty-alias.js"),
+      // mock pkc-js because it throws in jsdom
+      "@pkcprotocol/pkc-js": path.resolve(__dirname, "vitest-empty-alias.js"),
     },
     root: "src/",
     setupFiles: [path.resolve(__dirname, "vitest.setup.js")],

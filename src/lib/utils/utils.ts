@@ -5,6 +5,7 @@ import PlebbitJs from "../plebbit-js";
 import { Comment } from "../../types";
 import { areEquivalentCommunityAddresses } from "../community-address";
 import { getCommentCommunityAddress, normalizePublicationOptionsForStore } from "../plebbit-compat";
+import { getPageRpcClients } from "../pkc-compat";
 const log = Logger("bitsocial-react-hooks:utils");
 
 const merge = (...args: any) => {
@@ -229,9 +230,10 @@ const clientsOnStateChange = (clients: any, onStateChange: Function) => {
       onStateChange(state, "pubsubKuboRpcClients", clientUrl),
     );
   }
-  for (const clientUrl in clients?.plebbitRpcClients) {
-    clients?.plebbitRpcClients?.[clientUrl].on("statechange", (state: string) =>
-      onStateChange(state, "plebbitRpcClients", clientUrl),
+  const rpcClients = getPageRpcClients(clients);
+  for (const clientUrl in rpcClients) {
+    rpcClients?.[clientUrl].on("statechange", (state: string) =>
+      onStateChange(state, "pkcRpcClients", clientUrl),
     );
   }
   for (const clientUrl in clients?.libp2pJsClients) {
@@ -263,10 +265,11 @@ const pageClientsOnStateChange = (clients: any, onStateChange: Function) => {
       );
     }
   }
-  for (const sortType in clients?.plebbitRpcClients) {
-    for (const clientUrl in clients?.plebbitRpcClients?.[sortType]) {
-      clients?.plebbitRpcClients?.[sortType]?.[clientUrl].on("statechange", (state: string) =>
-        onStateChange(state, "plebbitRpcClients", sortType, clientUrl),
+  const rpcPageClients = getPageRpcClients(clients);
+  for (const sortType in rpcPageClients) {
+    for (const clientUrl in rpcPageClients?.[sortType]) {
+      rpcPageClients?.[sortType]?.[clientUrl].on("statechange", (state: string) =>
+        onStateChange(state, "pkcRpcClients", sortType, clientUrl),
       );
     }
   }

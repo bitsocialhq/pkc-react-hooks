@@ -6,9 +6,14 @@ import { fromString as uint8ArrayFromString } from "uint8arrays/from-string";
 import { toString as uint8ArrayToString } from "uint8arrays/to-string";
 
 // changeable with env variable so the frontend can test with different latencies
-const doubleMedia = Boolean(process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT_DOUBLE_MEDIA);
+const doubleMedia = Boolean(
+  process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT_DOUBLE_MEDIA ||
+  process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT_DOUBLE_MEDIA,
+);
 const loadingTime = Number(
-  process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT_LOADING_TIME || 100,
+  process.env.REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT_LOADING_TIME ||
+    process.env.REACT_APP_PLEBBIT_REACT_HOOKS_MOCK_CONTENT_LOADING_TIME ||
+    100,
 );
 const simulateLoadingTime = () => new Promise((r) => setTimeout(r, loadingTime));
 const NOW = 1679800000;
@@ -914,7 +919,12 @@ class Plebbit extends EventEmitter {
     };
   }
 
-  async resolveAuthorAddress(options: { address: string }) {}
+  async resolveAuthorAddress(options: { address: string }) {
+    return "resolved author address";
+  }
+  async resolveAuthorName(options: { address: string }) {
+    return this.resolveAuthorAddress(options);
+  }
 
   async createCommunity(createCommunityOptions: any) {
     // if the only argument is {address}, the user didn't create the sub, it's a fetched sub
@@ -1021,17 +1031,21 @@ class Plebbit extends EventEmitter {
         allPostCount: 222222,
       });
     }
-    throw Error(`plebbit.fetchCid not implemented in mock content for cid '${cid}'`);
+    throw Error(`pkc.fetchCid not implemented in mock content for cid '${cid}'`);
   }
 
   async pubsubSubscribe(communityAddress: string) {}
   async pubsubUnsubscribe(communityAddress: string) {}
 
-  clients = {
-    plebbitRpcClients: {
+  clients = (() => {
+    const pkcRpcClients = {
       "http://localhost:9138": new PlebbitRpcClient(),
-    },
-  };
+    };
+    return {
+      pkcRpcClients,
+      plebbitRpcClients: pkcRpcClients,
+    };
+  })();
 
   async validateComment(comment: any, validateCommentOptions: any) {}
 }

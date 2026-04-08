@@ -1,4 +1,4 @@
-// script to start IPFS and plebbit-js for testing
+// script to start IPFS and pkc-js for testing
 
 import { offlineIpfs, pubsubIpfs, plebbitRpc } from "./config.js";
 import startIpfs from "./start-ipfs.js";
@@ -22,7 +22,7 @@ const plebbitDataPath = getTmpFolderPath();
     pubsubApiPort: pubsubIpfs.apiPort,
   });
 
-  const plebbitOptions = {
+  const pkcOptions = {
     kuboRpcClientsOptions: [`http://127.0.0.1:${offlineIpfs.apiPort}/api/v0`],
     pubsubKuboRpcClientsOptions: [`http://127.0.0.1:${pubsubIpfs.apiPort}/api/v0`],
     httpRoutersOptions: [],
@@ -32,17 +32,17 @@ const plebbitDataPath = getTmpFolderPath();
     updateInterval: 1000,
   };
 
-  const { default: Plebbit } = await import("@plebbit/plebbit-js");
-  const plebbit = await Plebbit(plebbitOptions);
-  // TODO: dataPath: getTmpFolderPath() should not be needed, plebbit-js bug
-  const plebbit2 = await Plebbit({
-    ...plebbitOptions,
+  const { default: PKC } = await import("@pkcprotocol/pkc-js");
+  const pkc = await PKC(pkcOptions);
+  // TODO: dataPath: getTmpFolderPath() should not be needed, pkc-js bug
+  const pkc2 = await PKC({
+    ...pkcOptions,
     dataPath: getTmpFolderPath(),
   });
-  const signer = await plebbit.createSigner({ privateKey, type: "ed25519" });
+  const signer = await pkc.createSigner({ privateKey, type: "ed25519" });
 
   console.log(`creating community with address '${signer.address}'...`);
-  const community = await plebbit.createSubplebbit({
+  const community = await pkc.createCommunity({
     signer: signer,
   });
   community.on("challengerequest", console.log);
@@ -64,10 +64,10 @@ const plebbitDataPath = getTmpFolderPath();
     console.log(`community started with address ${signer.address}`);
 
     console.log("publish test comment");
-    const comment = await plebbit2.createComment({
+    const comment = await pkc2.createComment({
       title: "comment title",
       content: "comment content",
-      subplebbitAddress: signer.address,
+      communityAddress: signer.address,
       signer,
       author: { address: signer.address },
     });

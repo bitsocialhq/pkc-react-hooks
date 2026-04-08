@@ -44,7 +44,7 @@ const [count, setCount] = useState(0); // Initialize count state to 0
 const comment = commentsStore.getState().comments[commentCid];
 
 // ✅ Keep — explains non-obvious intent
-// plebbit-js returns undefined while loading, null if not found
+// pkc-js returns undefined while loading, null if not found
 const isLoading = comment === undefined;
 ```
 

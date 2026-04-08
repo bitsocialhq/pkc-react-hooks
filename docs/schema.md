@@ -1,6 +1,6 @@
 ### Schema
 
-> For full schema see https://github.com/plebbit/plebbit-js#schema
+> For full schema see https://github.com/pkcprotocol/pkc-js#schema
 
 ```
 Account {
@@ -8,8 +8,8 @@ Account {
   name: string // the nickname of the account, eg "Account 1"
   author: Author,
   signer: Signer,
-  plebbit: Plebbit,
-  plebbitOptions: PlebbitOptions,
+  pkc: PKC,
+  pkcOptions: PKCOptions,
   // subscriptions to show in feed
   subscriptions: string[], // community subscriptions
   multisubSubscriptions: string[],

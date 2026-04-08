@@ -13,6 +13,7 @@ const toString = (value: any) => {
 
 const getPublicationCommunityAddress = (options: any) =>
   options?.communityAddress || options?.subplebbitAddress;
+const getAccountProtocolClient = (account: any) => account?.pkc || account?.plebbit;
 
 const validateAccountsActionsPublishCommentArguments = ({
   publishCommentOptions,
@@ -361,8 +362,8 @@ const validateAccountsDatabaseAddAccountArguments = (account: any) => {
 const validateUseCommentArguments = (commentCid: any, account: any) => {
   assert(typeof commentCid === "string", `useComment commentCid '${commentCid}' not a string`);
   assert(
-    account?.plebbit && typeof account?.plebbit === "object",
-    `useComment account.plebbit '${account?.plebbit}' not an object`,
+    getAccountProtocolClient(account) && typeof getAccountProtocolClient(account) === "object",
+    `useComment account.pkc/account.plebbit '${getAccountProtocolClient(account)}' not an object`,
   );
 };
 
@@ -378,8 +379,8 @@ const validateUseCommentsArguments = (commentCids: any, account: any) => {
     );
   }
   assert(
-    account?.plebbit && typeof account?.plebbit === "object",
-    `useComments account.plebbit '${account?.plebbit}' not an object`,
+    getAccountProtocolClient(account) && typeof getAccountProtocolClient(account) === "object",
+    `useComments account.pkc/account.plebbit '${getAccountProtocolClient(account)}' not an object`,
   );
 };
 
@@ -389,8 +390,8 @@ const validateUseCommunityArguments = (communityAddress: any, account: any) => {
     `useCommunity communityAddress '${communityAddress}' not a string`,
   );
   assert(
-    account?.plebbit && typeof account?.plebbit === "object",
-    `useCommunity account.plebbit '${account?.plebbit}' not an object`,
+    getAccountProtocolClient(account) && typeof getAccountProtocolClient(account) === "object",
+    `useCommunity account.pkc/account.plebbit '${getAccountProtocolClient(account)}' not an object`,
   );
 };
 
@@ -406,8 +407,8 @@ const validateUseCommunitiesArguments = (communityAddresses: any, account: any) 
     );
   }
   assert(
-    account?.plebbit && typeof account?.plebbit === "object",
-    `useCommunity account.plebbit '${account?.plebbit}' not an object`,
+    getAccountProtocolClient(account) && typeof getAccountProtocolClient(account) === "object",
+    `useCommunity account.pkc/account.plebbit '${getAccountProtocolClient(account)}' not an object`,
   );
 };
 

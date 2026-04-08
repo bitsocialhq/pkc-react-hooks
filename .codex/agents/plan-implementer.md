@@ -68,4 +68,4 @@ If build errors relate to your changes, fix them and re-run. Loop until the buil
 - If a task conflicts with existing code, report the conflict instead of guessing
 - Pin exact package versions if dependency changes are needed (no carets)
 - Use `yarn`, not `npm`
-- Do not rename `plebbit`/`subplebbit` terms — rebranding is not yet in scope
+- Prefer `pkc`/`community` naming when editing or adding code, while preserving compatibility aliases when needed

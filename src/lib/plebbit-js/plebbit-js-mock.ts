@@ -4,11 +4,11 @@ const loadingTime = 10;
 export const simulateLoadingTime = () => new Promise((r) => setTimeout(r, loadingTime));
 
 // keep a list of created and edited owner communities
-// to reinitialize them with plebbit.createCommunity()
+// to reinitialize them with pkc.createCommunity()
 let createdOwnerCommunities: any = {};
 let editedOwnerCommunities: any = {};
 
-// reset the plebbit-js global state in between tests
+// reset the pkc-js global state in between tests
 export const resetPlebbitJsMock = () => {
   createdOwnerCommunities = {};
   editedOwnerCommunities = {};
@@ -20,6 +20,10 @@ export const debugPlebbitJsMock = () => {
 export class Plebbit extends EventEmitter {
   async resolveAuthorAddress(options: { address: string }) {
     return "resolved author address";
+  }
+
+  async resolveAuthorName(options: { address: string }) {
+    return this.resolveAuthorAddress(options);
   }
 
   async createSigner() {
@@ -150,17 +154,21 @@ export class Plebbit extends EventEmitter {
     if (cid?.startsWith("statscid")) {
       return JSON.stringify({ hourActiveUserCount: 1 });
     }
-    throw Error(`plebbit.fetchCid not implemented in plebbit-js mock for cid '${cid}'`);
+    throw Error(`pkc.fetchCid not implemented in pkc-js mock for cid '${cid}'`);
   }
 
   async pubsubSubscribe(communityAddress: string) {}
   async pubsubUnsubscribe(communityAddress: string) {}
 
-  clients = {
-    plebbitRpcClients: {
+  clients = (() => {
+    const pkcRpcClients = {
       "http://localhost:9138": new PlebbitRpcClient(),
-    },
-  };
+    };
+    return {
+      pkcRpcClients,
+      plebbitRpcClients: pkcRpcClients,
+    };
+  })();
 
   async validateComment(comment: any, validateCommentOptions: any) {}
 }
