@@ -279,14 +279,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@bitsocial/bso-resolver@https://github.com/bitsocialnet/bso-resolver.git#a005e4b507435c0f399328800d6c421bf62b14ed":
-  version: 0.0.2
-  resolution: "@bitsocial/bso-resolver@https://github.com/bitsocialnet/bso-resolver.git#commit=a005e4b507435c0f399328800d6c421bf62b14ed"
+"@bitsocial/bso-resolver@npm:0.0.4":
+  version: 0.0.4
+  resolution: "@bitsocial/bso-resolver@npm:0.0.4"
   dependencies:
     "@pkc/pkc-logger": "github:pkcprotocol/pkc-logger#cb494fbaf332ed5b2cfd9d9d0f90ca7fd0058b4a"
     better-sqlite3: "npm:12.6.2"
     viem: "npm:2.47.0"
-  checksum: 10c0/64f86a126ba3c3f4c9516bafa895dfbb4f18f72c9e9cd0e1f9584755291e768f8ff33b08988ce01fa0fcce0cafd987b79547e31770d5e4f038b7b8b74422e778
+  checksum: 10c0/39cf1f3381343591e98ae149c682acd245403bde5608135d849dd31904c6b539f3accdc46e1e6a3978ddf6dea71f85814be8792ce5f5e0d7526399f1eb23ac48
   languageName: node
   linkType: hard
 
@@ -294,7 +294,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@bitsocialnet/bitsocial-react-hooks@workspace:."
   dependencies:
-    "@bitsocial/bso-resolver": "https://github.com/bitsocialnet/bso-resolver.git#a005e4b507435c0f399328800d6c421bf62b14ed"
+    "@bitsocial/bso-resolver": "npm:0.0.4"
     "@pkc/pkc-logger": "https://github.com/pkcprotocol/pkc-logger.git"
     "@pkcprotocol/pkc-js": "https://github.com/pkcprotocol/pkc-js.git#e63026e6cd33df5af3a3b5e6473b1e364d89fbdb"
     "@testing-library/dom": "npm:10.4.1"
