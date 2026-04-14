@@ -79,7 +79,7 @@ export function useFeed(options?: UseFeedOptions): UseFeedResult {
   );
   const [errors, setErrors] = useState<Error[]>([]);
   const communityKeysWithNewerPosts = useFeedsStore(
-    (state) => state.feedsCommunityAddressesWithNewerPosts[feedName],
+    (state) => state.feedsCommunityKeysWithNewerPosts[feedName],
   );
 
   // add feed to store

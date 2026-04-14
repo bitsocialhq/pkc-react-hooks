@@ -13,10 +13,6 @@ export type CommunityLookupRef = CommunityIdentifier | LegacyCommunityRef;
 const getLegacyCommunityAddress = (communityRef: CommunityLookupRef) =>
   (communityRef as LegacyCommunityRef).address;
 
-export const communityAddressToRef = (communityAddress: string): LegacyCommunityRef => ({
-  address: communityAddress,
-});
-
 export const getCommunityRefKey = (communityRef: CommunityLookupRef): string => {
   const communityKey =
     communityRef.publicKey || getLegacyCommunityAddress(communityRef) || communityRef.name;
@@ -48,19 +44,6 @@ export const getCommunityLookupOptions = (communityRefOrAddress: CommunityLookup
     options.publicKey = communityRefOrAddress.publicKey;
   }
   return options;
-};
-
-export const normalizeCommunityRefs = (
-  communityRefs?: CommunityIdentifier[],
-  communityAddresses?: string[],
-): CommunityLookupRef[] => {
-  if (communityRefs) {
-    return communityRefs;
-  }
-  if (!communityAddresses) {
-    return [];
-  }
-  return communityAddresses.map(communityAddressToRef);
 };
 
 export const mergeCommunityRefs = (

@@ -11,6 +11,9 @@ import PkcJsMock from "../../lib/pkc-js/pkc-js-mock";
 
 const communityGetPageCommentCount = 100;
 
+const toCommunities = (communityKeys: string[]) =>
+  communityKeys.map((communityKey) => ({ name: communityKey }));
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 class MockPages {
@@ -126,14 +129,20 @@ describe("feeds store", () => {
     const feedName = JSON.stringify([mockAccount?.id, sortType, communityAddresses]);
 
     act(() => {
-      rendered.result.current.addFeedToStore(feedName, communityAddresses, sortType, mockAccount);
+      rendered.result.current.addFeedToStore(
+        feedName,
+        toCommunities(communityAddresses),
+        communityAddresses,
+        sortType,
+        mockAccount,
+      );
     });
 
     // wait for feed to be added
     await waitFor(() => rendered.result.current.feedsOptions[feedName]);
     expect(rendered.result.current.feedsOptions[feedName].pageNumber).toBe(1);
     expect(rendered.result.current.feedsOptions[feedName].sortType).toBe(sortType);
-    expect(rendered.result.current.feedsOptions[feedName].communityAddresses).toEqual(
+    expect(rendered.result.current.feedsOptions[feedName].communityKeys).toEqual(
       communityAddresses,
     );
 
@@ -178,7 +187,7 @@ describe("feeds store", () => {
     expect(rendered.result.current.feedsOptions[feedName].pageNumber).toBe(2);
     // feed options are unchanged
     expect(rendered.result.current.feedsOptions[feedName].sortType).toBe(sortType);
-    expect(rendered.result.current.feedsOptions[feedName].communityAddresses).toEqual(
+    expect(rendered.result.current.feedsOptions[feedName].communityKeys).toEqual(
       communityAddresses,
     );
     // loaded feed has correct post counts
@@ -252,6 +261,7 @@ describe("feeds store", () => {
     act(() => {
       rendered.result.current.addFeedToStore(
         feedName,
+        toCommunities(communityAddresses),
         communityAddresses,
         "new",
         mockAccount,
@@ -268,13 +278,25 @@ describe("feeds store", () => {
     const sortType = "new";
 
     act(() => {
-      rendered.result.current.addFeedToStore(feedName, communityAddresses, sortType, mockAccount);
+      rendered.result.current.addFeedToStore(
+        feedName,
+        toCommunities(communityAddresses),
+        communityAddresses,
+        sortType,
+        mockAccount,
+      );
     });
     await waitFor(() => rendered.result.current.feedsOptions[feedName]);
     const optsBefore = rendered.result.current.feedsOptions[feedName];
 
     act(() => {
-      rendered.result.current.addFeedToStore(feedName, communityAddresses, sortType, mockAccount);
+      rendered.result.current.addFeedToStore(
+        feedName,
+        toCommunities(communityAddresses),
+        communityAddresses,
+        sortType,
+        mockAccount,
+      );
     });
     expect(rendered.result.current.feedsOptions[feedName]).toBe(optsBefore);
   });
@@ -285,7 +307,13 @@ describe("feeds store", () => {
     const sortType = "new";
 
     act(() => {
-      rendered.result.current.addFeedToStore(feedName, communityAddresses, sortType, mockAccount);
+      rendered.result.current.addFeedToStore(
+        feedName,
+        toCommunities(communityAddresses),
+        communityAddresses,
+        sortType,
+        mockAccount,
+      );
     });
     await waitFor(() => rendered.result.current.feedsOptions[feedName]);
 
@@ -303,12 +331,24 @@ describe("feeds store", () => {
     const sortType = "new";
 
     act(() => {
-      rendered.result.current.addFeedToStore(feed1, communityAddresses, sortType, mockAccount);
+      rendered.result.current.addFeedToStore(
+        feed1,
+        toCommunities(communityAddresses),
+        communityAddresses,
+        sortType,
+        mockAccount,
+      );
     });
     await waitFor(() => rendered.result.current.feedsOptions[feed1]);
 
     act(() => {
-      rendered.result.current.addFeedToStore(feed2, communityAddresses, sortType, mockAccount);
+      rendered.result.current.addFeedToStore(
+        feed2,
+        toCommunities(communityAddresses),
+        communityAddresses,
+        sortType,
+        mockAccount,
+      );
     });
     await waitFor(() => rendered.result.current.feedsOptions[feed2]);
     expect(rendered.result.current.feedsOptions[feed1]).toBeDefined();
@@ -321,7 +361,13 @@ describe("feeds store", () => {
     const otherAddress = "other-sub-not-in-feed";
 
     act(() => {
-      rendered.result.current.addFeedToStore(feedName, communityAddresses, "new", mockAccount);
+      rendered.result.current.addFeedToStore(
+        feedName,
+        toCommunities(communityAddresses),
+        communityAddresses,
+        "new",
+        mockAccount,
+      );
     });
     await waitFor(() => rendered.result.current.loadedFeeds[feedName]?.length > 0);
 
@@ -348,7 +394,13 @@ describe("feeds store", () => {
     const feedName = JSON.stringify([mockAccount?.id, sortType, communityAddresses]);
 
     act(() => {
-      rendered.result.current.addFeedToStore(feedName, communityAddresses, sortType, mockAccount);
+      rendered.result.current.addFeedToStore(
+        feedName,
+        toCommunities(communityAddresses),
+        communityAddresses,
+        sortType,
+        mockAccount,
+      );
     });
     await waitFor(() => rendered.result.current.loadedFeeds[feedName]?.length > 0);
 
@@ -372,7 +424,13 @@ describe("feeds store", () => {
     const feedName = JSON.stringify([mockAccount?.id, "new", communityAddresses]);
 
     act(() => {
-      rendered.result.current.addFeedToStore(feedName, communityAddresses, "new", mockAccount);
+      rendered.result.current.addFeedToStore(
+        feedName,
+        toCommunities(communityAddresses),
+        communityAddresses,
+        "new",
+        mockAccount,
+      );
     });
     await waitFor(() => rendered.result.current.loadedFeeds[feedName]?.length > 0);
 
@@ -400,7 +458,13 @@ describe("feeds store", () => {
     const feedName = JSON.stringify([mockAccount?.id, "new", communityAddresses]);
 
     act(() => {
-      rendered.result.current.addFeedToStore(feedName, communityAddresses, "new", mockAccount);
+      rendered.result.current.addFeedToStore(
+        feedName,
+        toCommunities(communityAddresses),
+        communityAddresses,
+        "new",
+        mockAccount,
+      );
     });
     await waitFor(() => rendered.result.current.loadedFeeds[feedName]?.length > 0);
 
@@ -431,6 +495,7 @@ describe("feeds store", () => {
     act(() => {
       rendered.result.current.addFeedToStore(
         JSON.stringify([mockAccount?.id, "new", [rejectAddress]]),
+        toCommunities([rejectAddress]),
         [rejectAddress],
         "new",
         mockAccount,
@@ -450,7 +515,13 @@ describe("feeds store", () => {
     const feedName = JSON.stringify([mockAccount?.id, "new", communityAddresses]);
 
     act(() => {
-      rendered.result.current.addFeedToStore(feedName, communityAddresses, "new", mockAccount);
+      rendered.result.current.addFeedToStore(
+        feedName,
+        toCommunities(communityAddresses),
+        communityAddresses,
+        "new",
+        mockAccount,
+      );
     });
     await waitFor(() => rendered.result.current.loadedFeeds[feedName]?.length > 0);
 
@@ -468,7 +539,13 @@ describe("feeds store", () => {
     const getCommunitySpy = vi.spyOn(mockAccount.pkc, "getCommunity");
 
     act(() => {
-      rendered.result.current.addFeedToStore(feedName, communityAddresses, sortType, mockAccount);
+      rendered.result.current.addFeedToStore(
+        feedName,
+        toCommunities(communityAddresses),
+        communityAddresses,
+        sortType,
+        mockAccount,
+      );
     });
     await waitFor(() => rendered.result.current.loadedFeeds[feedName]?.length >= postsPerPage);
 
@@ -490,7 +567,13 @@ describe("feeds store", () => {
     const feedName = JSON.stringify([mockAccount?.id, "new", communityAddresses]);
 
     act(() => {
-      rendered.result.current.addFeedToStore(feedName, communityAddresses, "new", mockAccount);
+      rendered.result.current.addFeedToStore(
+        feedName,
+        toCommunities(communityAddresses),
+        communityAddresses,
+        "new",
+        mockAccount,
+      );
     });
     await waitFor(() => rendered.result.current.loadedFeeds[feedName]?.length > 0);
 
@@ -516,7 +599,13 @@ describe("feeds store", () => {
     const originalBlockedAddresses = mockAccount.blockedAddresses;
 
     act(() => {
-      rendered.result.current.addFeedToStore(feedName, communityAddresses, "new", mockAccount);
+      rendered.result.current.addFeedToStore(
+        feedName,
+        toCommunities(communityAddresses),
+        communityAddresses,
+        "new",
+        mockAccount,
+      );
     });
     await waitFor(() => rendered.result.current.loadedFeeds[feedName]?.length > 0);
 
@@ -538,7 +627,13 @@ describe("feeds store", () => {
     const refreshCommunity = communitiesStore.getState().refreshCommunity;
 
     act(() => {
-      rendered.result.current.addFeedToStore(feedName, communityAddresses, sortType, mockAccount);
+      rendered.result.current.addFeedToStore(
+        feedName,
+        toCommunities(communityAddresses),
+        communityAddresses,
+        sortType,
+        mockAccount,
+      );
     });
     await waitFor(() => rendered.result.current.loadedFeeds[feedName]?.length >= postsPerPage);
 
@@ -571,6 +666,7 @@ describe("feeds store", () => {
     act(() => {
       rendered.result.current.addFeedToStore(
         feedName,
+        toCommunities(communityAddresses),
         communityAddresses,
         sortType,
         mockAccount,
@@ -588,7 +684,13 @@ describe("feeds store", () => {
     const addNextOriginal = communitiesPagesStore.getState().addNextCommunityPageToStore;
 
     act(() => {
-      rendered.result.current.addFeedToStore(feedName, communityAddresses, sortType, mockAccount);
+      rendered.result.current.addFeedToStore(
+        feedName,
+        toCommunities(communityAddresses),
+        communityAddresses,
+        sortType,
+        mockAccount,
+      );
     });
     const longWaitFor = testUtils.createWaitFor(rendered, { timeout: 10000 });
     await longWaitFor(() => rendered.result.current.loadedFeeds[feedName]?.length >= postsPerPage);

@@ -20,7 +20,6 @@ import { communityPostsCacheExpired, commentIsValid, removeInvalidComments } fro
 import { getCommentCommunityAddress, normalizeCommentCommunityAddress } from "../../lib/pkc-compat";
 import {
   CommunityLookupRef,
-  communityAddressToRef,
   doesAddressMatchCommunityRef,
   getCommunityRefKeys,
   getMatchingCommunityRefKeys,
@@ -28,22 +27,11 @@ import {
 import Logger from "@pkc/pkc-logger";
 const log = Logger("bitsocial-react-hooks:feeds:stores");
 
-type FeedOptionsWithLegacyCommunityAddresses = Partial<FeedOptions> & {
-  communityAddresses?: string[];
-  communityRefs?: CommunityLookupRef[];
-};
+const getFeedCommunityRefs = (feedOptions: Partial<FeedOptions>): CommunityLookupRef[] =>
+  feedOptions.communities || [];
 
-const getFeedCommunityRefs = (
-  feedOptions: FeedOptionsWithLegacyCommunityAddresses,
-): CommunityLookupRef[] =>
-  feedOptions.communities ||
-  feedOptions.communityRefs ||
-  (feedOptions.communityAddresses || []).map(communityAddressToRef);
-
-const getFeedCommunityKeys = (feedOptions: FeedOptionsWithLegacyCommunityAddresses) =>
-  feedOptions.communityKeys ||
-  feedOptions.communityAddresses ||
-  getCommunityRefKeys(getFeedCommunityRefs(feedOptions));
+const getFeedCommunityKeys = (feedOptions: Partial<FeedOptions>) =>
+  feedOptions.communityKeys || getCommunityRefKeys(getFeedCommunityRefs(feedOptions));
 
 const getCommentFreshness = (comment: Comment | undefined) =>
   Math.max(comment?.updatedAt ?? 0, comment?.timestamp ?? 0, 0);
@@ -567,20 +555,20 @@ export const getUpdatedFeeds = async (
 
 // find with communities have posts newer (or ranked higher) than the loaded feeds
 // can be used to display "new posts in x, y, z subs" alert, like on twitter
-export const getFeedsCommunityAddressesWithNewerPosts = (
+export const getFeedsCommunityKeysWithNewerPosts = (
   feedsOptions: FeedsOptions,
   filteredSortedFeeds: Feeds,
   loadedFeeds: Feeds,
-  previousFeedsCommunityAddressesWithNewerPosts: { [feedName: string]: string[] },
+  previousFeedsCommunityKeysWithNewerPosts: { [feedName: string]: string[] },
 ) => {
-  const feedsCommunityAddressesWithNewerPosts: { [feedName: string]: string[] } = {};
+  const feedsCommunityKeysWithNewerPosts: { [feedName: string]: string[] } = {};
   for (const feedName in loadedFeeds) {
     const loadedFeed = loadedFeeds[feedName];
     const cidsInLoadedFeed = new Set();
     for (const post of loadedFeed) {
       cidsInLoadedFeed.add(post.cid);
     }
-    const communityAddressesWithNewerPostsSet = new Set<string>();
+    const communityKeysWithNewerPostsSet = new Set<string>();
     for (const [i, post] of filteredSortedFeeds[feedName].entries()) {
       if (i >= loadedFeed.length) {
         break;
@@ -592,27 +580,26 @@ export const getFeedsCommunityAddressesWithNewerPosts = (
           getMatchingCommunityRefKeys(
             getFeedCommunityRefs(feedsOptions[feedName] || {}),
             postCommunityAddress,
-          ).forEach((communityKey) => communityAddressesWithNewerPostsSet.add(communityKey));
+          ).forEach((communityKey) => communityKeysWithNewerPostsSet.add(communityKey));
         }
       }
     }
-    const communityAddressesWithNewerPosts = [...communityAddressesWithNewerPostsSet];
+    const communityKeysWithNewerPosts = [...communityKeysWithNewerPostsSet];
 
     // don't update the array if the data is the same to avoid rerenders
-    const previousCommunityAddressesWithNewerPosts =
-      previousFeedsCommunityAddressesWithNewerPosts[feedName] || [];
+    const previousCommunityKeysWithNewerPosts =
+      previousFeedsCommunityKeysWithNewerPosts[feedName] || [];
     if (
-      communityAddressesWithNewerPosts.length === previousCommunityAddressesWithNewerPosts.length &&
-      communityAddressesWithNewerPosts.toString() ===
-        previousCommunityAddressesWithNewerPosts.toString()
+      communityKeysWithNewerPosts.length === previousCommunityKeysWithNewerPosts.length &&
+      communityKeysWithNewerPosts.toString() === previousCommunityKeysWithNewerPosts.toString()
     ) {
-      feedsCommunityAddressesWithNewerPosts[feedName] =
-        previousFeedsCommunityAddressesWithNewerPosts[feedName];
+      feedsCommunityKeysWithNewerPosts[feedName] =
+        previousFeedsCommunityKeysWithNewerPosts[feedName];
     } else {
-      feedsCommunityAddressesWithNewerPosts[feedName] = communityAddressesWithNewerPosts;
+      feedsCommunityKeysWithNewerPosts[feedName] = communityKeysWithNewerPosts;
     }
   }
-  return feedsCommunityAddressesWithNewerPosts;
+  return feedsCommunityKeysWithNewerPosts;
 };
 
 // find how many posts are left in each communities in a buffereds feeds
@@ -669,10 +656,10 @@ export const getFeedsHaveMore = (
       pageType = "modQueue";
     }
 
-    communityAddressesLoop: for (const [communityIndex, communityKey] of communityKeys.entries()) {
+    communityKeysLoop: for (const [communityIndex, communityKey] of communityKeys.entries()) {
       // don't consider the sub if the address is blocked
       if (accounts[accountId]?.blockedAddresses[communityKey]) {
-        continue communityAddressesLoop;
+        continue communityKeysLoop;
       }
 
       const community = communities[communityKey];
@@ -693,7 +680,7 @@ export const getFeedsHaveMore = (
       // should we try to use another sort type by default, like 'hot', or should we just ignore it?
       // 'continue' to ignore it for now
       if (!firstPageCid) {
-        continue communityAddressesLoop;
+        continue communityKeysLoop;
       }
       const pages = getCommunityPages(community, sortType, communitiesPages, pageType, accountId);
       // if first page isn't loaded yet, then the feed still has more

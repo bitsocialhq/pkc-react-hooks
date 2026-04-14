@@ -663,9 +663,6 @@ export type Feed = Comment[];
 export type Feeds = { [feedName: string]: Feed };
 export type FeedOptions = {
   communities: CommunityIdentifier[];
-  // Internal compatibility fields for store helpers/tests. Public hook options do not accept these.
-  communityRefs?: CommunityIdentifier[];
-  communityAddresses?: string[];
   communityKeys: string[];
   sortType: string;
   accountId: string;
