@@ -16,6 +16,7 @@ import signers from "../fixtures/signers";
 const communityAddress = signers[0].address;
 const isBase64 = (testString) =>
   /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}))?$/gm.test(testString);
+const toCommunities = (names) => names?.map((name) => ({ name }));
 
 // large value for manual debugging
 const timeout = 600000;
@@ -110,19 +111,19 @@ for (const pkcOptionsType in pkcOptionsTypes) {
     it("change sort type", async () => {
       console.log(`starting feeds tests (${pkcOptionsType})`);
 
-      rendered.rerender({ communityAddresses: [communityAddress], sortType: "hot" });
+      rendered.rerender({ communities: toCommunities([communityAddress]), sortType: "hot" });
       await waitFor(() => !!rendered.result.current.feed[0].cid);
       expect(rendered.result.current.feed[0].communityAddress).to.equal(communityAddress);
       console.log("after first render");
 
       // reset
-      rendered.rerender({ communityAddresses: [] });
+      rendered.rerender({ communities: [] });
       await waitFor(() => rendered.result.current.feed.length === 0);
       expect(rendered.result.current.feed.length).to.equal(0);
       console.log("after second render");
 
       // change sort type
-      rendered.rerender({ communityAddresses: [communityAddress], sortType: "new" });
+      rendered.rerender({ communities: toCommunities([communityAddress]), sortType: "new" });
       await waitFor(() => !!rendered.result.current.feed[0].cid);
       expect(rendered.result.current.feed[0].communityAddress).to.equal(communityAddress);
     });
@@ -136,7 +137,7 @@ for (const pkcOptionsType in pkcOptionsTypes) {
       // utility directly instead — the hook is a thin wrapper around it.
       const { commentIsValid } = await import("../../dist/lib/utils/utils");
 
-      rendered.rerender({ communityAddresses: [communityAddress], sortType: "hot" });
+      rendered.rerender({ communities: toCommunities([communityAddress]), sortType: "hot" });
       await waitFor(() => !!rendered.result.current.feed[0]?.cid);
       expect(rendered.result.current.feed[0].communityAddress).to.equal(communityAddress);
       const comment = rendered.result.current.feed[0];

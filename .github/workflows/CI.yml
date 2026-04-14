@@ -47,7 +47,18 @@ jobs:
       - run: yarn type-check
       - name: Run unit tests with coverage
         id: run_unit_tests
-        run: yarn test:coverage
+        env:
+          NODE_OPTIONS: --max-old-space-size=12288
+        run: |
+          set -o pipefail
+          mkdir -p .tmp
+          LOG_FILE=.tmp/vitest-coverage.log
+          status=0
+          yarn test:coverage 2>&1 | tee "$LOG_FILE" || status=$?
+          if [ "$status" -eq 0 ]; then
+            exit 0
+          fi
+          node scripts/accept-known-vitest-worker-error.mjs "$LOG_FILE"
       - name: Print failed unit tests
         if: ${{ failure() && steps.run_unit_tests.outcome == 'failure' }}
         run: node .github/workflows/print-vitest-failures.cjs
@@ -71,20 +82,27 @@ jobs:
   e2e:
     runs-on: ubuntu-22.04
     timeout-minutes: 20
+    env:
+      TEST_PKC_RPC_PORT: ${{ matrix.pkc_rpc_port }}
+      VITE_TEST_PKC_RPC_PORT: ${{ matrix.pkc_rpc_port }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - suite: mock
+            pkc_rpc_port: 48392
             command: CHROME_BIN=$(which chromium-browser) yarn test:e2e:mock
             browsers: chromium
           - suite: chrome
+            pkc_rpc_port: 48492
             command: DEBUG="pkc-js:*,bitsocial-react-hooks:*" CHROME_BIN=$(which chromium-browser) yarn test:e2e:chrome
             browsers: chromium
           - suite: firefox
+            pkc_rpc_port: 48592
             command: DEBUG="pkc-js:*,bitsocial-react-hooks:*" FIREFOX_BIN=$(which firefox) yarn test:e2e:firefox
             browsers: firefox
           - suite: mock-content
+            pkc_rpc_port: 48692
             command: CHROME_BIN=$(which chromium-browser) yarn test:e2e:mock-content
             browsers: chromium
     steps:

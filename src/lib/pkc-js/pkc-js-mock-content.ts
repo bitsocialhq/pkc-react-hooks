@@ -962,6 +962,11 @@ class PKC extends EventEmitter {
   }
 
   async createCommunity(createCommunityOptions: any) {
+    const communityIdentifier =
+      createCommunityOptions?.address ||
+      createCommunityOptions?.name ||
+      createCommunityOptions?.publicKey;
+
     // if the only argument is {address}, the user didn't create the sub, it's a fetched sub
     if (createCommunityOptions?.address && Object.keys(createCommunityOptions).length === 1) {
       return new Community(createCommunityOptions);
@@ -971,7 +976,7 @@ class PKC extends EventEmitter {
     const community = new Community({ signer, ...createCommunityOptions });
 
     // keep a list of communities the user probably created himself to use with pkc.communities
-    if (!createCommunityOptions?.address) {
+    if (!communityIdentifier) {
       createdCommunities[community.address || ""] = community;
     }
 
@@ -1151,7 +1156,10 @@ class Community extends EventEmitter {
 
   constructor(createCommunityOptions?: any) {
     super();
-    this.address = createCommunityOptions?.address;
+    this.address =
+      createCommunityOptions?.address ||
+      createCommunityOptions?.name ||
+      createCommunityOptions?.publicKey;
     this.pubsubTopic = createCommunityOptions?.pubsubTopic;
     this.createdAt = createCommunityOptions?.createdAt;
     this.updatedAt = createCommunityOptions?.updatedAt;

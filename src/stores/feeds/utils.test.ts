@@ -18,6 +18,9 @@ import accountsStore from "../accounts";
 
 const mockAccountId = "mock-account-id";
 
+const toCommunities = (communityKeys: string[]) =>
+  communityKeys.map((communityKey) => ({ name: communityKey }));
+
 const makeMockAccounts = (overrides: any = {}) => ({
   [mockAccountId]: {
     id: mockAccountId,
@@ -66,7 +69,7 @@ describe("feeds utils", () => {
       };
       const feedsOptions = {
         [feedName]: {
-          communityAddresses: ["sub1"],
+          communities: toCommunities(["sub1"]),
           sortType: "new",
           accountId: mockAccountId,
         },
@@ -95,7 +98,7 @@ describe("feeds utils", () => {
       };
       const feedsOptions = {
         feed1: {
-          communityAddresses: ["sub1"],
+          communities: toCommunities(["sub1"]),
           sortType: "new",
           accountId: mockAccountId,
         },
@@ -127,7 +130,7 @@ describe("feeds utils", () => {
       };
       const feedsOptions = {
         feed1: {
-          communityAddresses: ["sub1"],
+          communities: toCommunities(["sub1"]),
           sortType: "new",
           accountId: mockAccountId,
         },
@@ -140,7 +143,7 @@ describe("feeds utils", () => {
     test("skips community that has not loaded yet", () => {
       const feedsOptions = {
         feed1: {
-          communityAddresses: ["sub1", "sub2"],
+          communities: toCommunities(["sub1", "sub2"]),
           sortType: "new",
           accountId: mockAccountId,
         },
@@ -183,7 +186,7 @@ describe("feeds utils", () => {
       };
       const feedsOptions = {
         feed1: {
-          communityAddresses: ["sub1"],
+          communities: toCommunities(["sub1"]),
           sortType: "new",
           accountId: mockAccountId,
         },
@@ -217,7 +220,7 @@ describe("feeds utils", () => {
       };
       const feedsOptions = {
         feed1: {
-          communityAddresses: ["sub1"],
+          communities: toCommunities(["sub1"]),
           sortType: "new",
           accountId: mockAccountId,
         },
@@ -258,7 +261,7 @@ describe("feeds utils", () => {
       };
       const feedsOptions = {
         feed1: {
-          communityAddresses: ["sub1"],
+          communities: toCommunities(["sub1"]),
           sortType: "new",
           accountId: mockAccountId,
           modQueue: ["pendingApproval"],
@@ -294,7 +297,7 @@ describe("feeds utils", () => {
       };
       const feedsOptions = {
         feed1: {
-          communityAddresses: ["music-posting.bso"],
+          communities: toCommunities(["music-posting.bso"]),
           sortType: "new",
           accountId: mockAccountId,
         },
@@ -323,7 +326,7 @@ describe("feeds utils", () => {
       };
       const feedsOptions = {
         feed1: {
-          communityAddresses: [blockedSubAddr],
+          communities: toCommunities([blockedSubAddr]),
           sortType: "new",
           accountId: mockAccountId,
         },
@@ -360,7 +363,7 @@ describe("feeds utils", () => {
       };
       const feedsOptions = {
         feed1: {
-          communityAddresses: ["sub1"],
+          communities: toCommunities(["sub1"]),
           sortType: "new",
           accountId: mockAccountId,
         },
@@ -392,7 +395,7 @@ describe("feeds utils", () => {
       };
       const feedsOptions = {
         feed1: {
-          communityAddresses: ["sub1"],
+          communities: toCommunities(["sub1"]),
           sortType: "new",
           accountId: mockAccountId,
           filter: { filter: (p: any) => p.cid !== "c2", key: "exclude-c2" },
@@ -433,7 +436,7 @@ describe("feeds utils", () => {
       };
       const feedsOptions = {
         feed1: {
-          communityAddresses: ["sub1", "sub2"],
+          communities: toCommunities(["sub1", "sub2"]),
           sortType: "new",
           accountId: mockAccountId,
         },
@@ -463,7 +466,7 @@ describe("feeds utils", () => {
       };
       const feedsOptions = {
         feed1: {
-          communityAddresses: ["sub1"],
+          communities: toCommunities(["sub1"]),
           sortType: "new",
           accountId: mockAccountId,
         },
@@ -493,7 +496,7 @@ describe("feeds utils", () => {
       };
       const feedsOptions = {
         feed1: {
-          communityAddresses: ["sub1"],
+          communities: toCommunities(["sub1"]),
           sortType: "new",
           accountId: mockAccountId,
         },
@@ -521,7 +524,7 @@ describe("feeds utils", () => {
       };
       const feedsOptions = {
         feed1: {
-          communityAddresses: ["sub1"],
+          communities: toCommunities(["sub1"]),
           sortType: "new",
           accountId: mockAccountId,
         },
@@ -547,7 +550,7 @@ describe("feeds utils", () => {
       const recentTs = Math.floor(Date.now() / 1000) - 100;
       const feedsOptions = {
         [feedName]: {
-          communityAddresses: ["sub1"],
+          communities: toCommunities(["sub1"]),
           accountId: mockAccountId,
           accountComments: { newerThan: 3600, append: false },
         },
@@ -573,7 +576,7 @@ describe("feeds utils", () => {
       const recentTs = Math.floor(Date.now() / 1000) - 100;
       const feedsOptions = {
         [feedName]: {
-          communityAddresses: ["sub1"],
+          communities: toCommunities(["sub1"]),
           accountId: mockAccountId,
           accountComments: { newerThan: 3600, append: false },
         },
@@ -610,7 +613,7 @@ describe("feeds utils", () => {
       const recentTs = Math.floor(Date.now() / 1000) - 100;
       const feedsOptions = {
         [feedName]: {
-          communityAddresses: ["sub1"],
+          communities: toCommunities(["sub1"]),
           accountId: mockAccountId,
           accountComments: { newerThan: 3600, append: true },
         },
@@ -643,7 +646,7 @@ describe("feeds utils", () => {
       const recentTs = Math.floor(Date.now() / 1000) - 100;
       const feedsOptions = {
         [feedName]: {
-          communityAddresses: ["sub1"],
+          communities: toCommunities(["sub1"]),
           accountId: mockAccountId,
           accountComments: { newerThan: 3600, append: false },
         },
@@ -677,7 +680,7 @@ describe("feeds utils", () => {
 
   describe("blocked addresses/cids no-change false branches", () => {
     test("feedsHaveChangedBlockedAddresses returns true when changed address is in feed communities", () => {
-      const feedsOptions = { feeds1: { communityAddresses: ["blocked-x"] } };
+      const feedsOptions = { feeds1: { communities: toCommunities(["blocked-x"]) } };
       const bufferedFeeds = { feeds1: [] };
       const blockedAddresses = ["blocked-x"];
       const previousBlockedAddresses: string[] = [];
@@ -691,7 +694,7 @@ describe("feeds utils", () => {
     });
 
     test("feedsHaveChangedBlockedAddresses returns false when changed blocked not in feeds", () => {
-      const feedsOptions = { feeds1: { communityAddresses: ["sub-a"] } };
+      const feedsOptions = { feeds1: { communities: toCommunities(["sub-a"]) } };
       const bufferedFeeds = {
         feeds1: [{ cid: "c1", communityAddress: "sub-a", author: { address: "addr-a" } }],
       };
@@ -707,7 +710,7 @@ describe("feeds utils", () => {
     });
 
     test("feedsHaveChangedBlockedCids returns false when changed blocked cids not in feeds", () => {
-      const feedsOptions = { feeds1: { communityAddresses: ["sub-a"] } };
+      const feedsOptions = { feeds1: { communities: toCommunities(["sub-a"]) } };
       const bufferedFeeds = {
         feeds1: [{ cid: "c1", communityAddress: "sub-a" }],
       };
@@ -723,7 +726,7 @@ describe("feeds utils", () => {
     });
 
     test("feedsHaveChangedBlockedCids returns true when cid in feed is blocked", () => {
-      const feedsOptions = { feeds1: { communityAddresses: ["sub-a"] } };
+      const feedsOptions = { feeds1: { communities: toCommunities(["sub-a"]) } };
       const bufferedFeeds = {
         feeds1: [{ cid: "blocked-cid-x", communityAddress: "sub-a" }],
       };
@@ -751,7 +754,7 @@ describe("feeds utils", () => {
     test("returns loadedFeeds when no missing posts and no account comments change", async () => {
       const feedsOptions = {
         feed1: {
-          communityAddresses: ["sub1"],
+          communities: toCommunities(["sub1"]),
           sortType: "new",
           accountId: mockAccountId,
           pageNumber: 1,
@@ -779,7 +782,7 @@ describe("feeds utils", () => {
     test("adds missing posts from buffered feed", async () => {
       const feedsOptions = {
         feed1: {
-          communityAddresses: ["sub1"],
+          communities: toCommunities(["sub1"]),
           sortType: "new",
           accountId: mockAccountId,
           pageNumber: 2,
@@ -811,7 +814,7 @@ describe("feeds utils", () => {
       const feedName = "feed1";
       const feedsOptions = {
         [feedName]: {
-          communityAddresses: ["sub1"],
+          communities: toCommunities(["sub1"]),
           sortType: "new",
           accountId: mockAccountId,
           pageNumber: 2,
@@ -910,7 +913,7 @@ describe("feeds utils", () => {
     test("continues when community address is blocked", () => {
       const feedsOptions = {
         feed1: {
-          communityAddresses: ["blocked-sub", "sub2"],
+          communities: toCommunities(["blocked-sub", "sub2"]),
           sortType: "new",
           accountId: mockAccountId,
         },
@@ -933,10 +936,39 @@ describe("feeds utils", () => {
       expect(result.feed1).toBeDefined();
     });
 
+    test("skips publicKey-keyed communities when the resolved address is blocked", () => {
+      const community = {
+        name: "blocked.eth",
+        publicKey: "blocked-public-key",
+      };
+      const feedsOptions = {
+        feed1: {
+          communities: [community],
+          communityKeys: [community.publicKey],
+          sortType: "new",
+          accountId: mockAccountId,
+        },
+      };
+      const communities = {
+        [community.publicKey]: {
+          address: community.name,
+          publicKey: community.publicKey,
+          updatedAt: 1,
+          posts: { pageCids: { new: "pc1" }, pages: {} },
+        },
+      };
+      const accounts = makeMockAccounts({
+        blockedAddresses: { [community.name]: true },
+      });
+
+      const result = getFeedsHaveMore(feedsOptions, {}, communities, {}, accounts);
+      expect(result.feed1).toBe(false);
+    });
+
     test("uses modQueue when modQueue option present", () => {
       const feedsOptions = {
         feed1: {
-          communityAddresses: ["sub1"],
+          communities: toCommunities(["sub1"]),
           sortType: "new",
           accountId: mockAccountId,
           modQueue: ["approved"],
@@ -965,7 +997,7 @@ describe("feeds utils", () => {
 
   describe("getFeedsCommunitiesFirstPageCids", () => {
     test("includes pageCids from posts and modQueue", () => {
-      const feedsOptions = { f1: { communityAddresses: ["s1"] } };
+      const feedsOptions = { f1: { communities: toCommunities(["s1"]) } };
       const communities = new Map([
         [
           "s1",
@@ -1032,7 +1064,7 @@ describe("feeds utils", () => {
 
   describe("feedsHaveChangedBlockedAddresses author address", () => {
     test("returns true when post author address is in changed blocked", () => {
-      const feedsOptions = { f1: { communityAddresses: ["sub-a"] } };
+      const feedsOptions = { f1: { communities: toCommunities(["sub-a"]) } };
       const bufferedFeeds = {
         f1: [{ cid: "c1", communityAddress: "sub-a", author: { address: "blocked-author" } }],
       };

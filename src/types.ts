@@ -23,6 +23,16 @@ export interface NameResolverInfo {
   providerLabel: string;
 }
 
+export type CommunityIdentifier =
+  | {
+      name: string;
+      publicKey?: string;
+    }
+  | {
+      name?: string;
+      publicKey: string;
+    };
+
 // useAccount(options): result
 export interface UseAccountOptions extends Options {}
 export interface UseAccountResult extends Result, Account {}
@@ -189,14 +199,14 @@ export interface UseEditedCommentResult extends Result {
 
 // useCommunity(options): result
 export interface UseCommunityOptions extends Options {
-  communityAddress?: string;
+  community?: CommunityIdentifier;
   onlyIfCached?: boolean;
 }
 export interface UseCommunityResult extends Result, Community {}
 
 // useCommunities(options): result
 export interface UseCommunitiesOptions extends Options {
-  communityAddresses?: string[];
+  communities?: CommunityIdentifier[];
   onlyIfCached?: boolean;
 }
 export interface UseCommunitiesResult extends Result {
@@ -205,7 +215,7 @@ export interface UseCommunitiesResult extends Result {
 
 // useCommunityStats(options): result
 export interface UseCommunityStatsOptions extends Options {
-  communityAddress?: string;
+  community?: CommunityIdentifier;
   onlyIfCached?: boolean;
 }
 export interface UseCommunityStatsResult extends Result, CommunityStats {}
@@ -222,7 +232,7 @@ export interface UseResolvedCommunityAddressResult extends Result {
 
 // useFeed(options): result
 export interface UseFeedOptions extends Options {
-  communityAddresses: string[];
+  communities?: CommunityIdentifier[];
   sortType?: string;
   postsPerPage?: number;
   newerThan?: number;
@@ -234,7 +244,7 @@ export interface UseFeedResult extends Result {
   feed: Comment[];
   hasMore: boolean;
   loadMore(): Promise<void>;
-  communityAddressesWithNewerPosts: string[];
+  communityKeysWithNewerPosts: string[];
   reset(): Promise<void>;
 }
 
@@ -540,7 +550,7 @@ export interface UseClientsStatesResult extends Result {
 }
 
 export interface UseCommunitiesStatesOptions extends Options {
-  communityAddresses?: string[];
+  communities?: CommunityIdentifier[];
 }
 export interface UseCommunitiesStatesResult extends Result {
   states: { [state: string]: { communityAddresses: string[]; clientUrls: string[] } };
@@ -652,7 +662,8 @@ export type AccountPublicationsFilter = (
 export type Feed = Comment[];
 export type Feeds = { [feedName: string]: Feed };
 export type FeedOptions = {
-  communityAddresses: string[];
+  communities: CommunityIdentifier[];
+  communityKeys: string[];
   sortType: string;
   accountId: string;
   pageNumber: number;

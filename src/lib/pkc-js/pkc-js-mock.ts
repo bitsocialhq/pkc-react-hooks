@@ -77,12 +77,13 @@ export class PKC extends EventEmitter {
     if (!createCommunityOptions) {
       createCommunityOptions = {};
     }
+    const communityIdentifier =
+      createCommunityOptions.address ||
+      createCommunityOptions.name ||
+      createCommunityOptions.publicKey;
 
     // no address provided so probably a user creating an owner community
-    if (
-      !createCommunityOptions.address &&
-      !createdOwnerCommunities[createCommunityOptions.address]
-    ) {
+    if (!communityIdentifier) {
       createCommunityOptions = {
         ...createCommunityOptions,
         address: "created community address",
@@ -302,7 +303,10 @@ export class Community extends EventEmitter {
 
   constructor(createCommunityOptions?: any) {
     super();
-    this.address = createCommunityOptions?.address;
+    this.address =
+      createCommunityOptions?.address ||
+      createCommunityOptions?.name ||
+      createCommunityOptions?.publicKey;
     this.title = createCommunityOptions?.title;
     this.description = createCommunityOptions?.description;
     this.statsCid = "statscid";
@@ -340,8 +344,20 @@ export class Community extends EventEmitter {
       }
     }
 
-    // only trigger a first update if argument is only ({address})
-    if (!createCommunityOptions?.address || Object.keys(createCommunityOptions).length !== 1) {
+    const lookupKeys = ["address", "name", "publicKey"];
+    const createCommunityOptionKeys = Object.keys(createCommunityOptions || {});
+    const hasLookupIdentifier = Boolean(
+      createCommunityOptions?.address ||
+      createCommunityOptions?.name ||
+      createCommunityOptions?.publicKey,
+    );
+    const lookupOnly =
+      hasLookupIdentifier &&
+      createCommunityOptionKeys.length > 0 &&
+      createCommunityOptionKeys.every((key) => lookupKeys.includes(key));
+
+    // only trigger a first update for lookup-only remote community instances
+    if (!lookupOnly) {
       this.firstUpdate = false;
     }
   }

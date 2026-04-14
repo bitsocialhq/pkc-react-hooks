@@ -24,9 +24,10 @@ import useCommunitiesStore from "../stores/communities";
 import useAccountsStore from "../stores/accounts";
 import shallow from "zustand/shallow";
 import { getChainProviders, getPkcCommunityAddresses } from "../lib/pkc-compat";
+import { getCommunityRefKey, getUniqueSortedCommunityRefs } from "../lib/community-ref";
 
 /**
- * @param communityAddress - The address of the community, e.g. 'memes.eth', '12D3KooW...', etc
+ * @param community - The community identifier, e.g. {name: 'memes.eth'} or {publicKey: '12D3KooW...'}
  * @param acountName - The nickname of the account, e.g. 'Account 1'. If no accountName is provided, use
  * the active account.
  */
@@ -35,53 +36,85 @@ export function useCommunity(options?: UseCommunityOptions): UseCommunityResult 
     !options || typeof options === "object",
     `useCommunity options argument '${options}' not an object`,
   );
-  const { communityAddress, accountName, onlyIfCached } = options ?? {};
+  const opts = options ?? {};
+  const { community: communityInput, accountName, onlyIfCached } = opts;
   const account = useAccount({ accountName });
   const accountId = account?.id || "";
-  const community = useCommunitiesStore((state: any) => state.communities[communityAddress || ""]);
+  validator.validateUseCommunityArguments({
+    community: communityInput,
+    communityAddress: (opts as any).communityAddress,
+    account,
+  });
+  const communityKey = communityInput ? getCommunityRefKey(communityInput) : "";
+  const storedCommunity = useCommunitiesStore((state: any) => state.communities[communityKey]);
   const addCommunityToStore = useCommunitiesStore((state: any) => state.addCommunityToStore);
-  const errors = useCommunitiesStore((state: any) => state.errors[communityAddress || ""]);
-  const communityEditSummary = useAccountsStore(
-    (state: any) => state.accountsEditsSummaries[accountId]?.[communityAddress || ""],
-  );
+  const errors = useCommunitiesStore((state: any) => state.errors[communityKey]);
+  const communityEditSummary = useAccountsStore((state: any) => {
+    const accountEditsSummaries = state.accountsEditsSummaries[accountId] || {};
+    const candidateCommunityKeys = [
+      storedCommunity?.address,
+      storedCommunity?.name,
+      storedCommunity?.publicKey,
+      communityInput?.name,
+      communityInput?.publicKey,
+    ];
+    for (const candidateCommunityKey of candidateCommunityKeys) {
+      if (
+        typeof candidateCommunityKey === "string" &&
+        accountEditsSummaries[candidateCommunityKey]
+      ) {
+        return accountEditsSummaries[candidateCommunityKey];
+      }
+    }
+  });
 
   useEffect(() => {
-    if (!communityAddress || !account) {
+    if (!communityInput || !account) {
       return;
     }
-    validator.validateUseCommunityArguments(communityAddress, account);
-    if (!community && !onlyIfCached) {
+    if (!storedCommunity && !onlyIfCached) {
       // if community isn't already in store, add it
-      addCommunityToStore(communityAddress, account).catch((error: unknown) =>
-        log.error("useCommunity addCommunityToStore error", { communityAddress, error }),
+      addCommunityToStore(communityInput, account).catch((error: unknown) =>
+        log.error("useCommunity addCommunityToStore error", { communityInput, error }),
       );
     }
-  }, [communityAddress, account?.id]);
+  }, [communityKey, account?.id]);
 
-  if (account && communityAddress) {
-    log("useCommunity", { communityAddress, community, account });
+  if (account && communityInput) {
+    log("useCommunity", {
+      community: communityInput,
+      communityKey,
+      storedCommunity,
+      account,
+    });
   }
 
   const mergedCommunity = useMemo(() => {
     if (!communityEditSummary) {
-      return community;
+      return storedCommunity;
     }
     const localCommunityAddresses = getPkcCommunityAddresses(account?.pkc);
     const editedCommunityAddress = communityEditSummary.address?.value;
+    const inputCommunityIdentifiers = [communityInput?.name, communityInput?.publicKey].filter(
+      (communityIdentifier): communityIdentifier is string =>
+        typeof communityIdentifier === "string",
+    );
     if (
-      !community &&
+      !storedCommunity &&
       editedCommunityAddress &&
-      !localCommunityAddresses.includes(communityAddress || "") &&
+      !inputCommunityIdentifiers.some((communityIdentifier) =>
+        localCommunityAddresses.includes(communityIdentifier),
+      ) &&
       !localCommunityAddresses.includes(editedCommunityAddress)
     ) {
-      return community;
+      return storedCommunity;
     }
     if (
-      community?.address &&
+      storedCommunity?.address &&
       editedCommunityAddress &&
-      community.address !== editedCommunityAddress
+      storedCommunity.address !== editedCommunityAddress
     ) {
-      return community;
+      return storedCommunity;
     }
     const summaryValues = Object.fromEntries(
       Object.entries(communityEditSummary).map(([propertyName, propertySummary]: [string, any]) => [
@@ -90,10 +123,10 @@ export function useCommunity(options?: UseCommunityOptions): UseCommunityResult 
       ]),
     );
     return {
-      ...(community || { address: communityAddress }),
+      ...(storedCommunity || { address: communityInput?.name || communityInput?.publicKey }),
       ...summaryValues,
     };
-  }, [account?.pkc, community, communityAddress, communityEditSummary]);
+  }, [account?.pkc, storedCommunity, communityInput, communityEditSummary]);
 
   let state = mergedCommunity?.updatingState || "initializing";
   // force succeeded even if the community is fecthing a new update
@@ -108,12 +141,12 @@ export function useCommunity(options?: UseCommunityOptions): UseCommunityResult 
       error: errors?.[errors.length - 1],
       errors: errors || [],
     }),
-    [mergedCommunity, communityAddress, errors],
+    [mergedCommunity, communityKey, errors],
   );
 }
 
 /**
- * @param communityAddress - The address of the community, e.g. 'memes.eth', '12D3KooW...', etc
+ * @param community - The community identifier, e.g. {name: 'memes.eth'} or {publicKey: '12D3KooW...'}
  * @param acountName - The nickname of the account, e.g. 'Account 1'. If no accountName is provided, use
  * the active account.
  */
@@ -122,12 +155,18 @@ export function useCommunityStats(options?: UseCommunityStatsOptions): UseCommun
     !options || typeof options === "object",
     `useCommunityStats options argument '${options}' not an object`,
   );
-  const { communityAddress, accountName, onlyIfCached } = options ?? {};
+  const opts = options ?? {};
+  const { community, accountName, onlyIfCached } = opts;
+  validator.validateUseCommunityStatsArguments({
+    community,
+    communityAddress: (opts as any).communityAddress,
+  });
   const account = useAccount({ accountName });
-  const community = useCommunity({ communityAddress, onlyIfCached });
-  const communityStatsCid = community?.statsCid;
+  const communityKey = community ? getCommunityRefKey(community) : "";
+  const fetchedCommunity = useCommunity({ community, onlyIfCached });
+  const communityStatsCid = fetchedCommunity?.statsCid;
   const communityStats = useCommunitiesStatsStore(
-    (state: CommunitiesStatsState) => state.communitiesStats[communityAddress || ""],
+    (state: CommunitiesStatsState) => state.communitiesStats[communityKey],
   );
   const setCommunityStats = useCommunitiesStatsStore(
     (state: CommunitiesStatsState) => state.setCommunityStats,
@@ -136,7 +175,7 @@ export function useCommunityStats(options?: UseCommunityStatsOptions): UseCommun
 
   useEffect(() => {
     setFetchError(undefined);
-    if (!communityAddress || !communityStatsCid || !account) {
+    if (!communityKey || !communityStatsCid || !account) {
       return;
     }
     let cancelled = false;
@@ -148,7 +187,7 @@ export function useCommunityStats(options?: UseCommunityStatsOptions): UseCommun
         if (cancelled) {
           return;
         }
-        setCommunityStats(communityAddress, fetchedCid);
+        setCommunityStats(communityKey, fetchedCid);
       } catch (error) {
         const normalizedError =
           error instanceof Error ? error : new Error(typeof error === "string" ? error : "error");
@@ -157,9 +196,10 @@ export function useCommunityStats(options?: UseCommunityStatsOptions): UseCommun
         }
         setFetchError(normalizedError);
         log.error("useCommunityStats pkc.fetchCid error", {
-          communityAddress,
-          communityStatsCid,
           community,
+          communityKey,
+          communityStatsCid,
+          fetchedCommunity,
           fetchedCid,
           error: normalizedError,
         });
@@ -168,20 +208,21 @@ export function useCommunityStats(options?: UseCommunityStatsOptions): UseCommun
     return () => {
       cancelled = true;
     };
-  }, [communityStatsCid, account?.id, communityAddress, setCommunityStats]);
+  }, [communityStatsCid, account?.id, communityKey, setCommunityStats]);
 
   if (account && communityStatsCid) {
     log("useCommunityStats", {
-      communityAddress,
+      community,
+      communityKey,
       communityStatsCid,
       communityStats,
-      community,
+      fetchedCommunity,
       account,
     });
   }
 
   const state =
-    !communityAddress || !account || !communityStatsCid
+    !communityKey || !account || !communityStatsCid
       ? "uninitialized"
       : fetchError
         ? "failed"
@@ -214,7 +255,7 @@ const useCommunitiesStatsStore = createStore<CommunitiesStatsState>((setState: F
 }));
 
 /**
- * @param communityAddresses - The addresses of the communities, e.g. ['memes.eth', '12D3KooWA...']
+ * @param communities - The communities to fetch, e.g. [{name: 'memes.eth'}, {publicKey: '12D3KooW...'}]
  * @param acountName - The nickname of the account, e.g. 'Account 1'. If no accountName is provided, use
  * the active account.
  */
@@ -223,37 +264,52 @@ export function useCommunities(options?: UseCommunitiesOptions): UseCommunitiesR
     !options || typeof options === "object",
     `useCommunities options argument '${options}' not an object`,
   );
-  const { communityAddresses = [], accountName, onlyIfCached } = options ?? {};
-  const addrs = communityAddresses ?? [];
+  const opts = options ?? {};
+  const { communities: communitiesInput, accountName, onlyIfCached } = opts;
   const account = useAccount({ accountName });
+  validator.validateUseCommunitiesArguments({
+    communities: communitiesInput,
+    communityRefs: (opts as any).communityRefs,
+    communityAddresses: (opts as any).communityAddresses,
+    account,
+  });
+  const normalizedCommunityRefs = useMemo(() => communitiesInput || [], [communitiesInput]);
+  const communityKeys = useMemo(
+    () => normalizedCommunityRefs.map(getCommunityRefKey),
+    [normalizedCommunityRefs],
+  );
   const communities: (Community | undefined)[] = useCommunitiesStore(
-    (state: any) => addrs.map((communityAddress) => state.communities[communityAddress || ""]),
+    (state: any) => communityKeys.map((communityKey) => state.communities[communityKey || ""]),
     shallow,
   );
   const communitiesErrors: (Error[] | undefined)[] = useCommunitiesStore(
-    (state: any) => addrs.map((communityAddress) => state.errors[communityAddress || ""]),
+    (state: any) => communityKeys.map((communityKey) => state.errors[communityKey || ""]),
     shallow,
   );
   const addCommunityToStore = useCommunitiesStore((state: any) => state.addCommunityToStore);
 
   useEffect(() => {
-    if (!addrs.length || !account) {
+    if (!normalizedCommunityRefs.length || !account) {
       return;
     }
-    validator.validateUseCommunitiesArguments(addrs, account);
     if (onlyIfCached) {
       return;
     }
-    const uniqueCommunityAddresses = new Set(addrs);
-    for (const communityAddress of uniqueCommunityAddresses) {
-      addCommunityToStore(communityAddress, account).catch((error: unknown) =>
-        log.error("useCommunities addCommunityToStore error", { communityAddress, error }),
+    const uniqueCommunityRefs = getUniqueSortedCommunityRefs(normalizedCommunityRefs);
+    for (const communityRef of uniqueCommunityRefs) {
+      addCommunityToStore(communityRef, account).catch((error: unknown) =>
+        log.error("useCommunities addCommunityToStore error", { communityRef, error }),
       );
     }
-  }, [addrs.toString(), account?.id]);
+  }, [account?.id, communityKeys.toString(), onlyIfCached, normalizedCommunityRefs]);
 
-  if (account && addrs.length) {
-    log("useCommunities", { communityAddresses: addrs, communities, account });
+  if (account && normalizedCommunityRefs.length) {
+    log("useCommunities", {
+      requestedCommunities: normalizedCommunityRefs,
+      communityKeys,
+      communities,
+      account,
+    });
   }
 
   const errors = useMemo(
@@ -276,7 +332,7 @@ export function useCommunities(options?: UseCommunitiesOptions): UseCommunitiesR
       error: errors[errors.length - 1],
       errors,
     }),
-    [communities, state, errors, addrs.toString()],
+    [communities, state, errors, communityKeys.toString()],
   );
 }
 

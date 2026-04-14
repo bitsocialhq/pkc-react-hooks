@@ -6,11 +6,18 @@ const communitiesDatabase = localForageLru.createInstance({
 });
 import Logger from "@pkc/pkc-logger";
 const log = Logger("bitsocial-react-hooks:communities:stores");
-import { Community, Communities, Account, CreateCommunityOptions } from "../../types";
+import {
+  Community,
+  Communities,
+  Account,
+  CommunityIdentifier,
+  CreateCommunityOptions,
+} from "../../types";
 import utils from "../../lib/utils";
 import createStore from "zustand";
 import accountsStore from "../accounts";
 import communitiesPagesStore from "../communities-pages";
+import { getCommunityLookupOptions, getCommunityRefKey } from "../../lib/community-ref";
 import {
   createPkcCommunity,
   getPkcCommunity,
@@ -20,6 +27,19 @@ import {
 } from "../../lib/pkc-compat";
 
 let pkcGetCommunityPending: { [key: string]: boolean } = {};
+
+const createCommunityWithLookupFallback = async (
+  pkc: any,
+  communityLookupOptions: { address?: string; name?: string; publicKey?: string },
+  communityKey: string,
+) => {
+  const supportsAddressLookup = "address" in communityLookupOptions;
+  const community = await createPkcCommunity(pkc, communityLookupOptions);
+  if (community?.address || supportsAddressLookup) {
+    return community;
+  }
+  throw Error(`communitiesStore.addCommunityToStore failed getting community '${communityKey}'`);
+};
 
 // reset all event listeners in between tests
 const listeners: any = [];
@@ -39,10 +59,18 @@ const communitiesStore = createStore<CommunitiesState>(
     communities: {},
     errors: {},
 
-    async addCommunityToStore(communityAddress: string, account: Account) {
+    async addCommunityToStore(
+      communityAddressOrRef: string | CommunityIdentifier,
+      account: Account,
+    ) {
+      const communityLookupOptions = getCommunityLookupOptions(communityAddressOrRef);
+      const communityKey =
+        typeof communityAddressOrRef === "string"
+          ? communityAddressOrRef
+          : getCommunityRefKey(communityAddressOrRef);
       assert(
-        communityAddress !== "" && typeof communityAddress === "string",
-        `communitiesStore.addCommunityToStore invalid communityAddress argument '${communityAddress}'`,
+        communityKey !== "" && typeof communityKey === "string",
+        `communitiesStore.addCommunityToStore invalid communityAddress argument '${communityAddressOrRef}'`,
       );
       assert(
         typeof getPkcCreateCommunity(account?.pkc) === "function",
@@ -51,8 +79,8 @@ const communitiesStore = createStore<CommunitiesState>(
 
       // community is in store already, do nothing
       const { communities } = getState();
-      let community: Community | undefined = communities[communityAddress];
-      const pendingKey = communityAddress + account.id;
+      let community: Community | undefined = communities[communityKey];
+      const pendingKey = communityKey + account.id;
       if (community || pkcGetCommunityPending[pendingKey]) {
         return;
       }
@@ -62,11 +90,13 @@ const communitiesStore = createStore<CommunitiesState>(
       let errorGettingCommunity: any;
       try {
         // try to find community in owner communities
-        if (getPkcCommunityAddresses(account.pkc).includes(communityAddress)) {
+        if (getPkcCommunityAddresses(account.pkc).includes(communityKey)) {
           try {
-            community = await createPkcCommunity(account.pkc, {
-              address: communityAddress,
-            });
+            community = await createCommunityWithLookupFallback(
+              account.pkc,
+              communityLookupOptions,
+              communityKey,
+            );
           } catch (e) {
             errorGettingCommunity = e;
           }
@@ -75,7 +105,7 @@ const communitiesStore = createStore<CommunitiesState>(
         // try to find community in database
         let fetchedAt: number | undefined;
         if (!community) {
-          const communityData: any = await communitiesDatabase.getItem(communityAddress);
+          const communityData: any = await communitiesDatabase.getItem(communityKey);
           if (communityData) {
             fetchedAt = communityData.fetchedAt;
             delete communityData.fetchedAt; // not part of pkc-js schema
@@ -99,9 +129,11 @@ const communitiesStore = createStore<CommunitiesState>(
         // community not in database, try to fetch from pkc-js
         if (!community) {
           try {
-            community = await createPkcCommunity(account.pkc, {
-              address: communityAddress,
-            });
+            community = await createCommunityWithLookupFallback(
+              account.pkc,
+              communityLookupOptions,
+              communityKey,
+            );
           } catch (e) {
             errorGettingCommunity = e;
           }
@@ -111,26 +143,29 @@ const communitiesStore = createStore<CommunitiesState>(
         if (!community) {
           if (errorGettingCommunity) {
             setState((state: CommunitiesState) => {
-              let communityErrors = state.errors[communityAddress] || [];
+              let communityErrors = state.errors[communityKey] || [];
               communityErrors = [...communityErrors, errorGettingCommunity];
-              return { ...state, errors: { ...state.errors, [communityAddress]: communityErrors } };
+              return { ...state, errors: { ...state.errors, [communityKey]: communityErrors } };
             });
           }
 
           throw (
             errorGettingCommunity ||
-            Error(
-              `communitiesStore.addCommunityToStore failed getting community '${communityAddress}'`,
-            )
+            Error(`communitiesStore.addCommunityToStore failed getting community '${communityKey}'`)
           );
         }
 
         // success getting community
         const firstCommunityState = utils.clone({ ...community, fetchedAt });
-        await communitiesDatabase.setItem(communityAddress, firstCommunityState);
-        log("communitiesStore.addCommunityToStore", { communityAddress, community, account });
+        await communitiesDatabase.setItem(communityKey, firstCommunityState);
+        log("communitiesStore.addCommunityToStore", {
+          communityAddressOrRef,
+          communityKey,
+          community,
+          account,
+        });
         setState((state: any) => ({
-          communities: { ...state.communities, [communityAddress]: firstCommunityState },
+          communities: { ...state.communities, [communityKey]: firstCommunityState },
         }));
 
         // the community has published new posts
@@ -141,14 +176,15 @@ const communitiesStore = createStore<CommunitiesState>(
           // NOTE: fetchedAt is undefined on owner communities because never stale
           updatedCommunity.fetchedAt = Math.floor(Date.now() / 1000);
 
-          await communitiesDatabase.setItem(communityAddress, updatedCommunity);
+          await communitiesDatabase.setItem(communityKey, updatedCommunity);
           log("communitiesStore community update", {
-            communityAddress,
+            communityAddressOrRef,
+            communityKey,
             updatedCommunity,
             account,
           });
           setState((state: any) => ({
-            communities: { ...state.communities, [communityAddress]: updatedCommunity },
+            communities: { ...state.communities, [communityKey]: updatedCommunity },
           }));
 
           // if a community has a role with an account's address add it to the account.communities
@@ -164,16 +200,16 @@ const communitiesStore = createStore<CommunitiesState>(
           setState((state: CommunitiesState) => ({
             communities: {
               ...state.communities,
-              [communityAddress]: { ...state.communities[communityAddress], updatingState },
+              [communityKey]: { ...state.communities[communityKey], updatingState },
             },
           }));
         });
 
         community.on("error", (error: Error) => {
           setState((state: CommunitiesState) => {
-            let communityErrors = state.errors[communityAddress] || [];
+            let communityErrors = state.errors[communityKey] || [];
             communityErrors = [...communityErrors, error];
-            return { ...state, errors: { ...state.errors, [communityAddress]: communityErrors } };
+            return { ...state, errors: { ...state.errors, [communityKey]: communityErrors } };
           });
         });
 
@@ -183,10 +219,10 @@ const communitiesStore = createStore<CommunitiesState>(
           (clientState: string, clientType: string, clientUrl: string, chainTicker?: string) => {
             setState((state: CommunitiesState) => {
               // make sure not undefined, sometimes happens in e2e tests
-              if (!state.communities[communityAddress]) {
+              if (!state.communities[communityKey]) {
                 return {};
               }
-              const clients = { ...state.communities[communityAddress]?.clients };
+              const clients = { ...state.communities[communityKey]?.clients };
               const client = { state: clientState };
               if (chainTicker) {
                 const chainProviders = { ...clients[clientType][chainTicker], [clientUrl]: client };
@@ -197,7 +233,7 @@ const communitiesStore = createStore<CommunitiesState>(
               return {
                 communities: {
                   ...state.communities,
-                  [communityAddress]: { ...state.communities[communityAddress], clients },
+                  [communityKey]: { ...state.communities[communityKey], clients },
                 },
               };
             });
@@ -213,10 +249,15 @@ const communitiesStore = createStore<CommunitiesState>(
       }
     },
 
-    async refreshCommunity(communityAddress: string, account: Account) {
+    async refreshCommunity(communityAddressOrRef: string | CommunityIdentifier, account: Account) {
+      const communityLookupOptions = getCommunityLookupOptions(communityAddressOrRef);
+      const communityKey =
+        typeof communityAddressOrRef === "string"
+          ? communityAddressOrRef
+          : getCommunityRefKey(communityAddressOrRef);
       assert(
-        communityAddress !== "" && typeof communityAddress === "string",
-        `communitiesStore.refreshCommunity invalid communityAddress argument '${communityAddress}'`,
+        communityKey !== "" && typeof communityKey === "string",
+        `communitiesStore.refreshCommunity invalid communityAddress argument '${communityAddressOrRef}'`,
       );
       assert(
         typeof getPkcGetCommunity(account?.pkc) === "function",
@@ -224,18 +265,19 @@ const communitiesStore = createStore<CommunitiesState>(
       );
 
       const refreshedCommunity = utils.clone(
-        await getPkcCommunity(account.pkc, { address: communityAddress }),
+        await getPkcCommunity(account.pkc, communityLookupOptions),
       );
       refreshedCommunity.fetchedAt = Math.floor(Date.now() / 1000);
 
-      await communitiesDatabase.setItem(communityAddress, refreshedCommunity);
+      await communitiesDatabase.setItem(communityKey, refreshedCommunity);
       log("communitiesStore.refreshCommunity", {
-        communityAddress,
+        communityAddressOrRef,
+        communityKey,
         refreshedCommunity,
         account,
       });
       setState((state: any) => ({
-        communities: { ...state.communities, [communityAddress]: refreshedCommunity },
+        communities: { ...state.communities, [communityKey]: refreshedCommunity },
       }));
 
       communitiesPagesStore.getState().addCommunityPageCommentsToStore(refreshedCommunity);

@@ -238,7 +238,9 @@ describe("mock content", () => {
   });
 
   test("use communities", async () => {
-    const rendered = renderHook<any, any>((communityAddress) => useCommunity({ communityAddress }));
+    const rendered = renderHook<any, any>((communityAddress) =>
+      useCommunity({ community: communityAddress ? { name: communityAddress } : undefined }),
+    );
     const waitFor = testUtils.createWaitFor(rendered, { timeout });
 
     rendered.rerender("anything2.eth");
@@ -278,7 +280,7 @@ describe("mock content", () => {
     // test getting from db
     await testUtils.resetStores();
     const rendered2 = renderHook<any, any>((communityAddress) =>
-      useCommunity({ communityAddress }),
+      useCommunity({ community: communityAddress ? { name: communityAddress } : undefined }),
     );
 
     rendered2.rerender("anything2.eth");
@@ -292,7 +294,12 @@ describe("mock content", () => {
 
   test("use feed new", async () => {
     const rendered = renderHook<any, any>((communityAddresses) =>
-      useFeed({ communityAddresses, sortType: "new" }),
+      useFeed({
+        communities: (communityAddresses || []).map((communityAddress: string) => ({
+          name: communityAddress,
+        })),
+        sortType: "new",
+      }),
     );
     const waitFor = testUtils.createWaitFor(rendered, { timeout });
 
@@ -323,7 +330,13 @@ describe("mock content", () => {
   });
 
   test("use feed hot", async () => {
-    const rendered = renderHook<any, any>((communityAddresses) => useFeed({ communityAddresses }));
+    const rendered = renderHook<any, any>((communityAddresses) =>
+      useFeed({
+        communities: (communityAddresses || []).map((communityAddress: string) => ({
+          name: communityAddress,
+        })),
+      }),
+    );
     const waitFor = testUtils.createWaitFor(rendered, { timeout });
 
     const scrollOnePage = async () => {

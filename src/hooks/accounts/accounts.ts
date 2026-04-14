@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import isEqual from "lodash.isequal";
 import useAccountsStore from "../../stores/accounts";
+import useCommunitiesStore from "../../stores/communities";
 import Logger from "@pkc/pkc-logger";
 const log = Logger("bitsocial-react-hooks:accounts:hooks");
 import assert from "assert";
@@ -182,10 +183,13 @@ export function useAccountCommunities(
     error: communitiesError,
     errors: communitiesErrors,
   } = useCommunities({
-    communityAddresses: uniqueCommunityAddresses,
+    communities: uniqueCommunityAddresses.map((communityAddress) => ({ name: communityAddress })),
     accountName,
     onlyIfCached,
   });
+  const communityFetchErrors = useCommunitiesStore((state: any) =>
+    uniqueCommunityAddresses.flatMap((communityAddress) => state.errors[communityAddress] || []),
+  );
   const canonicalAddressByGroupKey = useMemo(() => {
     const canonicalAddresses: { [groupKey: string]: string } = {};
     for (const [i, { groupKey, preferredAddress }] of groupedCommunityAddresses.entries()) {
@@ -247,16 +251,27 @@ export function useAccountCommunities(
     log("useAccountCommunities", { accountCommunities });
   }
 
-  const state = accountId ? communitiesState : "initializing";
+  const pendingAccountCommunities = Object.values(accountCommunities).some(
+    (community: any) => community?.address && !community?.updatedAt,
+  );
+  const errors = communityFetchErrors.length ? communityFetchErrors : communitiesErrors;
+  const error = communitiesError || errors[errors.length - 1];
+  const state = !accountId
+    ? "initializing"
+    : error
+      ? "failed"
+      : pendingAccountCommunities
+        ? "fetching-ipns"
+        : communitiesState;
 
   return useMemo(
     () => ({
       accountCommunities,
       state,
-      error: communitiesError,
-      errors: communitiesErrors,
+      error,
+      errors,
     }),
-    [accountCommunities, state, communitiesError, communitiesErrors],
+    [accountCommunities, state, error, errors],
   );
 }
 

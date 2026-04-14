@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import Logger from "@pkc/pkc-logger";
 const log = Logger("bitsocial-react-hooks:states:hooks");
 import assert from "assert";
+import validator from "../lib/validator";
 import {
   UseClientsStatesOptions,
   UseClientsStatesResult,
@@ -135,7 +136,7 @@ export function useClientsStates(options?: UseClientsStatesOptions): UseClientsS
 }
 
 /**
- * @param communityAddresses - The community addresses to get the states from
+ * @param communities - The communities to get the states from
  * @param acountName - The nickname of the account, e.g. 'Account 1'. If no accountName is provided, use
  * the active account.
  */
@@ -146,18 +147,14 @@ export function useCommunitiesStates(
     options == null || typeof options === "object",
     `useCommunitiesStates options argument '${options}' not an object`,
   );
-  const { communityAddresses } = options ?? {};
-  assert(
-    communityAddresses == null || Array.isArray(communityAddresses),
-    `useCommunitiesStates communityAddresses '${communityAddresses}' not an array`,
-  );
-  for (const communityAddress of communityAddresses ?? []) {
-    assert(
-      typeof communityAddress === "string",
-      `useCommunitiesStates communityAddresses '${communityAddresses}' communityAddress '${communityAddress}' not a string`,
-    );
-  }
-  const { communities } = useCommunities({ communityAddresses });
+  const opts = options ?? {};
+  const { communities: communitiesInput } = opts;
+  validator.validateUseCommunitiesStatesArguments({
+    communities: communitiesInput,
+    communityRefs: (opts as any).communityRefs,
+    communityAddresses: (opts as any).communityAddresses,
+  });
+  const { communities } = useCommunities({ communities: communitiesInput });
 
   const states = useMemo(() => {
     const states: {
@@ -246,7 +243,7 @@ export function useCommunitiesStates(
     }
 
     log("useCommunitiesStates", {
-      communityAddresses,
+      requestedCommunities: communitiesInput,
       states: _states,
       communities,
     });

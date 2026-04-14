@@ -24,6 +24,8 @@ const adminRoleSigner = signers[1];
 
 const isBase64 = (testString) =>
   /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}))?$/gm.test(testString);
+const toCommunity = (name) => (name ? { name } : undefined);
+const toCommunities = (names) => names?.map((name) => ({ name }));
 
 // large value for manual debugging
 const timeout = 600000;
@@ -119,10 +121,10 @@ for (const pkcOptionsType in pkcOptionsTypes) {
           rendered = renderHook((communityAddress) => {
             const account = useAccount();
             const { accountCommunities } = useAccountCommunities();
-            const community = useCommunity({ communityAddress });
-            const communityAddresses = communityAddress ? [communityAddress] : undefined;
-            const modQueue = useFeed({ communityAddresses, modQueue: ["pendingApproval"] });
-            const feed = useFeed({ communityAddresses });
+            const community = useCommunity({ community: toCommunity(communityAddress) });
+            const communities = toCommunities(communityAddress ? [communityAddress] : undefined);
+            const modQueue = useFeed({ communities, modQueue: ["pendingApproval"] });
+            const feed = useFeed({ communities });
             return { account, accountCommunities, community, modQueue, feed, ...accountsActions };
           });
           rendered.detach();
@@ -424,7 +426,7 @@ for (const pkcOptionsType in pkcOptionsTypes) {
       beforeAll(async () => {
         rendered = renderHook((communityAddress) => {
           const account = useAccount();
-          const community = useCommunity({ communityAddress });
+          const community = useCommunity({ community: toCommunity(communityAddress) });
           return { account, community, ...accountsActions };
         });
         rendered.detach();

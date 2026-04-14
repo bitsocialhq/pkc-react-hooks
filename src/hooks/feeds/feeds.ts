@@ -16,9 +16,14 @@ import {
 import useFeedsStore from "../../stores/feeds";
 import { addCommentModerationToComments } from "../../lib/utils/comment-moderation";
 import shallow from "zustand/shallow";
+import {
+  CommunityLookupRef,
+  getCommunityRefKeys,
+  getUniqueSortedCommunityRefs,
+} from "../../lib/community-ref";
 
 /**
- * @param communityAddresses - The addresses of the communities, e.g. ['memes.eth', '12D3KooW...']
+ * @param communities - The communities to fetch, e.g. [{name: 'memes.eth'}, {publicKey: '12D3KooW...'}]
  * @param sortType - The sorting algo for the feed: 'hot' | 'new' | 'active' | 'topHour' | 'topDay' | 'topWeek' | 'topMonth' | 'topYear' | 'topAll' | 'controversialHour' | 'controversialDay' | 'controversialWeek' | 'controversialMonth' | 'controversialYear' | 'controversialAll'
  * @param acountName - The nickname of the account, e.g. 'Account 1'. If no accountName is provided, use
  * the active account.
@@ -28,8 +33,9 @@ export function useFeed(options?: UseFeedOptions): UseFeedResult {
     !options || typeof options === "object",
     `useFeed options argument '${options}' not an object`,
   );
+  const opts = options || {};
   let {
-    communityAddresses,
+    communities,
     sortType,
     accountName,
     postsPerPage,
@@ -37,27 +43,34 @@ export function useFeed(options?: UseFeedOptions): UseFeedResult {
     newerThan,
     accountComments,
     modQueue,
-  } = options || {};
+  } = opts;
   sortType = getSortType(sortType, newerThan);
 
-  validator.validateUseFeedArguments(
-    communityAddresses,
+  validator.validateUseFeedArguments({
+    communities,
+    communityRefs: (opts as any).communityRefs,
+    communityAddresses: (opts as any).communityAddresses,
     sortType,
     accountName,
     postsPerPage,
     filter,
     newerThan,
     accountComments,
-  );
+  });
   const account = useAccount({ accountName });
   const addFeedToStore = useFeedsStore((state) => state.addFeedToStore);
   const incrementFeedPageNumber = useFeedsStore((state) => state.incrementFeedPageNumber);
   const resetFeed = useFeedsStore((state) => state.resetFeed);
-  const uniqueCommunityAddresses = useUniqueSorted(communityAddresses);
+  const normalizedCommunityRefs = useMemo(() => communities || [], [communities]);
+  const uniqueCommunityRefs = useUniqueSortedCommunityRefs(normalizedCommunityRefs);
+  const uniqueCommunityKeys = useMemo(
+    () => getCommunityRefKeys(uniqueCommunityRefs),
+    [uniqueCommunityRefs],
+  );
   const feedName = useFeedName(
     account?.id,
     sortType,
-    uniqueCommunityAddresses,
+    uniqueCommunityKeys,
     postsPerPage,
     filter,
     newerThan,
@@ -65,19 +78,20 @@ export function useFeed(options?: UseFeedOptions): UseFeedResult {
     modQueue,
   );
   const [errors, setErrors] = useState<Error[]>([]);
-  const communityAddressesWithNewerPosts = useFeedsStore(
-    (state) => state.feedsCommunityAddressesWithNewerPosts[feedName],
+  const communityKeysWithNewerPosts = useFeedsStore(
+    (state) => state.feedsCommunityKeysWithNewerPosts[feedName],
   );
 
   // add feed to store
   useEffect(() => {
-    if (!uniqueCommunityAddresses?.length || !account) {
+    if (!uniqueCommunityRefs.length || !account) {
       return;
     }
     const isBufferedFeed = false;
     addFeedToStore(
       feedName,
-      uniqueCommunityAddresses,
+      uniqueCommunityRefs,
+      uniqueCommunityKeys,
       sortType,
       account,
       isBufferedFeed,
@@ -97,13 +111,13 @@ export function useFeed(options?: UseFeedOptions): UseFeedResult {
   if (!feedName || typeof hasMore !== "boolean") {
     hasMore = true;
   }
-  if (!communityAddresses?.length) {
+  if (!normalizedCommunityRefs.length) {
     hasMore = false;
   }
 
   const loadMore = async () => {
     try {
-      if (!uniqueCommunityAddresses || !account) {
+      if (!uniqueCommunityRefs.length || !account) {
         throw Error("useFeed cannot load more feed not initalized yet");
       }
       incrementFeedPageNumber(feedName);
@@ -116,7 +130,7 @@ export function useFeed(options?: UseFeedOptions): UseFeedResult {
 
   const reset = async () => {
     try {
-      if (!uniqueCommunityAddresses || !account) {
+      if (!uniqueCommunityRefs.length || !account) {
         throw Error("useFeed cannot reset feed not initalized yet");
       }
       await resetFeed(feedName);
@@ -127,11 +141,12 @@ export function useFeed(options?: UseFeedOptions): UseFeedResult {
     }
   };
 
-  if (account && communityAddresses?.length) {
+  if (account && normalizedCommunityRefs.length) {
     log("useFeed", {
       feedLength: feed?.length || 0,
       hasMore,
-      communityAddresses,
+      communities: normalizedCommunityRefs,
+      communityKeys: uniqueCommunityKeys,
       sortType,
       account,
       feedsStoreOptions: useFeedsStore.getState().feedsOptions,
@@ -156,7 +171,7 @@ export function useFeed(options?: UseFeedOptions): UseFeedResult {
       bufferedFeed: normalizedBufferedFeed,
       updatedFeed: normalizedUpdatedFeed,
       hasMore,
-      communityAddressesWithNewerPosts: communityAddressesWithNewerPosts || [],
+      communityKeysWithNewerPosts: communityKeysWithNewerPosts || [],
       loadMore,
       reset,
       state,
@@ -170,7 +185,7 @@ export function useFeed(options?: UseFeedOptions): UseFeedResult {
       feedName,
       hasMore,
       errors,
-      communityAddressesWithNewerPosts,
+      communityKeysWithNewerPosts,
     ],
   );
 }
@@ -190,33 +205,59 @@ export function useBufferedFeeds(options?: UseBufferedFeedsOptions): UseBuffered
   );
   const opts = options ?? {};
   const { feedsOptions = [], accountName } = opts;
-  validator.validateUseBufferedFeedsArguments(feedsOptions, accountName);
+  validator.validateUseBufferedFeedsArguments({ feedsOptions, accountName });
   const account = useAccount({ accountName });
   const addFeedToStore = useFeedsStore((state) => state.addFeedToStore);
 
   // do a bunch of calculations to get feedsOptionsFlattened and feedNames
   const feedsOpts = feedsOptions;
-  const { communityAddressesArrays, sortTypes, postsPerPages, filters, newerThans } =
-    useMemo(() => {
-      const communityAddressesArrays = [];
-      const sortTypes = [];
-      const postsPerPages = [];
-      const filters = [];
-      const newerThans = [];
-      for (const feedOptions of feedsOpts) {
-        communityAddressesArrays.push(feedOptions.communityAddresses ?? []);
-        sortTypes.push(getSortType(feedOptions.sortType, feedOptions.newerThan));
-        postsPerPages.push(feedOptions.postsPerPage);
-        filters.push(feedOptions.filter);
-        newerThans.push(feedOptions.newerThan);
-      }
-      return { communityAddressesArrays, sortTypes, postsPerPages, filters, newerThans };
-    }, [feedsOpts]);
-  const uniqueCommunityAddressesArrays = useUniqueSortedArrays(communityAddressesArrays);
+  const {
+    communityRefsArrays,
+    communityKeysArrays,
+    sortTypes,
+    postsPerPages,
+    filters,
+    newerThans,
+  } = useMemo(() => {
+    const communityRefsArrays = [];
+    const communityKeysArrays = [];
+    const sortTypes = [];
+    const postsPerPages = [];
+    const filters = [];
+    const newerThans = [];
+    for (const feedOptions of feedsOpts) {
+      validator.validateUseFeedArguments({
+        communities: feedOptions.communities,
+        communityRefs: (feedOptions as any).communityRefs,
+        communityAddresses: (feedOptions as any).communityAddresses,
+        sortType: getSortType(feedOptions.sortType, feedOptions.newerThan),
+        accountName,
+        postsPerPage: feedOptions.postsPerPage,
+        filter: feedOptions.filter,
+        newerThan: feedOptions.newerThan,
+        accountComments: feedOptions.accountComments,
+      });
+      const normalizedCommunityRefs = getUniqueSortedCommunityRefs(feedOptions.communities || []);
+      communityRefsArrays.push(normalizedCommunityRefs);
+      communityKeysArrays.push(getCommunityRefKeys(normalizedCommunityRefs));
+      sortTypes.push(getSortType(feedOptions.sortType, feedOptions.newerThan));
+      postsPerPages.push(feedOptions.postsPerPage);
+      filters.push(feedOptions.filter);
+      newerThans.push(feedOptions.newerThan);
+    }
+    return {
+      communityRefsArrays,
+      communityKeysArrays,
+      sortTypes,
+      postsPerPages,
+      filters,
+      newerThans,
+    };
+  }, [feedsOpts]);
   const feedNames = useFeedNames(
     account?.id,
     sortTypes,
-    uniqueCommunityAddressesArrays,
+    communityKeysArrays,
     postsPerPages,
     filters,
     newerThans,
@@ -232,20 +273,27 @@ export function useBufferedFeeds(options?: UseBufferedFeedsOptions): UseBuffered
 
   // add feed to store
   useEffect(() => {
-    for (const [i] of uniqueCommunityAddressesArrays.entries()) {
+    for (const [i] of communityRefsArrays.entries()) {
       const sortType = sortTypes[i] ?? "hot";
-      const uniqueCommunityAddresses = uniqueCommunityAddressesArrays[i];
+      const uniqueCommunityRefs = communityRefsArrays[i];
+      const uniqueCommunityKeys = communityKeysArrays[i];
       validator.validateFeedSortType(sortType);
       const feedName = feedNames[i];
-      if (!uniqueCommunityAddresses || !account) {
-        return;
+      if (!account || !uniqueCommunityRefs.length) {
+        continue;
       }
       const fkey = feedName ?? "";
       if (!bufferedFeeds[fkey]) {
         const isBufferedFeed = true;
-        addFeedToStore(feedName, uniqueCommunityAddresses, sortType, account, isBufferedFeed).catch(
-          (error: unknown) =>
-            log.error("useBufferedFeeds addFeedToStore error", { feedName, error }),
+        addFeedToStore(
+          feedName,
+          uniqueCommunityRefs,
+          uniqueCommunityKeys,
+          sortType,
+          account,
+          isBufferedFeed,
+        ).catch((error: unknown) =>
+          log.error("useBufferedFeeds addFeedToStore error", { feedName, error }),
         );
       }
     }
@@ -285,33 +333,16 @@ export function useBufferedFeeds(options?: UseBufferedFeedsOptions): UseBuffered
   );
 }
 
-/**
- * Util to find unique and sorted community addresses for multiple feed options
- */
-function useUniqueSortedArrays(stringsArrays?: string[][]) {
+function useUniqueSortedCommunityRefs(communityRefs?: CommunityLookupRef[]) {
   return useMemo(() => {
-    const uniqueSorted: string[][] = [];
-    const arrs = stringsArrays ?? [];
-    for (const stringsArray of arrs) {
-      uniqueSorted.push([...new Set(stringsArray.sort())]);
-    }
-    return uniqueSorted;
-  }, [stringsArrays]);
-}
-
-function useUniqueSorted(stringsArray?: string[]) {
-  return useMemo(() => {
-    if (!stringsArray) {
-      return [];
-    }
-    return [...new Set(stringsArray.sort())];
-  }, [stringsArray]);
+    return getUniqueSortedCommunityRefs(communityRefs);
+  }, [communityRefs]);
 }
 
 function useFeedName(
   accountId: string,
   sortType: string,
-  uniqueCommunityAddresses: string[],
+  uniqueCommunityKeys: string[],
   postsPerPage?: number,
   filter?: CommentsFilter,
   newerThan?: number,
@@ -327,7 +358,7 @@ function useFeedName(
       "-" +
       sortType +
       "-" +
-      uniqueCommunityAddresses +
+      uniqueCommunityKeys +
       "-" +
       postsPerPage +
       "-" +
@@ -344,7 +375,7 @@ function useFeedName(
   }, [
     accountId,
     sortType,
-    uniqueCommunityAddresses,
+    uniqueCommunityKeys,
     postsPerPage,
     filterKey,
     newerThan,
@@ -357,7 +388,7 @@ function useFeedName(
 function useFeedNames(
   accountId: string,
   sortTypes: (string | undefined)[],
-  uniqueCommunityAddressesArrays: string[][],
+  uniqueCommunityKeysArrays: string[][],
   postsPerPages: (number | undefined)[],
   filters: (CommentsFilter | undefined)[],
   newerThans: (number | undefined)[],
@@ -370,7 +401,7 @@ function useFeedNames(
           "-" +
           (sortTypes[i] ?? "hot") +
           "-" +
-          uniqueCommunityAddressesArrays[i] +
+          uniqueCommunityKeysArrays[i] +
           "-" +
           postsPerPages[i] +
           "-" +
@@ -380,7 +411,7 @@ function useFeedNames(
       );
     }
     return feedNames;
-  }, [accountId, sortTypes, uniqueCommunityAddressesArrays, postsPerPages, filters, newerThans]);
+  }, [accountId, sortTypes, uniqueCommunityKeysArrays, postsPerPages, filters, newerThans]);
 }
 
 const NEWER_THAN_LIMITS = [

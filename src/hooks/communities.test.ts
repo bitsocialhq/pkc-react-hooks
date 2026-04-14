@@ -15,6 +15,12 @@ import { useListCommunities, resolveCommunityAddress } from "./communities";
 import PkcJsMock, { PKC, Community } from "../lib/pkc-js/pkc-js-mock";
 import * as chain from "../lib/chain";
 
+const toCommunity = (communityAddress?: string) =>
+  communityAddress ? { name: communityAddress } : undefined;
+
+const toCommunities = (communityAddresses?: string[]) =>
+  communityAddresses?.map((communityAddress) => ({ name: communityAddress }));
+
 describe("communities", () => {
   beforeAll(async () => {
     // set pkc-js mock and reset dbs
@@ -37,7 +43,7 @@ describe("communities", () => {
 
     test("get communities one at a time", async () => {
       const rendered = renderHook<any, any>((communityAddress) =>
-        useCommunity({ communityAddress }),
+        useCommunity({ community: toCommunity(communityAddress) }),
       );
       const waitFor = testUtils.createWaitFor(rendered);
 
@@ -96,7 +102,7 @@ describe("communities", () => {
 
       // on first render, the account is undefined because it's not yet loaded from database
       const rendered2 = renderHook<any, any>((communityAddress) =>
-        useCommunity({ communityAddress }),
+        useCommunity({ community: toCommunity(communityAddress) }),
       );
       expect(rendered2.result.current.address).toBe(undefined);
       rendered2.rerender("community address 1");
@@ -137,20 +143,30 @@ describe("communities", () => {
 
     test(`onlyIfCached: true doesn't add to store`, async () => {
       let rendered;
-      rendered = renderHook<any, any>((options: any) => useCommunity(options));
+      rendered = renderHook<any, any>((options: any) =>
+        useCommunity({
+          community: options?.community,
+          onlyIfCached: options?.onlyIfCached,
+        }),
+      );
       testUtils.createWaitFor(rendered);
 
-      rendered.rerender({ communityAddress: "community address 1", onlyIfCached: true });
+      rendered.rerender({ community: { name: "community address 1" }, onlyIfCached: true });
       // TODO: find better way to wait
       await new Promise((r) => setTimeout(r, 20));
       // community not added to store
       expect(communityStore.getState().communities).toEqual({});
 
-      rendered = renderHook<any, any>((options: any) => useCommunities(options));
+      rendered = renderHook<any, any>((options: any) =>
+        useCommunities({
+          communities: options?.communities,
+          onlyIfCached: options?.onlyIfCached,
+        }),
+      );
       testUtils.createWaitFor(rendered);
 
       rendered.rerender({
-        communityAddresses: ["community address 1", "community address 2"],
+        communities: toCommunities(["community address 1", "community address 2"]),
         onlyIfCached: true,
       });
       expect(rendered.result.current.communities.length).toBe(2);
@@ -162,7 +178,7 @@ describe("communities", () => {
 
     test("get multiple communities at once", async () => {
       const rendered = renderHook<any, any>((communityAddresses) =>
-        useCommunities({ communityAddresses }),
+        useCommunities({ communities: toCommunities(communityAddresses) }),
       );
       const waitFor = testUtils.createWaitFor(rendered);
 
@@ -197,9 +213,36 @@ describe("communities", () => {
       );
     });
 
+    test("get multiple communities with communities keyed by publicKey", async () => {
+      const communities = [
+        { name: "community-one.eth", publicKey: "community-public-key-1" },
+        { name: "community-two.eth", publicKey: "community-public-key-2" },
+      ];
+      const rendered = renderHook<any, any>(() => useCommunities({ communities }));
+      const waitFor = testUtils.createWaitFor(rendered);
+
+      expect(rendered.result.current.communities).toEqual([undefined, undefined]);
+
+      await waitFor(
+        () =>
+          typeof rendered.result.current.communities[0]?.address === "string" &&
+          typeof rendered.result.current.communities[1]?.address === "string",
+      );
+      expect(rendered.result.current.communities[0].address).toBe("community-one.eth");
+      expect(rendered.result.current.communities[0].publicKey).toBe("community-public-key-1");
+      expect(rendered.result.current.communities[1].address).toBe("community-two.eth");
+      expect(rendered.result.current.communities[1].publicKey).toBe("community-public-key-2");
+      expect(communityStore.getState().communities["community-public-key-1"]?.address).toBe(
+        "community-one.eth",
+      );
+      expect(communityStore.getState().communities["community-public-key-2"]?.address).toBe(
+        "community-two.eth",
+      );
+    });
+
     test("has updating state", async () => {
       const rendered = renderHook<any, any>((communityAddress) =>
-        useCommunity({ communityAddress }),
+        useCommunity({ community: toCommunity(communityAddress) }),
       );
       const waitFor = testUtils.createWaitFor(rendered);
       rendered.rerender("community address");
@@ -236,7 +279,7 @@ describe("communities", () => {
         } as any);
 
         const rendered = renderHook<any, any>(() =>
-          useCommunity({ communityAddress: "community address", onlyIfCached: true }),
+          useCommunity({ community: { name: "community address" }, onlyIfCached: true }),
         );
 
         expect(rendered.result.current.address).toBe("community address");
@@ -269,7 +312,7 @@ describe("communities", () => {
         } as any);
 
         const rendered = renderHook<any, any>(() =>
-          useCommunity({ communityAddress: "community address", onlyIfCached: true }),
+          useCommunity({ community: { name: "community address" }, onlyIfCached: true }),
         );
 
         expect(rendered.result.current.address).toBe("community address");
@@ -289,7 +332,7 @@ describe("communities", () => {
       };
 
       const rendered = renderHook<any, any>((communityAddress) =>
-        useCommunity({ communityAddress }),
+        useCommunity({ community: toCommunity(communityAddress) }),
       );
       const waitFor = testUtils.createWaitFor(rendered);
       rendered.rerender("community address");
@@ -324,7 +367,7 @@ describe("communities", () => {
       };
 
       const rendered = renderHook<any, any>((communityAddress) =>
-        useCommunity({ communityAddress }),
+        useCommunity({ community: toCommunity(communityAddress) }),
       );
       const waitFor = testUtils.createWaitFor(rendered);
       rendered.rerender("community address");
@@ -350,19 +393,46 @@ describe("communities", () => {
     ]);
   });
 
-  test("useCommunities with communityAddresses undefined returns empty (branch 171)", async () => {
-    const rendered = renderHook<any, any>(() => useCommunities({ communityAddresses: undefined }));
+  test("useCommunities with communities undefined returns empty (branch 171)", async () => {
+    const rendered = renderHook<any, any>(() => useCommunities({ communities: undefined }));
     await act(async () => {});
     expect(rendered.result.current.communities).toEqual([]);
+  });
+
+  test("useCommunity rejects removed communityAddress", () => {
+    expect(() =>
+      renderHook(() => useCommunity({ communityAddress: "community address 1" } as any)),
+    ).toThrow(/communityAddress has been removed/);
+  });
+
+  test("useCommunities rejects removed communityAddresses and communityRefs", () => {
+    expect(() =>
+      renderHook(() => useCommunities({ communityAddresses: ["community address 1"] } as any)),
+    ).toThrow(/communityAddresses has been removed/);
+    expect(() =>
+      renderHook(() =>
+        useCommunities({
+          communityRefs: [{ name: "community address 1" }],
+        } as any),
+      ),
+    ).toThrow(/communityRefs has been removed/);
   });
 
   test("useCommunities effect returns early when account is undefined (branch 180)", async () => {
     vi.spyOn(accountsHooks, "useAccount").mockReturnValue(undefined as any);
     const rendered = renderHook<any, any>(() =>
-      useCommunities({ communityAddresses: ["community address 1"] }),
+      useCommunities({ communities: toCommunities(["community address 1"]) }),
     );
     await act(async () => {});
     expect(rendered.result.current.communities).toEqual([undefined]);
+    vi.mocked(accountsHooks.useAccount).mockRestore();
+  });
+
+  test("useCommunity does not throw when account is undefined on render", () => {
+    vi.spyOn(accountsHooks, "useAccount").mockReturnValue(undefined as any);
+    expect(() =>
+      renderHook(() => useCommunity({ community: { name: "community address 1" } })),
+    ).not.toThrow();
     vi.mocked(accountsHooks.useAccount).mockRestore();
   });
 
@@ -440,7 +510,7 @@ describe("communities", () => {
     });
     const logSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     renderHook<any, any>(() =>
-      useCommunities({ communityAddresses: ["new-addr-1", "new-addr-2"] }),
+      useCommunities({ communities: toCommunities(["new-addr-1", "new-addr-2"]) }),
     );
     await new Promise((r) => setTimeout(r, 100));
     communityStore.setState({ addCommunityToStore: origAdd });
@@ -455,7 +525,7 @@ describe("communities", () => {
 
   test("useCommunityStats", async () => {
     const rendered = renderHook<any, any>(() =>
-      useCommunityStats({ communityAddress: "address 1" }),
+      useCommunityStats({ community: { name: "address 1" } }),
     );
     const waitFor = testUtils.createWaitFor(rendered);
     await waitFor(() => rendered.result.current.hourActiveUserCount);
@@ -467,7 +537,7 @@ describe("communities", () => {
     (PKC.prototype as any).fetchCid = () => Promise.reject(new Error("fetchCid failed"));
     const logSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const rendered = renderHook<any, any>(() =>
-      useCommunityStats({ communityAddress: "community address 1" }),
+      useCommunityStats({ community: { name: "community address 1" } }),
     );
     const waitFor = testUtils.createWaitFor(rendered);
     await waitFor(() => rendered.result.current.state === "failed");

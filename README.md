@@ -129,11 +129,13 @@ useValidateComment({comment: Comment, validateReplies?: boolean}): {valid: boole
 #### Communities Hooks
 
 ```
-useCommunity({communityAddress: string, onlyIfCached?: boolean}): Community
-useCommunities({communityAddresses: string[], onlyIfCached?: boolean}): {communities: Communities[]}
-useCommunityStats({communityAddress: string, onlyIfCached?: boolean}): CommunityStats
+useCommunity({community: {name?: string, publicKey?: string}, onlyIfCached?: boolean}): Community
+useCommunities({communities?: CommunityIdentifier[], onlyIfCached?: boolean}): {communities: Communities[]}
+useCommunityStats({community: {name?: string, publicKey?: string}, onlyIfCached?: boolean}): CommunityStats
 useResolvedCommunityAddress({communityAddress: string, cache: boolean}): {resolvedAddress: string | undefined} // use {cache: false} when checking the user's own community address
 ```
+
+Pass `{ publicKey, name }` when you have both so `pkc-js` can fetch through the public key and resolve the name in the background. `communityAddress`, `communityAddresses`, and `communityRefs` are no longer accepted by these hooks.
 
 #### Authors Hooks
 
@@ -149,7 +151,7 @@ setAuthorAvatarsWhitelistedTokenAddresses(tokenAddresses: string[])
 #### Feeds Hooks
 
 ```
-useFeed({communityAddresses: string[], sortType?: string, postsPerPage?: number, filter?: CommentsFilter, newerThan?: number, accountComments?: {newerThan: number, append?: boolean}, modQueue: ['pendingApproval']}): {feed: Comment[], loadMore: function, hasMore: boolean, reset: function, updatedFeed: Comment[], bufferedFeed: Comment[], communityAddressesWithNewerPosts: string[]}
+useFeed({communities?: CommunityIdentifier[], sortType?: string, postsPerPage?: number, filter?: CommentsFilter, newerThan?: number, accountComments?: {newerThan: number, append?: boolean}, modQueue: ['pendingApproval']}): {feed: Comment[], loadMore: function, hasMore: boolean, reset: function, updatedFeed: Comment[], bufferedFeed: Comment[], communityKeysWithNewerPosts: string[]}
 useBufferedFeeds({feedsOptions: UseFeedOptions[]}) // preload or buffer feeds in the background, so they load faster when you call `useFeed`
 ```
 
@@ -172,7 +174,7 @@ useCreateCommunity(options: CreateCommunityOptions): {createdCommunity: Communit
 
 ```
 useClientsStates({comment?: Comment, community?: Community}): {states, peers}
-useCommunitiesStates({communityAddresses: string[]}): {states, peers}
+useCommunitiesStates({communities?: CommunityIdentifier[]}): {states, peers}
 ```
 
 #### RPC Hooks
@@ -396,20 +398,32 @@ const { authorComments, lastCommentCid, hasMore, loadMore } = useAuthorComments(
 #### Get a community
 
 ```jsx
-const community = useCommunity({ communityAddress });
-const communityStats = useCommunityStats({ communityAddress });
+const community = useCommunity({ community: { name: communityAddress, publicKey: communityPublicKey } });
+const communityStats = useCommunityStats({
+  community: { name: communityAddress, publicKey: communityPublicKey },
+});
 const { communities } = useCommunities({
-  communityAddresses: [communityAddress, communityAddress2, communityAddress3],
+  communities: [
+    { name: communityAddress, publicKey: communityPublicKey },
+    { name: communityAddress2, publicKey: communityPublicKey2 },
+    { name: communityAddress3, publicKey: communityPublicKey3 },
+  ],
 });
 
 // use without affecting performance
-const { communities } = useCommunities({
-  communityAddresses: [communityAddress, communityAddress2, communityAddress3],
+const { communities: cachedCommunities } = useCommunities({
+  communities: [
+    { name: communityAddress, publicKey: communityPublicKey },
+    { name: communityAddress2, publicKey: communityPublicKey2 },
+    { name: communityAddress3, publicKey: communityPublicKey3 },
+  ],
   onlyIfCached: true,
 });
 
 // community.posts are not validated, to show posts
-const { feed, hasMore, loadMore } = useFeed({ communityAddresses: [communityAddress] });
+const { feed, hasMore, loadMore } = useFeed({
+  communities: [{ name: communityAddress, publicKey: communityPublicKey }],
+});
 
 // to show a preloaded post without rerenders, validate manually
 const { valid } = useValidateComment({ comment: community.posts.pages.topAll.comments[0] });
@@ -749,8 +763,9 @@ console.log(account.subscriptions); // ['news.eth', '12D3KooWANwdyPERMQaCgiMnTT1
 await unsubscribe();
 
 // get a feed of subscriptions
+const communities = account.subscriptions.map((communityAddress) => ({ name: communityAddress }));
 const { feed, hasMore, loadMore } = useFeed({
-  communityAddresses: account.subscriptions,
+  communities,
   sortType: "topAll",
 });
 console.log(feed);
@@ -760,7 +775,12 @@ console.log(feed);
 
 ```jsx
 import {Virtuoso} from 'react-virtuoso'
-const {feed, hasMore, loadMore} = useFeed({communityAddresses: ['memes.eth', '12D3KooW...', '12D3KooW...'], sortType: 'topAll'})
+const topAllCommunities = [
+  {name: 'memes.eth', publicKey: '12D3KooWMemes...'},
+  {publicKey: '12D3KooWNews...'},
+  {publicKey: '12D3KooWTech...'},
+]
+const {feed, hasMore, loadMore} = useFeed({communities: topAllCommunities, sortType: 'topAll'})
 
 <Virtuoso
   data={feed}
@@ -775,9 +795,9 @@ const {feed, hasMore, loadMore} = useFeed({communityAddresses: ['memes.eth', '12
 // when you need them
 useBufferedFeeds({
   feedsOptions: [
-    {communityAddresses: ['news.eth', 'crypto.eth'], sortType: 'new'},
-    {communityAddresses: ['memes.eth'], sortType: 'topWeek'},
-    {communityAddresses: ['12D3KooW...', '12D3KooW...', '12D3KooW...', '12D3KooW...'], sortType: 'hot'}
+    {communities: [{name: 'news.eth'}, {name: 'crypto.eth'}], sortType: 'new'},
+    {communities: [{name: 'memes.eth', publicKey: '12D3KooWMemes...'}], sortType: 'topWeek'},
+    {communities: [{publicKey: '12D3KooW...'}, {publicKey: '12D3KooW...'}, {publicKey: '12D3KooW...'}, {publicKey: '12D3KooW...'}], sortType: 'hot'}
   ]
 })
 
@@ -786,15 +806,19 @@ const createSearchFilter = (searchTerm) => ({
   filter: (comment) => comment.title?.includes(searchTerm) || comment.content?.includes(searchTerm),
   key: `includes-${searchTerm}` // required key to cache the filter
 })
-const filter = createSearchFilter('bitcoin')
-const {feed, hasMore, loadMore} = useFeed({communityAddresses, filter})
+const searchFilter = createSearchFilter('bitcoin')
+const searchedCommunities = communityAddresses.map((communityAddress) => ({ name: communityAddress }))
+const {feed, hasMore, loadMore} = useFeed({communities: searchedCommunities, filter: searchFilter})
 
 // image only feed
-const filter = {
+const imageOnlyFilter = {
   filter: (comment) => getCommentLinkMediaType(comment?.link) === 'image',
   key: 'image-only' // required key to cache the filter
 }
-const {feed, hasMore, loadMore} = useFeed({communityAddresses, filter})
+const {feed, hasMore, loadMore} = useFeed({
+  communities: searchedCommunities,
+  filter: imageOnlyFilter,
+})
 ```
 
 #### Get mod queue (pending approval)
@@ -802,7 +826,7 @@ const {feed, hasMore, loadMore} = useFeed({communityAddresses, filter})
 ```jsx
 import {Virtuoso} from 'react-virtuoso'
 const {feed, hasMore, loadMore} = useFeed({
-  communityAddresses: ['memes.eth', '12D3KooW...', '12D3KooW...'],
+  communities: [{name: 'memes.eth'}, {publicKey: '12D3KooW...'}, {publicKey: '12D3KooW...'}],
   modQueue: ['pendingApproval']
 })
 
@@ -963,7 +987,7 @@ console.log(vote); // 1, -1 or 0
 
 // my own pending posts in a feed
 const { feed } = useFeed({
-  communityAddresses: [communityAddress],
+  communities: [{ name: communityAddress }],
   accountComments: { newerThan: Infinity, append: false },
 });
 
@@ -1058,9 +1082,11 @@ if (createdCommunity?.address) {
 // after the community is created, fetch it using
 const { accountCommunities } = useAccountCommunities();
 const accountCommunityAddresses = Object.keys(accountCommunities);
-const communities = useCommunities({ communityAddresses: accountCommunityAddresses });
+const communities = useCommunities({
+  communities: accountCommunityAddresses.map((communityAddress) => ({ name: communityAddress })),
+});
 // or
-const _community = useCommunity({ communityAddress: createdCommunity.address });
+const _community = useCommunity({ community: { name: createdCommunity.address } });
 ```
 
 #### (Desktop only) List the communities you created
@@ -1070,7 +1096,9 @@ const { accountCommunities } = useAccountCommunities();
 const ownerCommunityAddresses = Object.keys(accountCommunities).filter(
   (communityAddress) => accountCommunities[communityAddress].role?.role === "owner",
 );
-const communities = useCommunities({ communityAddresses: ownerCommunityAddresses });
+const communities = useCommunities({
+  communities: ownerCommunityAddresses.map((communityAddress) => ({ name: communityAddress })),
+});
 ```
 
 #### (Desktop only) Edit your community settings
@@ -1317,9 +1345,9 @@ const useBufferedFeedsWithConcurrency = ({feedOptions}) => {
 }
 
 const feedOptions = [
-  {communityAddresses: ['news.eth', 'crypto.eth'], sortType: 'new'},
-  {communityAddresses: ['memes.eth'], sortType: 'topWeek'},
-  {communityAddresses: ['12D3KooW...', '12D3KooW...', '12D3KooW...', '12D3KooW...'], sortType: 'hot'},
+  {communities: [{name: 'news.eth'}, {name: 'crypto.eth'}], sortType: 'new'},
+  {communities: [{name: 'memes.eth'}], sortType: 'topWeek'},
+  {communities: [{publicKey: '12D3KooW...'}, {publicKey: '12D3KooW...'}, {publicKey: '12D3KooW...'}, {publicKey: '12D3KooW...'}], sortType: 'hot'},
   ...
 ]
 

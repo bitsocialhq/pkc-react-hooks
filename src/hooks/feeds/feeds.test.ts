@@ -18,6 +18,30 @@ import PkcJsMock, {
 } from "../../lib/pkc-js/pkc-js-mock";
 
 const pkcJsMockCommunityPageLength = 100;
+const toCommunity = (communityAddress?: string) =>
+  communityAddress ? { name: communityAddress } : undefined;
+const toCommunities = (communityAddresses?: string[]) =>
+  communityAddresses?.map((communityAddress) => ({ name: communityAddress }));
+const toFeedOptions = (props?: any) => {
+  const { communityAddresses, communityRefs, communities, ...rest } = props || {};
+  return {
+    ...rest,
+    communities: communities ?? communityRefs ?? toCommunities(communityAddresses),
+  };
+};
+const toBufferedFeedsOptions = (options?: any) => {
+  const { feedsOptions = [], ...rest } = options || {};
+  return {
+    ...rest,
+    feedsOptions: feedsOptions.map((feedOptions: any) => {
+      const { communityAddresses, communityRefs, communities, ...feedRest } = feedOptions || {};
+      return {
+        ...feedRest,
+        communities: communities ?? communityRefs ?? toCommunities(communityAddresses),
+      };
+    }),
+  };
+};
 
 describe("feeds", () => {
   beforeAll(async () => {
@@ -49,7 +73,7 @@ describe("feeds", () => {
 
     beforeEach(async () => {
       // @ts-ignore
-      rendered = renderHook<any, any>((props: any) => useFeed(props));
+      rendered = renderHook<any, any>((props: any) => useFeed(toFeedOptions(props)));
       waitFor = testUtils.createWaitFor(rendered);
     });
 
@@ -89,11 +113,34 @@ describe("feeds", () => {
       }
     });
 
-    test("useFeed hasMore false when communityAddresses empty", async () => {
+    test("useFeed hasMore false when communities empty", async () => {
       rendered.rerender({});
       expect(rendered.result.current.hasMore).toBe(false);
       rendered.rerender({ communityAddresses: [] });
       expect(rendered.result.current.hasMore).toBe(false);
+    });
+
+    test("useFeed rejects removed communityAddresses and communityRefs", () => {
+      expect(() =>
+        renderHook(() => useFeed({ communityAddresses: ["community address 1"] } as any)),
+      ).toThrow(/communityAddresses has been removed/);
+      expect(() =>
+        renderHook(() =>
+          useFeed({
+            communityRefs: [{ name: "community address 1" }],
+          } as any),
+        ),
+      ).toThrow(/communityRefs has been removed/);
+    });
+
+    test("useBufferedFeeds rejects removed communityAddresses", () => {
+      expect(() =>
+        renderHook(() =>
+          useBufferedFeeds({
+            feedsOptions: [{ communityAddresses: ["community address 1"] }],
+          } as any),
+        ),
+      ).toThrow(/communityAddresses has been removed/);
     });
 
     test("loadMore init guard throws when not initialized", async () => {
@@ -154,7 +201,7 @@ describe("feeds", () => {
 
       // get feed again from database, only wait for 1 render because community is stored in db
       const rendered2 = renderHook<any, any>(() =>
-        useFeed({ communityAddresses: ["community address 1"] }),
+        useFeed({ communities: toCommunities(["community address 1"]) }),
       );
       expect(Array.isArray(rendered2.result.current.feed)).toBe(true);
 
@@ -164,6 +211,26 @@ describe("feeds", () => {
         "community address 1 page cid hot comment cid 100",
       );
       expect(rendered2.result.current.feed.length).toBe(postsPerPage);
+    });
+
+    test("get feed page 1 with communities keyed by publicKey", async () => {
+      const community = {
+        name: "community-ref.eth",
+        publicKey: "community-ref-public-key",
+      };
+      rendered.rerender({ communities: [community] });
+
+      await waitFor(() => rendered.result.current.feed.length > 0);
+      expect(rendered.result.current.feed[0].communityAddress).toBe("community-ref.eth");
+
+      const [feedName] = Object.keys(feedsStore.getState().feedsOptions);
+      expect(feedsStore.getState().feedsOptions[feedName]?.communityKeys).toEqual([
+        community.publicKey,
+      ]);
+      expect(feedsStore.getState().feedsOptions[feedName]?.communities).toEqual([community]);
+      expect(communitiesStore.getState().communities[community.publicKey]?.address).toBe(
+        community.name,
+      );
     });
 
     test("useFeed mirrors moderation flags into commentModeration", async () => {
@@ -213,7 +280,7 @@ describe("feeds", () => {
 
       // get feed again from database, only wait for 1 render because community is stored in db
       const rendered2 = renderHook<any, any>(() =>
-        useFeed({ communityAddresses: ["community address 1"] }),
+        useFeed({ communities: toCommunities(["community address 1"]) }),
       );
 
       // no way to wait other than just time since result is that there's no result
@@ -853,13 +920,15 @@ describe("feeds", () => {
     test("get feed page 1 and 2 with multiple communities sorted by topAll", async () => {
       // use buffered feeds to be able to wait until the buffered feeds have updated before loading page 2
       rendered = renderHook<any, any>((props: any) => {
-        const feed = useFeed(props);
-        const { bufferedFeeds } = useBufferedFeeds({
-          feedsOptions: [
-            { communityAddresses: props?.communityAddresses, sortType: props?.sortType },
-          ],
-          accountName: props?.accountName,
-        });
+        const feed = useFeed(toFeedOptions(props));
+        const { bufferedFeeds } = useBufferedFeeds(
+          toBufferedFeedsOptions({
+            feedsOptions: [
+              { communityAddresses: props?.communityAddresses, sortType: props?.sortType },
+            ],
+            accountName: props?.accountName,
+          }),
+        );
         return { ...feed, bufferedFeed: bufferedFeeds[0] };
       });
 
@@ -923,6 +992,20 @@ describe("feeds", () => {
       expect(rendered.result.current.bufferedFeeds).toEqual([]);
     });
 
+    test("useBufferedFeeds skips empty feed entries without blocking later feeds", async () => {
+      const rendered = renderHook<any, any>(() =>
+        useBufferedFeeds({
+          feedsOptions: [{}, { communities: [{ name: "community address 1" }], sortType: "new" }],
+        } as any),
+      );
+
+      expect(rendered.result.current.bufferedFeeds).toEqual([[], []]);
+
+      await waitFor(() => rendered.result.current.bufferedFeeds[1].length > 0);
+      expect(rendered.result.current.bufferedFeeds[0]).toEqual([]);
+      expect(rendered.result.current.bufferedFeeds[1].length).toBeGreaterThan(0);
+    });
+
     test("useBufferedFeeds addFeedToStore error is caught", async () => {
       const originalAddFeedToStore = feedsStore.getState().addFeedToStore;
       const logSpy = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -935,9 +1018,11 @@ describe("feeds", () => {
         }));
 
         const rendered = renderHook<any, any>(() =>
-          useBufferedFeeds({
-            feedsOptions: [{ communityAddresses: ["community address 1"], sortType: "new" }],
-          }),
+          useBufferedFeeds(
+            toBufferedFeedsOptions({
+              feedsOptions: [{ communityAddresses: ["community address 1"], sortType: "new" }],
+            }),
+          ),
         );
         await new Promise((r) => setTimeout(r, 150));
 
@@ -954,33 +1039,35 @@ describe("feeds", () => {
 
     test(`useBufferedFeeds can fetch multiple subs in the background before delivering the first page`, async () => {
       const rendered = renderHook<any, any>(() =>
-        useBufferedFeeds({
-          feedsOptions: [
-            {
-              communityAddresses: [
-                "community address 1",
-                "community address 2",
-                "community address 3",
-              ],
-              sortType: "new",
-            },
-            {
-              communityAddresses: [
-                "community address 4",
-                "community address 5",
-                "community address 6",
-              ],
-              sortType: "topAll",
-            },
-            {
-              communityAddresses: [
-                "community address 7",
-                "community address 8",
-                "community address 9",
-              ],
-            },
-          ],
-        }),
+        useBufferedFeeds(
+          toBufferedFeedsOptions({
+            feedsOptions: [
+              {
+                communityAddresses: [
+                  "community address 1",
+                  "community address 2",
+                  "community address 3",
+                ],
+                sortType: "new",
+              },
+              {
+                communityAddresses: [
+                  "community address 4",
+                  "community address 5",
+                  "community address 6",
+                ],
+                sortType: "topAll",
+              },
+              {
+                communityAddresses: [
+                  "community address 7",
+                  "community address 8",
+                  "community address 9",
+                ],
+              },
+            ],
+          }),
+        ),
       );
 
       // should get empty arrays after first render
@@ -1001,7 +1088,7 @@ describe("feeds", () => {
 
     test("get feed using a different account", async () => {
       rendered = renderHook<any, any>((props: any) => {
-        const feed = useFeed(props);
+        const feed = useFeed(toFeedOptions(props));
         const { createAccount } = accountsActions;
         return { ...feed, createAccount };
       });
@@ -1036,12 +1123,14 @@ describe("feeds", () => {
     test("get feed and change active account", async () => {
       const newActiveAccountName = "new active account";
       rendered = renderHook<any, any>((props: any) => {
-        const feed = useFeed(props || { communityAddresses: [] });
+        const feed = useFeed(toFeedOptions(props));
         const account = useAccount();
         const [bufferedFeed] = useBufferedFeeds(
-          props
-            ? { feedsOptions: [props], accountName: newActiveAccountName }
-            : { feedsOptions: [] },
+          toBufferedFeedsOptions(
+            props
+              ? { feedsOptions: [props], accountName: newActiveAccountName }
+              : { feedsOptions: [] },
+          ),
         ).bufferedFeeds;
         return { ...feed, ...accountsActions, account, bufferedFeed };
       });
@@ -1090,33 +1179,35 @@ describe("feeds", () => {
       const consoleSpy2 = vi.spyOn(console, "error").mockImplementation(() => {});
       expect(() => {
         renderHook<any, any>(() =>
-          useBufferedFeeds({
-            feedsOptions: [
-              {
-                communityAddresses: [
-                  "community address 1",
-                  "community address 2",
-                  "community address 3",
-                ],
-                sortType: "new",
-              },
-              {
-                communityAddresses: [
-                  "community address 4",
-                  "community address 5",
-                  "community address 6",
-                ],
-                sortType: `doesnt exist`,
-              },
-              {
-                communityAddresses: [
-                  "community address 7",
-                  "community address 8",
-                  "community address 9",
-                ],
-              },
-            ],
-          }),
+          useBufferedFeeds(
+            toBufferedFeedsOptions({
+              feedsOptions: [
+                {
+                  communityAddresses: [
+                    "community address 1",
+                    "community address 2",
+                    "community address 3",
+                  ],
+                  sortType: "new",
+                },
+                {
+                  communityAddresses: [
+                    "community address 4",
+                    "community address 5",
+                    "community address 6",
+                  ],
+                  sortType: `doesnt exist`,
+                },
+                {
+                  communityAddresses: [
+                    "community address 7",
+                    "community address 8",
+                    "community address 9",
+                  ],
+                },
+              ],
+            }),
+          ),
         );
       }).toThrow(`useBufferedFeeds feedOptions.sortType argument 'doesnt exist' invalid`);
       consoleSpy2.mockRestore();
@@ -1319,13 +1410,15 @@ describe("feeds", () => {
       };
 
       rendered = renderHook<any, any>((props: any) => {
-        const feed = useFeed(props);
-        const { bufferedFeeds } = useBufferedFeeds({
-          feedsOptions: [
-            { communityAddresses: props?.communityAddresses, sortType: props?.sortType },
-          ],
-          accountName: props?.accountName,
-        });
+        const feed = useFeed(toFeedOptions(props));
+        const { bufferedFeeds } = useBufferedFeeds(
+          toBufferedFeedsOptions({
+            feedsOptions: [
+              { communityAddresses: props?.communityAddresses, sortType: props?.sortType },
+            ],
+            accountName: props?.accountName,
+          }),
+        );
         return { ...feed, bufferedFeed: bufferedFeeds[0] };
       });
       waitFor = testUtils.createWaitFor(rendered);
@@ -1395,7 +1488,7 @@ describe("feeds", () => {
 
         // render with a fresh empty store to test database persistance
         const rendered2 = renderHook<any, any>(() =>
-          useFeed({ communityAddresses: ["community address 1"], sortType: "new" }),
+          useFeed({ communities: toCommunities(["community address 1"]), sortType: "new" }),
         );
         await waitFor(() => rendered2.result.current.feed?.length >= postsPerPage);
         expect(rendered2.result.current.feed?.length).toBe(postsPerPage);
@@ -1427,9 +1520,11 @@ describe("feeds", () => {
       };
 
       const rendered = renderHook<any, any>((props: any) => {
-        const [bufferedFeed] = useBufferedFeeds({
-          feedsOptions: [{ communityAddresses: props?.communityAddresses, sortType: "new" }],
-        }).bufferedFeeds;
+        const [bufferedFeed] = useBufferedFeeds(
+          toBufferedFeedsOptions({
+            feedsOptions: [{ communityAddresses: props?.communityAddresses, sortType: "new" }],
+          }),
+        ).bufferedFeeds;
         const { blockAddress, unblockAddress } = accountsActions;
         const account = useAccount();
         return { bufferedFeed, blockAddress, unblockAddress, account };
@@ -1520,9 +1615,11 @@ describe("feeds", () => {
       };
 
       const rendered = renderHook<any, any>((props: any) => {
-        const [bufferedFeed] = useBufferedFeeds({
-          feedsOptions: [{ communityAddresses: props?.communityAddresses, sortType: "new" }],
-        }).bufferedFeeds;
+        const [bufferedFeed] = useBufferedFeeds(
+          toBufferedFeedsOptions({
+            feedsOptions: [{ communityAddresses: props?.communityAddresses, sortType: "new" }],
+          }),
+        ).bufferedFeeds;
         const { blockCid, unblockCid } = accountsActions;
         const account = useAccount();
         return { bufferedFeed, blockCid, unblockCid, account };
@@ -1582,8 +1679,8 @@ describe("feeds", () => {
       };
 
       rendered = renderHook<any, any>((props: any) => {
-        const feed = useFeed(props);
-        const community = useCommunity({ communityAddress: props?.communityAddresses?.[0] });
+        const feed = useFeed(toFeedOptions(props));
+        const community = useCommunity({ community: toCommunity(props?.communityAddresses?.[0]) });
         return { feed, community };
       });
       waitFor = testUtils.createWaitFor(rendered);
@@ -1626,7 +1723,7 @@ describe("feeds", () => {
       };
 
       rendered = renderHook<any, any>((props: any) => {
-        const feed = useFeed(props);
+        const feed = useFeed(toFeedOptions(props));
         return { feed };
       });
       waitFor = testUtils.createWaitFor(rendered);
@@ -1643,7 +1740,7 @@ describe("feeds", () => {
       Community.prototype.update = update;
     });
 
-    test(`communityAddressesWithNewerPosts and reset`, async () => {
+    test(`communityKeysWithNewerPosts and reset`, async () => {
       const update = Community.prototype.update;
       // mock the update method to be able to have access to the updating community instances
       const communities: any = [];
@@ -1653,13 +1750,15 @@ describe("feeds", () => {
       };
 
       rendered = renderHook<any, any>((props: any) => {
-        const feed = useFeed(props);
-        const { bufferedFeeds } = useBufferedFeeds({
-          feedsOptions: [
-            { communityAddresses: props?.communityAddresses, sortType: props?.sortType },
-          ],
-          accountName: props?.accountName,
-        });
+        const feed = useFeed(toFeedOptions(props));
+        const { bufferedFeeds } = useBufferedFeeds(
+          toBufferedFeedsOptions({
+            feedsOptions: [
+              { communityAddresses: props?.communityAddresses, sortType: props?.sortType },
+            ],
+            accountName: props?.accountName,
+          }),
+        );
         return { ...feed, bufferedFeed: bufferedFeeds[0] };
       });
       waitFor = testUtils.createWaitFor(rendered);
@@ -1678,7 +1777,7 @@ describe("feeds", () => {
       // the first page of loaded and buffered feeds should have laoded
       expect(rendered.result.current.feed.length).toBe(postsPerPage * 2);
       expect(rendered.result.current.bufferedFeed.length).toBeGreaterThan(postsPerPage * 2);
-      expect(rendered.result.current.communityAddressesWithNewerPosts).toEqual([]);
+      expect(rendered.result.current.communityKeysWithNewerPosts).toEqual([]);
       expect(communities.length).toBe(2);
 
       act(() => {
@@ -1693,8 +1792,8 @@ describe("feeds", () => {
         communities[1].emit("update", communities[1]);
       });
 
-      await waitFor(() => rendered.result.current.communityAddressesWithNewerPosts.length === 2);
-      expect(rendered.result.current.communityAddressesWithNewerPosts).toEqual([
+      await waitFor(() => rendered.result.current.communityKeysWithNewerPosts.length === 2);
+      expect(rendered.result.current.communityKeysWithNewerPosts).toEqual([
         "community address 1",
         "community address 2",
       ]);
@@ -1703,9 +1802,9 @@ describe("feeds", () => {
         await rendered.result.current.reset();
       });
 
-      await waitFor(() => rendered.result.current.communityAddressesWithNewerPosts.length === 0);
+      await waitFor(() => rendered.result.current.communityKeysWithNewerPosts.length === 0);
       expect(rendered.result.current.bufferedFeed.length).toBeGreaterThan(postsPerPage);
-      expect(rendered.result.current.communityAddressesWithNewerPosts).toEqual([]);
+      expect(rendered.result.current.communityKeysWithNewerPosts).toEqual([]);
 
       Community.prototype.update = update;
     });

@@ -32,6 +32,10 @@ const ethChainProviderUrl2 = "https://ethchainprovider2.com";
 const ethChainProviderUrl3 = "https://ethchainprovider3.com";
 const timestamp = Math.floor(Date.now() / 1000) - 60 * 60;
 const updatedAt = Math.floor(Date.now() / 1000);
+const toCommunity = (communityAddress?: string) =>
+  communityAddress ? { name: communityAddress } : undefined;
+const toCommunities = (communityAddresses?: string[]) =>
+  communityAddresses?.map((communityAddress) => ({ name: communityAddress }));
 
 const simulateLoadingTime = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -790,9 +794,9 @@ describe("states", () => {
 
     test("fetch community", async () => {
       const rendered = renderHook<any, any>((communityAddress: string) => {
-        const community = useCommunity({ communityAddress });
+        const community = useCommunity({ community: toCommunity(communityAddress) });
         const { feed, loadMore } = useFeed({
-          communityAddresses: communityAddress ? [communityAddress] : [],
+          communities: toCommunities(communityAddress ? [communityAddress] : []),
           sortType: "new",
         });
         const { states } = useClientsStates({ community });
@@ -994,21 +998,27 @@ describe("states", () => {
       expect(rendered.result.current.states).toEqual({});
     });
 
-    test("useCommunitiesStates with communityAddresses undefined (branch 149)", () => {
-      const rendered = renderHook(() => useCommunitiesStates({ communityAddresses: undefined }));
+    test("useCommunitiesStates with communities undefined (branch 149)", () => {
+      const rendered = renderHook(() => useCommunitiesStates({ communities: undefined }));
       expect(rendered.result.current.states).toEqual({});
     });
 
-    test("useCommunitiesStates asserts communityAddresses not array (branch 144)", () => {
+    test("useCommunitiesStates rejects removed communityAddresses and communityRefs", () => {
       expect(() =>
-        renderHook(() => useCommunitiesStates({ communityAddresses: "not-array" as any })),
-      ).toThrow(/communityAddresses.*not an array/);
+        renderHook(() => useCommunitiesStates({ communityAddresses: ["valid"] } as any)),
+      ).toThrow(/communityAddresses has been removed/);
+      expect(() =>
+        renderHook(() => useCommunitiesStates({ communityRefs: [{ name: "valid" }] } as any)),
+      ).toThrow(/communityRefs has been removed/);
     });
 
-    test("useCommunitiesStates asserts communityAddress not string (branch 149)", () => {
+    test("useCommunitiesStates asserts communities not array/object", () => {
       expect(() =>
-        renderHook(() => useCommunitiesStates({ communityAddresses: ["valid", 123 as any] })),
-      ).toThrow(/communityAddress.*not a string/);
+        renderHook(() => useCommunitiesStates({ communities: "not-array" as any })),
+      ).toThrow(/communities.*not an array/);
+      expect(() =>
+        renderHook(() => useCommunitiesStates({ communities: [{ name: "valid" }, 123 as any] })),
+      ).toThrow(/must be an object with name or publicKey/);
     });
 
     test("fetch feed", { retry: 5 }, async () => {
@@ -1018,8 +1028,9 @@ describe("states", () => {
         "community address 3",
       ];
       const rendered = testUtils.renderHookWithHistory<any, any>(() => {
-        const { states } = useCommunitiesStates({ communityAddresses });
-        const { feed, loadMore } = useFeed({ communityAddresses, sortType: "new" });
+        const communities = toCommunities(communityAddresses);
+        const { states } = useCommunitiesStates({ communities });
+        const { feed, loadMore } = useFeed({ communities, sortType: "new" });
         return { states, feed, loadMore };
       });
       const waitFor = testUtils.createWaitFor(rendered);

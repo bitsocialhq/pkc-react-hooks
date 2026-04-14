@@ -32,6 +32,11 @@ import PkcJsMock, {
 import accountsStore from "../../stores/accounts";
 import chain from "../../lib/chain";
 
+const toCommunity = (communityAddress?: string) =>
+  communityAddress ? { name: communityAddress } : undefined;
+const toCommunities = (communityAddresses?: string[]) =>
+  communityAddresses?.map((communityAddress) => ({ name: communityAddress }));
+
 describe("accounts", () => {
   beforeAll(async () => {
     // set pkc-js mock and reset dbs
@@ -1843,7 +1848,7 @@ describe("accounts", () => {
 
       const rendered = renderHook<any, any>((props?) => {
         const { feed } = useFeed({
-          communityAddresses: props?.communityAddresses,
+          communities: toCommunities(props?.communityAddresses),
           sortType: "new",
         });
         const { accountComments } = useAccountComments();
@@ -2840,7 +2845,7 @@ describe("accounts", () => {
         const { accountCommunities } = useAccountCommunities();
         const account = useAccount();
         const { setAccount } = accountsActions;
-        const community = useCommunity({ communityAddress });
+        const community = useCommunity({ community: toCommunity(communityAddress) });
         return { accountCommunities, setAccount, account };
       });
       const waitFor = testUtils.createWaitFor(rendered);
@@ -2892,7 +2897,7 @@ describe("accounts", () => {
       rendered = renderHook<any, any>((communityAddress?: string) => {
         const account = useAccount();
         const { accountCommunities } = useAccountCommunities();
-        const community = useCommunity({ communityAddress });
+        const community = useCommunity({ community: toCommunity(communityAddress) });
         return { account, community, accountCommunities, ...accountsActions };
       });
       waitFor = testUtils.createWaitFor(rendered);
@@ -3021,7 +3026,7 @@ describe("accounts", () => {
       // render again with new context and store
       await testUtils.resetStores();
       rendered = renderHook<any, any>((communityAddress?: string) => {
-        const community = useCommunity({ communityAddress });
+        const community = useCommunity({ community: toCommunity(communityAddress) });
         return { community, ...accountsActions };
       });
       expect(rendered.result.current.community.address).toBe(undefined);
@@ -3052,7 +3057,7 @@ describe("accounts", () => {
       // render again with new context and store
       await testUtils.resetStores();
       rendered = renderHook<any, any>((communityAddress?: string) => {
-        const community = useCommunity({ communityAddress });
+        const community = useCommunity({ community: toCommunity(communityAddress) });
         return { community, ...accountsActions };
       });
       expect(rendered.result.current.community.address).toBe(undefined);
@@ -3077,7 +3082,7 @@ describe("accounts", () => {
       // render again with new context and store
       await testUtils.resetStores();
       rendered = renderHook<any, any>((communityAddress?: string) => {
-        const community = useCommunity({ communityAddress });
+        const community = useCommunity({ community: toCommunity(communityAddress) });
         return { community, ...accountsActions };
       });
       expect(rendered.result.current.community.address).toBe(undefined);

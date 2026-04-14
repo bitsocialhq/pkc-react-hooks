@@ -1,3 +1,32 @@
+const getEnvValue = (envNames) => {
+  for (const envName of envNames) {
+    const nodeValue = typeof process !== "undefined" ? process.env?.[envName] : undefined;
+    if (nodeValue) {
+      return nodeValue;
+    }
+
+    const browserValue = import.meta.env?.[envName];
+    if (browserValue) {
+      return browserValue;
+    }
+  }
+
+  return undefined;
+};
+
+const getPort = (envNames, fallback) => {
+  const value = getEnvValue(envNames);
+  if (!value) {
+    return fallback;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw Error(`${envName} '${value}' not a valid port`);
+  }
+  return parsed;
+};
+
 export const offlineIpfs = {
   apiPort: 14325,
   gatewayPort: 14326,
@@ -13,5 +42,5 @@ export const pubsubIpfs = {
 };
 
 export const pkcRpc = {
-  port: 48392,
+  port: getPort(["TEST_PKC_RPC_PORT", "VITE_TEST_PKC_RPC_PORT"], 48392),
 };
