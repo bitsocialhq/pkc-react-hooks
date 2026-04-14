@@ -279,8 +279,8 @@ export function useBufferedFeeds(options?: UseBufferedFeedsOptions): UseBuffered
       const uniqueCommunityKeys = communityKeysArrays[i];
       validator.validateFeedSortType(sortType);
       const feedName = feedNames[i];
-      if (!uniqueCommunityRefs || !account) {
-        return;
+      if (!account || !uniqueCommunityRefs.length) {
+        continue;
       }
       const fkey = feedName ?? "";
       if (!bufferedFeeds[fkey]) {

@@ -272,6 +272,18 @@ describe("feeds store", () => {
     expect(rendered.result.current.feedsOptions[feedName]).toBeDefined();
   });
 
+  test("addFeedToStore rejects communityKeys that do not match communities", async () => {
+    await expect(
+      rendered.result.current.addFeedToStore(
+        "mismatched-community-keys",
+        toCommunities(["community address 1"]),
+        ["community address 2"],
+        "new",
+        mockAccount,
+      ),
+    ).rejects.toThrow(/communityKeys .* do not match communities/);
+  });
+
   test("duplicate feed add returns early without overwriting", async () => {
     const feedName = "duplicate-feed";
     const communityAddresses = ["community address 1"];

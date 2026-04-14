@@ -992,6 +992,20 @@ describe("feeds", () => {
       expect(rendered.result.current.bufferedFeeds).toEqual([]);
     });
 
+    test("useBufferedFeeds skips empty feed entries without blocking later feeds", async () => {
+      const rendered = renderHook<any, any>(() =>
+        useBufferedFeeds({
+          feedsOptions: [{}, { communities: [{ name: "community address 1" }], sortType: "new" }],
+        } as any),
+      );
+
+      expect(rendered.result.current.bufferedFeeds).toEqual([[], []]);
+
+      await waitFor(() => rendered.result.current.bufferedFeeds[1].length > 0);
+      expect(rendered.result.current.bufferedFeeds[0]).toEqual([]);
+      expect(rendered.result.current.bufferedFeeds[1].length).toBeGreaterThan(0);
+    });
+
     test("useBufferedFeeds addFeedToStore error is caught", async () => {
       const originalAddFeedToStore = feedsStore.getState().addFeedToStore;
       const logSpy = vi.spyOn(console, "error").mockImplementation(() => {});

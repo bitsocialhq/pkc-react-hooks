@@ -18,7 +18,7 @@ import createStore from "zustand";
 import localForageLru from "../../lib/localforage-lru";
 import { communityPostsCacheExpired } from "../../lib/utils";
 import { getPkcGetCommunity } from "../../lib/pkc-compat";
-import { CommunityLookupRef } from "../../lib/community-ref";
+import { CommunityLookupRef, getCommunityRefKeys } from "../../lib/community-ref";
 import accountsStore from "../accounts";
 import communitiesStore from "../communities";
 import communitiesPagesStore from "../communities-pages";
@@ -104,6 +104,12 @@ const feedsStore = createStore<FeedsState>((setState: Function, getState: Functi
     assert(
       Array.isArray(communityKeys),
       `addFeedToStore.addFeedToStore communityKeys '${communityKeys}' invalid`,
+    );
+    const derivedCommunityKeys = getCommunityRefKeys(communities);
+    assert(
+      communityKeys.length === derivedCommunityKeys.length &&
+        communityKeys.every((communityKey, index) => communityKey === derivedCommunityKeys[index]),
+      `addFeedToStore.addFeedToStore communityKeys '${communityKeys}' do not match communities`,
     );
     assert(
       sortType && typeof sortType === "string",
