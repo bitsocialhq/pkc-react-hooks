@@ -47,20 +47,50 @@ describe("communities store", () => {
     const createOrig = mockAccount.pkc.createCommunity;
     mockAccount.pkc.createCommunity = vi.fn().mockImplementation(createOrig.bind(mockAccount.pkc));
 
-    await act(async () => {
-      await communitiesStore.getState().addCommunityToStore(communityRef, mockAccount);
-    });
+    try {
+      await act(async () => {
+        await communitiesStore.getState().addCommunityToStore(communityRef, mockAccount);
+      });
 
-    expect(mockAccount.pkc.createCommunity).toHaveBeenCalledWith(communityRef);
-    expect(communitiesStore.getState().communities[communityRef.publicKey]).toBeDefined();
-    expect(communitiesStore.getState().communities[communityRef.publicKey]?.address).toBe(
-      communityRef.name,
-    );
-    expect(communitiesStore.getState().communities[communityRef.publicKey]?.publicKey).toBe(
-      communityRef.publicKey,
-    );
+      expect(mockAccount.pkc.createCommunity).toHaveBeenCalledWith(communityRef);
+      expect(communitiesStore.getState().communities[communityRef.publicKey]).toBeDefined();
+      expect(communitiesStore.getState().communities[communityRef.publicKey]?.address).toBe(
+        communityRef.name,
+      );
+      expect(communitiesStore.getState().communities[communityRef.publicKey]?.publicKey).toBe(
+        communityRef.publicKey,
+      );
+    } finally {
+      mockAccount.pkc.createCommunity = createOrig;
+    }
+  });
 
-    mockAccount.pkc.createCommunity = createOrig;
+  test("addCommunityToStore does not retry publicKey lookups as legacy addresses", async () => {
+    const communityRef = { name: "reject-name.eth", publicKey: "reject-public-key" };
+    const createOrig = mockAccount.pkc.createCommunity;
+    mockAccount.pkc.createCommunity = vi.fn().mockRejectedValue(new Error("create failed"));
+
+    try {
+      await act(async () => {
+        try {
+          await communitiesStore.getState().addCommunityToStore(communityRef, mockAccount);
+        } catch (error) {
+          expect((error as Error).message).toBe("create failed");
+        }
+      });
+
+      expect(mockAccount.pkc.createCommunity).toHaveBeenCalledTimes(1);
+      expect(mockAccount.pkc.createCommunity).toHaveBeenCalledWith(communityRef);
+      expect(mockAccount.pkc.createCommunity).not.toHaveBeenCalledWith({
+        address: communityRef.publicKey,
+      });
+      expect(communitiesStore.getState().communities[communityRef.publicKey]).toBeUndefined();
+      expect(communitiesStore.getState().errors[communityRef.publicKey]?.[0].message).toBe(
+        "create failed",
+      );
+    } finally {
+      mockAccount.pkc.createCommunity = createOrig;
+    }
   });
 
   test("cached community create failure logs to console", async () => {

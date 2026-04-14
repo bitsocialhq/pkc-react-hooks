@@ -402,10 +402,12 @@ const validateCommunityIdentifierArguments = (
 
 const validateUseCommunityArguments = ({ community, communityAddress, account }: any) => {
   validateCommunityIdentifierArguments(community, communityAddress, "useCommunity");
-  assert(
-    getAccountProtocolClient(account) && typeof getAccountProtocolClient(account) === "object",
-    `useCommunity account.pkc/account.pkc '${getAccountProtocolClient(account)}' not an object`,
-  );
+  if (account !== undefined && account !== null) {
+    assert(
+      getAccountProtocolClient(account) && typeof getAccountProtocolClient(account) === "object",
+      `useCommunity account.pkc/account.pkc '${getAccountProtocolClient(account)}' not an object`,
+    );
+  }
 };
 
 const validateUseCommunityStatsArguments = ({ community, communityAddress }: any) => {

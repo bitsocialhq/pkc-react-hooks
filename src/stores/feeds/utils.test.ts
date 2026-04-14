@@ -936,6 +936,35 @@ describe("feeds utils", () => {
       expect(result.feed1).toBeDefined();
     });
 
+    test("skips publicKey-keyed communities when the resolved address is blocked", () => {
+      const community = {
+        name: "blocked.eth",
+        publicKey: "blocked-public-key",
+      };
+      const feedsOptions = {
+        feed1: {
+          communities: [community],
+          communityKeys: [community.publicKey],
+          sortType: "new",
+          accountId: mockAccountId,
+        },
+      };
+      const communities = {
+        [community.publicKey]: {
+          address: community.name,
+          publicKey: community.publicKey,
+          updatedAt: 1,
+          posts: { pageCids: { new: "pc1" }, pages: {} },
+        },
+      };
+      const accounts = makeMockAccounts({
+        blockedAddresses: { [community.name]: true },
+      });
+
+      const result = getFeedsHaveMore(feedsOptions, {}, communities, {}, accounts);
+      expect(result.feed1).toBe(false);
+    });
+
     test("uses modQueue when modQueue option present", () => {
       const feedsOptions = {
         feed1: {

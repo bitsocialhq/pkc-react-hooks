@@ -34,17 +34,11 @@ const createCommunityWithLookupFallback = async (
   communityKey: string,
 ) => {
   const supportsAddressLookup = "address" in communityLookupOptions;
-  try {
-    const community = await createPkcCommunity(pkc, communityLookupOptions);
-    if (community?.address || supportsAddressLookup) {
-      return community;
-    }
-  } catch (error) {
-    if (supportsAddressLookup) {
-      throw error;
-    }
+  const community = await createPkcCommunity(pkc, communityLookupOptions);
+  if (community?.address || supportsAddressLookup) {
+    return community;
   }
-  return createPkcCommunity(pkc, { address: communityKey });
+  throw Error(`communitiesStore.addCommunityToStore failed getting community '${communityKey}'`);
 };
 
 // reset all event listeners in between tests

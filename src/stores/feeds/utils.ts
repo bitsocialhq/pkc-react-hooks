@@ -657,12 +657,18 @@ export const getFeedsHaveMore = (
     }
 
     communityKeysLoop: for (const [communityIndex, communityKey] of communityKeys.entries()) {
+      const community = communities[communityKey];
+      const communityRef = communityRefs[communityIndex];
+      const isBlockedCommunity = Object.keys(accounts[accountId]?.blockedAddresses || {}).some(
+        (blockedAddress) =>
+          communityRef && doesAddressMatchCommunityRef(blockedAddress, communityRef, community),
+      );
+
       // don't consider the sub if the address is blocked
-      if (accounts[accountId]?.blockedAddresses[communityKey]) {
+      if (isBlockedCommunity) {
         continue communityKeysLoop;
       }
 
-      const community = communities[communityKey];
       // if at least 1 community hasn't loaded yet, then the feed still has more
       if (!community?.updatedAt) {
         feedsHaveMore[feedName] = true;

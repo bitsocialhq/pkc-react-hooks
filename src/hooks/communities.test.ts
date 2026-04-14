@@ -428,6 +428,14 @@ describe("communities", () => {
     vi.mocked(accountsHooks.useAccount).mockRestore();
   });
 
+  test("useCommunity does not throw when account is undefined on render", () => {
+    vi.spyOn(accountsHooks, "useAccount").mockReturnValue(undefined as any);
+    expect(() =>
+      renderHook(() => useCommunity({ community: { name: "community address 1" } })),
+    ).not.toThrow();
+    vi.mocked(accountsHooks.useAccount).mockRestore();
+  });
+
   test("useListCommunities hits log and setState when arrays differ (lines 225, 228)", async () => {
     vi.useFakeTimers();
     try {
