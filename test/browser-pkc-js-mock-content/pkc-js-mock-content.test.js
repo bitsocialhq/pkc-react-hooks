@@ -22,6 +22,8 @@ import { renderHook } from "../test-utils";
 import testUtils from "../../dist/lib/test-utils";
 
 const timeout = 180_000;
+const toCommunity = (name) => (name ? { name } : undefined);
+const toCommunities = (names) => names?.map((name) => ({ name }));
 
 describe("mock content", () => {
   beforeAll(() => {
@@ -90,7 +92,9 @@ describe("mock content", () => {
   });
 
   it("use communities", async () => {
-    const rendered = renderHook((communityAddress) => useCommunity({ communityAddress }));
+    const rendered = renderHook((communityAddress) =>
+      useCommunity({ community: toCommunity(communityAddress) }),
+    );
     const waitFor = testUtils.createWaitFor(rendered, { timeout });
 
     rendered.rerender("anything2.eth");
@@ -129,7 +133,9 @@ describe("mock content", () => {
 
     // test getting from db
     await testUtils.resetStores();
-    const rendered2 = renderHook((communityAddress) => useCommunity({ communityAddress }));
+    const rendered2 = renderHook((communityAddress) =>
+      useCommunity({ community: toCommunity(communityAddress) }),
+    );
 
     rendered2.rerender("anything2");
     await waitFor(() => typeof rendered2.result.current.updatedAt === "number");
@@ -144,7 +150,7 @@ describe("mock content", () => {
 
   it("use feed hot", async () => {
     const rendered = renderHook((communityAddresses) =>
-      useFeed({ communityAddresses, sortType: "hot" }),
+      useFeed({ communities: toCommunities(communityAddresses), sortType: "hot" }),
     );
     const waitFor = testUtils.createWaitFor(rendered, { timeout });
 
@@ -172,7 +178,7 @@ describe("mock content", () => {
 
   it("use feed new", async () => {
     const rendered = renderHook((communityAddresses) =>
-      useFeed({ communityAddresses, sortType: "new" }),
+      useFeed({ communities: toCommunities(communityAddresses), sortType: "new" }),
     );
     const waitFor = testUtils.createWaitFor(rendered, { timeout });
 

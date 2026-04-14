@@ -8,6 +8,7 @@ setPkcJs(PkcJsMock);
 import testUtils from "../../dist/lib/test-utils";
 
 const timeout = 10000;
+const toCommunities = (names) => names?.map((name) => ({ name }));
 
 describe("feeds (pkc-js mock)", () => {
   beforeAll(async () => {
@@ -50,7 +51,7 @@ describe("feeds (pkc-js mock)", () => {
 
     it("get feed page 1 with 1 community sorted by default (hot)", async () => {
       // get feed with 1 sub
-      rendered.rerender({ communityAddresses: ["community address 1"] });
+      rendered.rerender({ communities: toCommunities(["community address 1"]) });
       // initial state
       expect(typeof rendered.result.current.hasMore).to.equal("boolean");
       expect(typeof rendered.result.current.loadMore).to.equal("function");
@@ -70,14 +71,14 @@ describe("feeds (pkc-js mock)", () => {
     });
 
     it("change community addresses and sort type", async () => {
-      rendered.rerender({ communityAddresses: ["community address 1"], sortType: "hot" });
+      rendered.rerender({ communities: toCommunities(["community address 1"]), sortType: "hot" });
       await waitFor(() => !!rendered.result.current.feed[0].cid.match(/community address 1/));
       expect(rendered.result.current.feed[0].cid).to.match(/community address 1/);
       expect(rendered.result.current.feed.length).to.equal(postsPerPage);
 
       // change community addresses
       rendered.rerender({
-        communityAddresses: ["community address 2", "community address 3"],
+        communities: toCommunities(["community address 2", "community address 3"]),
         sortType: "hot",
       });
       await waitFor(() => !!rendered.result.current.feed[0].cid.match(/community address (2|3)/));
@@ -88,7 +89,7 @@ describe("feeds (pkc-js mock)", () => {
 
       // change sort type
       rendered.rerender({
-        communityAddresses: ["community address 2", "community address 3"],
+        communities: toCommunities(["community address 2", "community address 3"]),
         sortType: "new",
       });
       await waitFor(() => !!rendered.result.current.feed[0].cid.match(/community address (2|3)/));
@@ -99,7 +100,7 @@ describe("feeds (pkc-js mock)", () => {
 
       // change community addresses and sort type
       rendered.rerender({
-        communityAddresses: ["community address 4", "community address 5"],
+        communities: toCommunities(["community address 4", "community address 5"]),
         sortType: "topAll",
       });
       await waitFor(() => !!rendered.result.current.feed[0].cid.match(/community address (4|5)/));
@@ -109,7 +110,7 @@ describe("feeds (pkc-js mock)", () => {
 
     it("get feed with 1 community and scroll to multiple pages", async () => {
       // get feed with 1 sub
-      rendered.rerender({ communityAddresses: ["community address 1"] });
+      rendered.rerender({ communities: toCommunities(["community address 1"]) });
       // wait for posts to be added, should get full first page
       await waitFor(() => rendered.result.current.feed.length > 0);
 
@@ -131,7 +132,7 @@ describe("feeds (pkc-js mock)", () => {
       while (communityAddresses.length < 25) {
         communityAddresses.push(`community address ${communityAddresses.length + 1}`);
       }
-      rendered.rerender({ communityAddresses });
+      rendered.rerender({ communities: toCommunities(communityAddresses) });
       // wait for posts to be added, should get full first page
       await waitFor(() => rendered.result.current.feed.length > 0);
 

@@ -8,6 +8,7 @@ import PkcJsMock from "../../dist/lib/pkc-js/pkc-js-mock";
 setPkcJs(PkcJsMock);
 
 const timeout = 10000;
+const toCommunity = (name) => (name ? { name } : undefined);
 
 describe("communities (pkc-js mock)", () => {
   beforeAll(async () => {
@@ -25,7 +26,9 @@ describe("communities (pkc-js mock)", () => {
   describe("no communities in database", () => {
     it("get communities one at a time", async () => {
       console.log("starting communities tests");
-      const rendered = renderHook((communityAddress) => useCommunity({ communityAddress }));
+      const rendered = renderHook((communityAddress) =>
+        useCommunity({ community: toCommunity(communityAddress) }),
+      );
       const waitFor = testUtils.createWaitFor(rendered, { timeout });
 
       expect(rendered.result.current?.updatedAt).to.equal(undefined);

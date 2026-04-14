@@ -13,6 +13,7 @@ import { offlineIpfs, pubsubIpfs, pkcRpc } from "../test-server/config";
 const timeout = 600000;
 const isBase64 = (testString) =>
   /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}))?$/gm.test(testString);
+const toCommunity = (name) => (name ? { name } : undefined);
 
 // run tests using pkc options gateway and httpClient
 const localGatewayUrl = `http://localhost:${offlineIpfs.gatewayPort}`;
@@ -70,7 +71,7 @@ for (const pkcOptionsType in pkcOptionsTypes) {
       beforeAll(async () => {
         rendered = renderHook(({ communityAddress, commentCid } = {}) => {
           const account = useAccount();
-          const community = useCommunity({ communityAddress });
+          const community = useCommunity({ community: toCommunity(communityAddress) });
           const { accountVotes } = useAccountVotes();
           const comment = useComment({ commentCid });
           return { account, community, comment, accountVotes, ...accountsActions };
