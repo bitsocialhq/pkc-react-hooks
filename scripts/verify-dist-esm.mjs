@@ -22,7 +22,9 @@ for (const filePath of listDistModuleFiles()) {
 }
 
 const packageEntryPath = path.join(distRoot, "index.js");
-if (fs.existsSync(packageEntryPath)) {
+if (!fs.existsSync(packageEntryPath)) {
+  failures.push("index.js is missing from dist/ (package main entry).");
+} else {
   const packageEntry = fs.readFileSync(packageEntryPath, "utf8");
 
   if (
