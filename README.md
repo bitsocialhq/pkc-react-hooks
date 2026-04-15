@@ -20,6 +20,7 @@ yarn add https://github.com/bitsocialnet/bitsocial-react-hooks.git#<commit-hash>
 ```
 
 Use a pinned commit hash (or tag) so installs are reproducible.
+The published build is self-contained ESM, so consumers should not need postinstall import-rewrite patches.
 
 ## Development Setup
 

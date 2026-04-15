@@ -423,6 +423,18 @@ describe("communities pages store", () => {
     expect(getCommunityFirstPageCid(community as any, "hot")).toBe("default-posts-page-cid");
   });
 
+  test("getCommunityFirstPageCid accepts strict community refs without address", () => {
+    const community = {
+      name: "news.eth",
+      publicKey: "12D3KooWNews",
+      posts: {
+        pageCids: { hot: "strict-ref-page-cid" },
+      },
+    };
+
+    expect(getCommunityFirstPageCid(community as any, "hot")).toBe("strict-ref-page-cid");
+  });
+
   test("fetchPage returns cached page when in database", async () => {
     const mockCommunity = await mockAccount.pkc.createCommunity({
       address: "community address 1",
