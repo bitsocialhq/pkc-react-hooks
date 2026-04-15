@@ -150,6 +150,7 @@ src/
 - If `AGENTS.md` references a skill, agent, or hook, prefer a tracked file under `.codex/`, `.cursor/`, or `.claude/` rather than an untracked local-only instruction.
 - When adding or changing repo-managed skills, agents, or hooks, commit the matching `.codex/`, `.cursor/`, and `.claude/` files in the same task so the workflow change is reviewable.
 - Review `.codex/hooks.json`, `.cursor/hooks.json`, and `.claude/hooks.json` before changing agent orchestration or hook behavior, because they are the entry points contributors will actually load.
+- When a diff adds new `useEffect`, `useLayoutEffect`, `useInsertionEffect`, `useMemo`, `useCallback`, or `memo(...)` usage under `src/`, treat the repo hook reminder as mandatory and reconsider the change with `you-might-not-need-an-effect` and `vercel-react-best-practices` before finishing.
 
 ### Security and Boundaries
 

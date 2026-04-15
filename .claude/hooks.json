@@ -9,12 +9,20 @@
       {
         "command": ".claude/hooks/yarn-install.sh",
         "timeout": 120
+      },
+      {
+        "command": ".claude/hooks/react-pattern-review.sh",
+        "timeout": 10
       }
     ],
     "stop": [
       {
         "command": ".claude/hooks/sync-git-branches.sh",
         "timeout": 60
+      },
+      {
+        "command": ".claude/hooks/react-pattern-review.sh",
+        "timeout": 10
       },
       {
         "command": ".claude/hooks/verify.sh",

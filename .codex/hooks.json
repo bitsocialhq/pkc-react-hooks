@@ -9,12 +9,20 @@
       {
         "command": ".codex/hooks/yarn-install.sh",
         "timeout": 120
+      },
+      {
+        "command": ".codex/hooks/react-pattern-review.sh",
+        "timeout": 10
       }
     ],
     "stop": [
       {
         "command": ".codex/hooks/sync-git-branches.sh",
         "timeout": 60
+      },
+      {
+        "command": ".codex/hooks/react-pattern-review.sh",
+        "timeout": 10
       },
       {
         "command": ".codex/hooks/verify.sh",
