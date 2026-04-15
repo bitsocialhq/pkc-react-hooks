@@ -407,7 +407,10 @@ export const getCommunityFirstPageCid = (
   sortType: string,
   pageType = "posts",
 ) => {
-  assert(community?.address, `getCommunityFirstPageCid community '${community}' invalid`);
+  assert(
+    community && typeof community === "object",
+    `getCommunityFirstPageCid community '${community}' invalid`,
+  );
   assert(
     sortType && typeof sortType === "string",
     `getCommunityFirstPageCid sortType '${sortType}' invalid`,
