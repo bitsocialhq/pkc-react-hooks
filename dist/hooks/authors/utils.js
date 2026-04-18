@@ -18,3 +18,4 @@ const getPkcAddressFromPublicKey = (publicKeyBase64) => {
 export const usePkcAddress = (publicKeyBase64) => {
     return useMemo(() => (publicKeyBase64 ? getPkcAddressFromPublicKey(publicKeyBase64) : undefined), [publicKeyBase64]);
 };
+//# sourceMappingURL=utils.js.map

@@ -28,3 +28,4 @@ export declare function useListCommunities(accountName?: string): string[];
  */
 export declare function useResolvedCommunityAddress(options?: UseResolvedCommunityAddressOptions): UseResolvedCommunityAddressResult;
 export declare const resolveCommunityAddress: (communityAddress: string, chainProviders: ChainProviders) => Promise<any>;
+//# sourceMappingURL=communities.d.ts.map

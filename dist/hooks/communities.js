@@ -361,3 +361,4 @@ export const resolveCommunityAddress = (communityAddress, chainProviders) => __a
     }
     return resolvedCommunityAddress;
 });
+//# sourceMappingURL=communities.js.map

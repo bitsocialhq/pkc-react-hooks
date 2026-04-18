@@ -506,3 +506,4 @@ export function useResolvedAuthorAddress(options) {
         errors,
     }), [resolvedAddress, chainProvider, nameResolver, state, errors]);
 }
+//# sourceMappingURL=authors.js.map

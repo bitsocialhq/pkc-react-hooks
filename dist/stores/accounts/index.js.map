@@ -1,0 +1,1 @@
+{"version":3,"file":"index.js","sourceRoot":"","sources":["../../../src/stores/accounts/index.ts"],"names":[],"mappings":"AAAA,OAAO,aAAa,MAAM,kBAAkB,CAAC;AAC7C,cAAc,kBAAkB,CAAC;AACjC,eAAe,aAAa,CAAC","sourcesContent":["import accountsStore from \"./accounts-store\";\nexport * from \"./accounts-store\";\nexport default accountsStore;\n"]}

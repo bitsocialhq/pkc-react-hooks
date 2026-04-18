@@ -53,3 +53,4 @@ export function addCommentModerationToComments(comments) {
     });
     return changed ? normalizedComments : comments;
 }
+//# sourceMappingURL=comment-moderation.js.map

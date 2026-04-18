@@ -5,3 +5,4 @@ type RepliesCommentsState = {
 };
 declare const repliesCommentsStore: import("zustand").UseBoundStore<import("zustand").StoreApi<RepliesCommentsState>>;
 export default repliesCommentsStore;
+//# sourceMappingURL=replies-comments-store.d.ts.map

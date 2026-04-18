@@ -29,3 +29,4 @@ declare const accountsStore: import("zustand").UseBoundStore<import("zustand").S
 export declare const resetAccountsStore: () => Promise<void>;
 export declare const resetAccountsDatabaseAndStore: () => Promise<void>;
 export default accountsStore;
+//# sourceMappingURL=accounts-store.d.ts.map

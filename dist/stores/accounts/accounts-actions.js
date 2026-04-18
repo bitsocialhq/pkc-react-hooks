@@ -1304,3 +1304,4 @@ export const deleteCommunity = (communityAddress, accountName) => __awaiter(void
     yield communitiesStore.getState().deleteCommunity(communityAddress, account);
     log("accountsActions.deleteCommunity", { communityAddress });
 });
+//# sourceMappingURL=accounts-actions.js.map

@@ -223,3 +223,4 @@ const useAccountsAuthorShortAddresses = (accounts) => {
     }, [accounts]);
     return shortAddresses;
 };
+//# sourceMappingURL=utils.js.map

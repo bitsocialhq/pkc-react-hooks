@@ -40,3 +40,4 @@ export declare const accountsBlockedCidsChanged: (previousAccountsBlockedCids: {
     [address: string]: boolean;
 }[]) => boolean;
 export declare const feedsHaveChangedBlockedCids: (feedsOptions: FeedsOptions, bufferedFeeds: Feeds, blockedCids: string[], previousBlockedCids: string[]) => boolean;
+//# sourceMappingURL=utils.d.ts.map

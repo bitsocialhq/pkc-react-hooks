@@ -1,0 +1,1 @@
+{"version":3,"file":"index.js","sourceRoot":"","sources":["../../../src/stores/communities/index.ts"],"names":[],"mappings":"AAAA,OAAO,gBAAgB,MAAM,qBAAqB,CAAC;AACnD,cAAc,qBAAqB,CAAC;AACpC,eAAe,gBAAgB,CAAC","sourcesContent":["import communitiesStore from \"./communities-store\";\nexport * from \"./communities-store\";\nexport default communitiesStore;\n"]}

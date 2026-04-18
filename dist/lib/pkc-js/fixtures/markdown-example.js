@@ -277,3 +277,4 @@ _http://danlec_@.1 style=background-image:url(data:image/png;base64,iVBORw0KGgoA
 [a](javascript:new%20Function\`al\\ert\\\`1\\\`\`;)
 `;
 export default markdownExample;
+//# sourceMappingURL=markdown-example.js.map

@@ -34,3 +34,4 @@ export declare function resetAuthorAddressCacheForTesting(): void;
  * the active account.
  */
 export declare function useResolvedAuthorAddress(options?: UseResolvedAuthorAddressOptions): UseResolvedAuthorAddressResult;
+//# sourceMappingURL=authors.d.ts.map

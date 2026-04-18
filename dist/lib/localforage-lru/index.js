@@ -43,3 +43,4 @@ try {
 }
 catch (e) { }
 export default localForageLru;
+//# sourceMappingURL=index.js.map

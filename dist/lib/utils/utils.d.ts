@@ -20,3 +20,4 @@ declare const utils: {
     repliesAreValid: (comment: Comment, { validateReplies, blockCommunity }: any | undefined, pkc: any) => Promise<boolean>;
 };
 export default utils;
+//# sourceMappingURL=utils.d.ts.map

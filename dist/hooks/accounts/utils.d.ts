@@ -3,3 +3,4 @@ export declare const useCalculatedNotifications: (account?: Account, accountComm
 export declare const useCalculatedAccountsNotifications: (accounts?: Accounts, accountsCommentsReplies?: AccountsCommentsReplies) => AccountsNotifications;
 export declare const useAccountWithCalculatedProperties: (account?: Accounts, accountComments?: AccountComments, accountCommentsReplies?: AccountCommentsReplies) => any;
 export declare const useAccountsWithCalculatedProperties: (accounts?: Accounts, accountsComments?: AccountsComments, accountsCommentsReplies?: AccountsCommentsReplies) => Accounts | undefined;
+//# sourceMappingURL=utils.d.ts.map

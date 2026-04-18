@@ -318,3 +318,4 @@ const getSortType = (sortType, newerThan) => {
         return base;
     return base === "topAll" ? `top${time}` : `controversial${time}`;
 };
+//# sourceMappingURL=feeds.js.map

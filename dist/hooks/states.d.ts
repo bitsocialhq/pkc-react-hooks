@@ -12,3 +12,4 @@ export declare function useClientsStates(options?: UseClientsStatesOptions): Use
  * the active account.
  */
 export declare function useCommunitiesStates(options?: UseCommunitiesStatesOptions): UseCommunitiesStatesResult;
+//# sourceMappingURL=states.d.ts.map

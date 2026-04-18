@@ -64,3 +64,4 @@ export const createPkcCommunityEdit = (pkc, options) => __awaiter(void 0, void 0
     assert(typeof createCommunityEdit === "function", "pkc createCommunityEdit missing");
     return createCommunityEdit.call(pkc, options);
 });
+//# sourceMappingURL=protocol-compat.js.map

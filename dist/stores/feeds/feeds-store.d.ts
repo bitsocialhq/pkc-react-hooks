@@ -21,3 +21,4 @@ declare const feedsStore: import("zustand").UseBoundStore<import("zustand").Stor
 export declare const resetFeedsStore: () => Promise<void>;
 export declare const resetFeedsDatabaseAndStore: () => Promise<void>;
 export default feedsStore;
+//# sourceMappingURL=feeds-store.d.ts.map

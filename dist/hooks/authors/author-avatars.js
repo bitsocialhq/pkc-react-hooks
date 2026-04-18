@@ -188,3 +188,4 @@ export const verifyAuthorAvatarSignature = (nft, authorAddress, chainProviders) 
     }
     return verified;
 });
+//# sourceMappingURL=author-avatars.js.map

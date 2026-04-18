@@ -20,3 +20,4 @@ export declare const getCommunityFirstPageCid: (community: Community, sortType: 
 export declare const resetCommunitiesPagesStore: () => Promise<void>;
 export declare const resetCommunitiesPagesDatabaseAndStore: () => Promise<void>;
 export default communitiesPagesStore;
+//# sourceMappingURL=communities-pages-store.d.ts.map

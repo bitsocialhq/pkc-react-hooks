@@ -14,3 +14,4 @@ declare const communitiesStore: import("zustand").UseBoundStore<import("zustand"
 export declare const resetCommunitiesStore: () => Promise<void>;
 export declare const resetCommunitiesDatabaseAndStore: () => Promise<void>;
 export default communitiesStore;
+//# sourceMappingURL=communities-store.d.ts.map

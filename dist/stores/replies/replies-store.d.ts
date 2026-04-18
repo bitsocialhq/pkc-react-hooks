@@ -26,3 +26,4 @@ export declare const getRepliesFirstPageSkipValidation: (comment: Comment, feedO
 export declare const resetRepliesStore: () => Promise<void>;
 export declare const resetRepliesDatabaseAndStore: () => Promise<void>;
 export default repliesStore;
+//# sourceMappingURL=replies-store.d.ts.map

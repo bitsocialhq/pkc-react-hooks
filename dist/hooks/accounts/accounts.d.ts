@@ -61,3 +61,4 @@ export declare function useEditedComment(options?: UseEditedCommentOptions): Use
  * @param communityAddress - The community address to subscribe to, e.g. 'news.eth'.
  */
 export declare function usePubsubSubscribe(options?: UsePubsubSubscribeOptions): UsePubsubSubscribeResult;
+//# sourceMappingURL=accounts.d.ts.map

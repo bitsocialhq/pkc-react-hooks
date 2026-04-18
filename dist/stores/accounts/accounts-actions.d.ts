@@ -43,3 +43,4 @@ export declare const publishCommentModeration: (publishCommentModerationOptions:
 export declare const publishCommunityEdit: (communityAddress: string, publishCommunityEditOptions: PublishCommunityEditOptions, accountName?: string) => Promise<void>;
 export declare const createCommunity: (createCommunityOptions: CreateCommunityOptions, accountName?: string) => Promise<any>;
 export declare const deleteCommunity: (communityAddress: string, accountName?: string) => Promise<void>;
+//# sourceMappingURL=accounts-actions.d.ts.map

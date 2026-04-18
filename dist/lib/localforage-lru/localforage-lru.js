@@ -179,3 +179,4 @@ const createInstance = (localForageLruOptions) => {
     return instances[localForageLruOptions.name];
 };
 export default { createInstance };
+//# sourceMappingURL=localforage-lru.js.map

@@ -134,3 +134,4 @@ export declare class CommunityEdit extends Publication {
 }
 declare const createPkc: any;
 export default createPkc;
+//# sourceMappingURL=pkc-js-mock.d.ts.map

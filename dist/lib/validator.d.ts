@@ -27,3 +27,4 @@ declare const validator: {
     validateUseRepliesArguments: (comment?: any, sortType?: any, accountName?: any, onlyIfCached?: any, flat?: any, accountComments?: any, postsPerPage?: any, filter?: any) => void;
 };
 export default validator;
+//# sourceMappingURL=validator.d.ts.map

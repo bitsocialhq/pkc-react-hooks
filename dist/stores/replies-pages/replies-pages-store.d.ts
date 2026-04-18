@@ -17,3 +17,4 @@ export declare const getRepliesFirstPageCid: (comment: Comment, sortType: string
 export declare const resetRepliesPagesStore: () => Promise<void>;
 export declare const resetRepliesPagesDatabaseAndStore: () => Promise<void>;
 export default repliesPagesStore;
+//# sourceMappingURL=replies-pages-store.d.ts.map
