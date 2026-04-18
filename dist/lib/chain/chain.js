@@ -192,3 +192,4 @@ export default {
     validateEthWallet,
     validateEthWalletViem,
 };
+//# sourceMappingURL=chain.js.map

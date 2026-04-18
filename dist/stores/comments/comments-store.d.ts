@@ -16,3 +16,4 @@ declare const commentsStore: import("zustand").UseBoundStore<import("zustand").S
 export declare const resetCommentsStore: () => Promise<void>;
 export declare const resetCommentsDatabaseAndStore: () => Promise<void>;
 export default commentsStore;
+//# sourceMappingURL=comments-store.d.ts.map

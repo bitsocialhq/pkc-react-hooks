@@ -33,3 +33,4 @@ declare const _default: {
     validateEthWalletViem: (wallet: Wallet, authorAddress: string) => Promise<void>;
 };
 export default _default;
+//# sourceMappingURL=chain.d.ts.map

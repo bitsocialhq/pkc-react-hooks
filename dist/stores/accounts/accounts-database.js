@@ -682,3 +682,4 @@ const database = {
     getPerAccountDatabaseName,
 };
 export default database;
+//# sourceMappingURL=accounts-database.js.map

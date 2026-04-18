@@ -1,0 +1,1 @@
+{"version":3,"file":"index.js","sourceRoot":"","sources":["../../../src/stores/feeds/index.ts"],"names":[],"mappings":"AAAA,OAAO,UAAU,MAAM,eAAe,CAAC;AACvC,cAAc,eAAe,CAAC;AAC9B,eAAe,UAAU,CAAC","sourcesContent":["import feedsStore from \"./feeds-store\";\nexport * from \"./feeds-store\";\nexport default feedsStore;\n"]}

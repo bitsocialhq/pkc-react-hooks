@@ -20,3 +20,4 @@ export declare function assertCommunityRef(value: unknown, label: string): asser
 export declare const doesAddressMatchCommunityRef: (communityAddress: string | undefined, communityRef: CommunityLookupRef, community?: Community) => boolean;
 export declare const getMatchingCommunityRefKeys: (communityRefs: CommunityLookupRef[], communityAddress: string | undefined, community?: Community) => string[];
 export {};
+//# sourceMappingURL=community-ref.d.ts.map

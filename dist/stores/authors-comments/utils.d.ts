@@ -11,3 +11,4 @@ export declare const toSizes: (obj: {
 }) => {
     [key: string]: number;
 };
+//# sourceMappingURL=utils.d.ts.map

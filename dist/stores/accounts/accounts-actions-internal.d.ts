@@ -5,3 +5,4 @@ export declare const ensureAccountEditsLoaded: (accountId: string) => Promise<vo
 export declare const resetLazyAccountHistoryLoaders: () => void;
 export declare const markNotificationsAsRead: (account: Account) => Promise<void>;
 export declare const addCommunityRoleToAccountsCommunities: (community: Community) => Promise<void>;
+//# sourceMappingURL=accounts-actions-internal.d.ts.map

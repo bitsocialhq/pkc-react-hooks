@@ -132,3 +132,4 @@ const sort = (sortType, feed) => {
     throw Error(`feedsStore feedSorter sort type '${sortType}' doesn't exist`);
 };
 export default { sort };
+//# sourceMappingURL=feed-sorter.js.map

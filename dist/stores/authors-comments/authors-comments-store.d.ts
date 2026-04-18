@@ -34,3 +34,4 @@ declare const authorsCommentsStore: import("zustand").UseBoundStore<import("zust
 export declare const resetAuthorsCommentsStore: () => Promise<void>;
 export declare const resetAuthorsCommentsDatabaseAndStore: () => Promise<void>;
 export default authorsCommentsStore;
+//# sourceMappingURL=authors-comments-store.d.ts.map

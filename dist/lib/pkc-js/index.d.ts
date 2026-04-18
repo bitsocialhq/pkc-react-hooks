@@ -8,3 +8,4 @@ declare const protocolClient: any;
 export declare function setPkcJs(_PKC: any): void;
 export declare function restorePkcJs(): void;
 export default protocolClient;
+//# sourceMappingURL=index.d.ts.map

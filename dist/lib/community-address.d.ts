@@ -3,3 +3,4 @@ export declare const getCanonicalCommunityAddress: (address: string) => string;
 export declare const getEquivalentCommunityAddressGroupKey: (address: string) => string;
 export declare const pickPreferredEquivalentCommunityAddress: (addresses: string[]) => string;
 export declare const areEquivalentCommunityAddresses: (addressA?: string, addressB?: string) => boolean;
+//# sourceMappingURL=community-address.d.ts.map

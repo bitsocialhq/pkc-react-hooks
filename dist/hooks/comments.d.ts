@@ -14,3 +14,4 @@ export declare function useComment(options?: UseCommentOptions): UseCommentResul
  */
 export declare function useComments(options?: UseCommentsOptions): UseCommentsResult;
 export declare function useValidateComment(options?: UseValidateCommentOptions): UseValidateCommentResult;
+//# sourceMappingURL=comments.d.ts.map

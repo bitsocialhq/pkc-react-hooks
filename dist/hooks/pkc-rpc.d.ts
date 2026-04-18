@@ -4,3 +4,4 @@ import { UsePkcRpcSettingsOptions, UsePkcRpcSettingsResult } from "../types.js";
  * the active account.
  */
 export declare function usePkcRpcSettings(options?: UsePkcRpcSettingsOptions): UsePkcRpcSettingsResult;
+//# sourceMappingURL=pkc-rpc.d.ts.map

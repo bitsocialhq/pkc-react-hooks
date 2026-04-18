@@ -16,3 +16,4 @@ export declare function usePublishCommentEdit(options?: UsePublishCommentEditOpt
 export declare function usePublishCommentModeration(options?: UsePublishCommentModerationOptions): UsePublishCommentModerationResult;
 export declare function usePublishCommunityEdit(options?: UsePublishCommunityEditOptions): UsePublishCommunityEditResult;
 export declare function useCreateCommunity(options?: UseCreateCommunityOptions): UseCreateCommunityResult;
+//# sourceMappingURL=actions.d.ts.map

@@ -78,3 +78,4 @@ export const toSizes = (obj) => {
     }
     return newObj;
 };
+//# sourceMappingURL=utils.js.map

@@ -546,3 +546,4 @@ export const getSortTypeFromComment = (comment, feedOptions) => {
     // }
     return sortType;
 };
+//# sourceMappingURL=utils.js.map

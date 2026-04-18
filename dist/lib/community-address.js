@@ -23,3 +23,4 @@ export const areEquivalentCommunityAddresses = (addressA, addressB) => {
     }
     return normalizeEthAliasDomain(lowerA) === normalizeEthAliasDomain(lowerB);
 };
+//# sourceMappingURL=community-address.js.map

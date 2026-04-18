@@ -85,3 +85,4 @@ export function usePkcRpcSettings(options) {
         errors,
     }), [pkcRpcSettingsState, account === null || account === void 0 ? void 0 : account.id, state, errors]);
 }
+//# sourceMappingURL=pkc-rpc.js.map

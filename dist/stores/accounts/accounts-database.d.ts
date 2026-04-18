@@ -31,3 +31,4 @@ declare const database: {
     getPerAccountDatabaseName: (databaseName: string, accountId: string) => string;
 };
 export default database;
+//# sourceMappingURL=accounts-database.d.ts.map

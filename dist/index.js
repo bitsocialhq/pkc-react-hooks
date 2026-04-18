@@ -125,3 +125,4 @@ const hooks = {
     deleteCaches,
 };
 export default hooks;
+//# sourceMappingURL=index.js.map

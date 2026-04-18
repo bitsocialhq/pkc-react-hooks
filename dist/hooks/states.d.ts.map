@@ -1,0 +1,1 @@
+{"version":3,"file":"states.d.ts","sourceRoot":"","sources":["../../src/hooks/states.ts"],"names":[],"mappings":"AAKA,OAAO,EACL,uBAAuB,EACvB,sBAAsB,EACtB,2BAA2B,EAC3B,0BAA0B,EAC3B,MAAM,UAAU,CAAC;AAQlB;;;;;GAKG;AACH,wBAAgB,gBAAgB,CAAC,OAAO,CAAC,EAAE,uBAAuB,GAAG,sBAAsB,CA+G1F;AAED;;;;GAIG;AACH,wBAAgB,oBAAoB,CAClC,OAAO,CAAC,EAAE,2BAA2B,GACpC,0BAA0B,CAuH5B"}

@@ -15,3 +15,4 @@ export declare function useFeed(options?: UseFeedOptions): UseFeedResult;
  * the active account.
  */
 export declare function useBufferedFeeds(options?: UseBufferedFeedsOptions): UseBufferedFeedsResult;
+//# sourceMappingURL=feeds.d.ts.map

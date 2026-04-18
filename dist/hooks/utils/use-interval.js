@@ -33,3 +33,4 @@ function useInterval(callback, delay, immediate, dependencies = []) {
     }, [delay]);
 }
 export default useInterval;
+//# sourceMappingURL=use-interval.js.map

@@ -641,3 +641,4 @@ createPkc.getShortCid = (options) => {
     return cid.substring(2, 14);
 };
 export default createPkc;
+//# sourceMappingURL=pkc-js-mock.js.map

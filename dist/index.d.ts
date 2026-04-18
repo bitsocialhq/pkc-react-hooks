@@ -79,3 +79,4 @@ declare const hooks: {
     deleteCaches: () => Promise<[any, any, any]>;
 };
 export default hooks;
+//# sourceMappingURL=index.d.ts.map

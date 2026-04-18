@@ -11,3 +11,4 @@ export declare const backfillPublicationCommunityAddress: <T extends Record<stri
 export declare const createPkcCommunity: (pkc: any, options: any) => Promise<any>;
 export declare const getPkcCommunity: (pkc: any, options: any) => Promise<any>;
 export declare const createPkcCommunityEdit: (pkc: any, options: any) => Promise<any>;
+//# sourceMappingURL=protocol-compat.d.ts.map
