@@ -152,11 +152,12 @@ setAuthorAvatarsWhitelistedTokenAddresses(tokenAddresses: string[])
 #### Feeds Hooks
 
 ```
-useFeed({communities?: CommunityIdentifier[], sortType?: string, postsPerPage?: number, filter?: CommentsFilter, newerThan?: number, accountComments?: {newerThan: number, append?: boolean}, modQueue: ['pendingApproval']}): {feed: Comment[], loadMore: function, hasMore: boolean, reset: function, updatedFeed: Comment[], bufferedFeed: Comment[], communityKeysWithNewerPosts: string[]}
+useFeed({communities?: CommunityIdentifier[], sortType?: string, postsPerPage?: number, filter?: CommentsFilter, newerThan?: number, accountComments?: {newerThan: number, append?: boolean}, modQueue: ['pendingApproval']}): {feed: Comment[], loadMore: function, expandTimeWindow: function, hasMore: boolean, reset: function, updatedFeed: Comment[], bufferedFeed: Comment[], communityKeysWithNewerPosts: string[]}
 useBufferedFeeds({feedsOptions: UseFeedOptions[]}) // preload or buffer feeds in the background, so they load faster when you call `useFeed`
 ```
 
 `useFeed().reset()` clears the current feed and refreshes the latest community snapshots before rebuilding it.
+`useFeed().expandTimeWindow(newerThan)` broadens `newerThan` in place for feeds whose derived sort type stays the same, so older posts can be appended without replacing the feed instance.
 
 #### Actions Hooks
 
@@ -820,6 +821,15 @@ const {feed, hasMore, loadMore} = useFeed({
   communities: searchedCommunities,
   filter: imageOnlyFilter,
 })
+
+// widen a freshness window without replacing the current feed instance
+const {feed, expandTimeWindow} = useFeed({
+  communities: [{name: 'news.eth'}],
+  sortType: 'active',
+  newerThan: 60 * 60 * 24,
+})
+
+await expandTimeWindow(60 * 60 * 24 * 7)
 ```
 
 #### Get mod queue (pending approval)

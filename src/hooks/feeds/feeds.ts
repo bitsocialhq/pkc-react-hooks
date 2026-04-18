@@ -4,6 +4,7 @@ import validator from "../../lib/validator";
 import Logger from "@pkc/pkc-logger";
 const log = Logger("bitsocial-react-hooks:feeds:hooks");
 import assert from "assert";
+import { deriveFeedSortType } from "../../lib/feed-sort-type";
 import {
   Feed,
   Feeds,
@@ -44,7 +45,8 @@ export function useFeed(options?: UseFeedOptions): UseFeedResult {
     accountComments,
     modQueue,
   } = opts;
-  sortType = getSortType(sortType, newerThan);
+  const requestedSortType = sortType || "hot";
+  sortType = deriveFeedSortType(sortType, newerThan);
 
   validator.validateUseFeedArguments({
     communities,
@@ -60,6 +62,7 @@ export function useFeed(options?: UseFeedOptions): UseFeedResult {
   const account = useAccount({ accountName });
   const addFeedToStore = useFeedsStore((state) => state.addFeedToStore);
   const incrementFeedPageNumber = useFeedsStore((state) => state.incrementFeedPageNumber);
+  const expandFeedTimeWindow = useFeedsStore((state) => state.expandFeedTimeWindow);
   const resetFeed = useFeedsStore((state) => state.resetFeed);
   const normalizedCommunityRefs = useMemo(() => communities || [], [communities]);
   const uniqueCommunityRefs = useUniqueSortedCommunityRefs(normalizedCommunityRefs);
@@ -100,10 +103,11 @@ export function useFeed(options?: UseFeedOptions): UseFeedResult {
       newerThan,
       accountComments,
       modQueue,
+      requestedSortType,
     ).catch((error: unknown) => log.error("useFeed addFeedToStore error", { feedName, error }));
   }, [feedName]);
 
-  const feedKey = feedName ?? "";
+  const feedKey = feedName;
   const feed = useFeedsStore((state) => state.loadedFeeds[feedKey]);
   const updatedFeed = useFeedsStore((state) => state.updatedFeeds[feedKey]);
   const bufferedFeed = useFeedsStore((state) => state.bufferedFeeds[feedKey]);
@@ -141,6 +145,18 @@ export function useFeed(options?: UseFeedOptions): UseFeedResult {
     }
   };
 
+  const expandTimeWindow = async (nextNewerThan?: number) => {
+    try {
+      if (!uniqueCommunityRefs.length || !account) {
+        throw Error("useFeed cannot expand time window before feed initialized yet");
+      }
+      expandFeedTimeWindow(feedName, nextNewerThan);
+    } catch (e: any) {
+      await new Promise((r) => setTimeout(r, 50));
+      setErrors([...errors, e]);
+    }
+  };
+
   if (account && normalizedCommunityRefs.length) {
     log("useFeed", {
       feedLength: feed?.length || 0,
@@ -173,6 +189,7 @@ export function useFeed(options?: UseFeedOptions): UseFeedResult {
       hasMore,
       communityKeysWithNewerPosts: communityKeysWithNewerPosts || [],
       loadMore,
+      expandTimeWindow,
       reset,
       state,
       error: errors[errors.length - 1],
@@ -219,18 +236,18 @@ export function useBufferedFeeds(options?: UseBufferedFeedsOptions): UseBuffered
     filters,
     newerThans,
   } = useMemo(() => {
-    const communityRefsArrays = [];
-    const communityKeysArrays = [];
-    const sortTypes = [];
-    const postsPerPages = [];
-    const filters = [];
-    const newerThans = [];
+    const communityRefsArrays: CommunityLookupRef[][] = [];
+    const communityKeysArrays: string[][] = [];
+    const sortTypes: string[] = [];
+    const postsPerPages: (number | undefined)[] = [];
+    const filters: (CommentsFilter | undefined)[] = [];
+    const newerThans: (number | undefined)[] = [];
     for (const feedOptions of feedsOpts) {
       validator.validateUseFeedArguments({
         communities: feedOptions.communities,
         communityRefs: (feedOptions as any).communityRefs,
         communityAddresses: (feedOptions as any).communityAddresses,
-        sortType: getSortType(feedOptions.sortType, feedOptions.newerThan),
+        sortType: deriveFeedSortType(feedOptions.sortType, feedOptions.newerThan),
         accountName,
         postsPerPage: feedOptions.postsPerPage,
         filter: feedOptions.filter,
@@ -240,7 +257,7 @@ export function useBufferedFeeds(options?: UseBufferedFeedsOptions): UseBuffered
       const normalizedCommunityRefs = getUniqueSortedCommunityRefs(feedOptions.communities || []);
       communityRefsArrays.push(normalizedCommunityRefs);
       communityKeysArrays.push(getCommunityRefKeys(normalizedCommunityRefs));
-      sortTypes.push(getSortType(feedOptions.sortType, feedOptions.newerThan));
+      sortTypes.push(deriveFeedSortType(feedOptions.sortType, feedOptions.newerThan));
       postsPerPages.push(feedOptions.postsPerPage);
       filters.push(feedOptions.filter);
       newerThans.push(feedOptions.newerThan);
@@ -274,7 +291,8 @@ export function useBufferedFeeds(options?: UseBufferedFeedsOptions): UseBuffered
   // add feed to store
   useEffect(() => {
     for (const [i] of communityRefsArrays.entries()) {
-      const sortType = sortTypes[i] ?? "hot";
+      const sortType = sortTypes[i];
+      const requestedSortType = feedsOpts[i]?.sortType || sortType;
       const uniqueCommunityRefs = communityRefsArrays[i];
       const uniqueCommunityKeys = communityKeysArrays[i];
       validator.validateFeedSortType(sortType);
@@ -282,8 +300,7 @@ export function useBufferedFeeds(options?: UseBufferedFeedsOptions): UseBuffered
       if (!account || !uniqueCommunityRefs.length) {
         continue;
       }
-      const fkey = feedName ?? "";
-      if (!bufferedFeeds[fkey]) {
+      if (!bufferedFeeds[feedName]) {
         const isBufferedFeed = true;
         addFeedToStore(
           feedName,
@@ -292,6 +309,12 @@ export function useBufferedFeeds(options?: UseBufferedFeedsOptions): UseBuffered
           sortType,
           account,
           isBufferedFeed,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          requestedSortType,
         ).catch((error: unknown) =>
           log.error("useBufferedFeeds addFeedToStore error", { feedName, error }),
         );
@@ -303,8 +326,7 @@ export function useBufferedFeeds(options?: UseBufferedFeedsOptions): UseBuffered
   const bufferedFeedsArray: Feed[] = useMemo(() => {
     const bufferedFeedsArray: Feed[] = [];
     for (const feedName of feedNames) {
-      const key = feedName ?? "";
-      bufferedFeedsArray.push(addCommentModerationToComments(bufferedFeeds[key]));
+      bufferedFeedsArray.push(addCommentModerationToComments(bufferedFeeds[feedName]));
     }
     return bufferedFeedsArray;
   }, [bufferedFeeds, feedNames]);
@@ -387,19 +409,19 @@ function useFeedName(
 
 function useFeedNames(
   accountId: string,
-  sortTypes: (string | undefined)[],
+  sortTypes: string[],
   uniqueCommunityKeysArrays: string[][],
   postsPerPages: (number | undefined)[],
   filters: (CommentsFilter | undefined)[],
   newerThans: (number | undefined)[],
 ) {
   return useMemo(() => {
-    const feedNames = [];
+    const feedNames: string[] = [];
     for (const [i] of sortTypes.entries()) {
       feedNames.push(
         accountId +
           "-" +
-          (sortTypes[i] ?? "hot") +
+          sortTypes[i] +
           "-" +
           uniqueCommunityKeysArrays[i] +
           "-" +
@@ -413,24 +435,3 @@ function useFeedNames(
     return feedNames;
   }, [accountId, sortTypes, uniqueCommunityKeysArrays, postsPerPages, filters, newerThans]);
 }
-
-const NEWER_THAN_LIMITS = [
-  [60 * 60 * 24, "Day"],
-  [60 * 60 * 24 * 7, "Week"],
-  [60 * 60 * 24 * 31, "Month"],
-  [60 * 60 * 24 * 365, "Year"],
-] as const;
-
-const getSortType = (sortType?: string, newerThan?: number): string => {
-  const base = sortType || "hot";
-  if (!newerThan || (base !== "topAll" && base !== "controversialAll")) return base;
-  let time: string | undefined;
-  for (const [limit, name] of NEWER_THAN_LIMITS) {
-    if (newerThan <= limit) {
-      time = name;
-      break;
-    }
-  }
-  if (!time) return base;
-  return base === "topAll" ? `top${time}` : `controversial${time}`;
-};

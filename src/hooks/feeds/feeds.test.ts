@@ -88,6 +88,13 @@ describe("feeds", () => {
       expect(typeof rendered.result.current.loadMore).toBe("function");
     });
 
+    test("useFeed handles an undefined options object", async () => {
+      const directRendered = renderHook<any, any>(() => useFeed());
+      await act(async () => {});
+      expect(directRendered.result.current.feed).toEqual([]);
+      expect(directRendered.result.current.hasMore).toBe(false);
+    });
+
     test("useFeed addFeedToStore error is caught and logged", async () => {
       const originalAddFeedToStore = feedsStore.getState().addFeedToStore;
       const logSpy = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -165,6 +172,20 @@ describe("feeds", () => {
       });
       expect(rendered.result.current.errors.length).toBeGreaterThan(0);
       expect(rendered.result.current.error?.message).toMatch(/not initalized/i);
+    });
+
+    test("expandTimeWindow init guard throws when not initialized", async () => {
+      rendered.rerender({
+        communityAddresses: ["community address 1"],
+        accountName: "nonexistent-account-xyz",
+      });
+      await act(async () => {
+        await rendered.result.current.expandTimeWindow(60 * 60);
+      });
+      expect(rendered.result.current.errors.length).toBeGreaterThan(0);
+      expect(rendered.result.current.error?.message).toMatch(
+        /expand time window before feed initialized/i,
+      );
     });
 
     test("not yet loaded feed hasMore true", async () => {
@@ -484,6 +505,182 @@ describe("feeds", () => {
         newerThan: 60 * 60 * 24 * 400,
       });
       expect(Object.keys(feedsStore.getState().feedsOptions).join(" ")).toMatch("topAll");
+    });
+
+    test("expandTimeWindow appends older active posts without creating a new feed key", async () => {
+      const getPage = Pages.prototype.getPage;
+      const now = Math.floor(Date.now() / 1000);
+      Pages.prototype.getPage = async function () {
+        await simulateLoadingTime();
+        return {
+          comments: [
+            {
+              timestamp: now,
+              lastReplyTimestamp: now,
+              cid: "expand cid 1",
+              communityAddress: this.community.address,
+            },
+            {
+              timestamp: now - 24 * 60 * 60,
+              lastReplyTimestamp: now - 24 * 60 * 60,
+              cid: "expand cid 2",
+              communityAddress: this.community.address,
+            },
+            {
+              timestamp: now - 5 * 24 * 60 * 60,
+              lastReplyTimestamp: now - 5 * 24 * 60 * 60,
+              cid: "expand cid 3",
+              communityAddress: this.community.address,
+            },
+            {
+              timestamp: now - 10 * 24 * 60 * 60,
+              lastReplyTimestamp: now - 10 * 24 * 60 * 60,
+              cid: "expand cid 4",
+              communityAddress: this.community.address,
+            },
+          ],
+        };
+      };
+
+      try {
+        rendered.rerender({
+          communityAddresses: ["community address 1"],
+          sortType: "active",
+          postsPerPage: 2,
+          newerThan: 3 * 24 * 60 * 60,
+        });
+
+        await waitFor(() => rendered.result.current.feed.length === 2);
+        const feedKeysBeforeExpand = Object.keys(feedsStore.getState().feedsOptions);
+        const [feedNameBeforeExpand] = feedKeysBeforeExpand;
+
+        await act(async () => {
+          await rendered.result.current.expandTimeWindow(14 * 24 * 60 * 60);
+        });
+
+        await waitFor(() => rendered.result.current.feed.length === 4);
+        expect(rendered.result.current.feed.map((post: Comment) => post.cid)).toEqual([
+          "expand cid 1",
+          "expand cid 2",
+          "expand cid 3",
+          "expand cid 4",
+        ]);
+        expect(Object.keys(feedsStore.getState().feedsOptions)).toEqual(feedKeysBeforeExpand);
+        expect(feedsStore.getState().feedsOptions[feedNameBeforeExpand]?.newerThan).toBe(
+          14 * 24 * 60 * 60,
+        );
+        expect(feedsStore.getState().feedsOptions[feedNameBeforeExpand]?.pageNumber).toBe(2);
+      } finally {
+        Pages.prototype.getPage = getPage;
+      }
+    });
+
+    test("expandTimeWindow keeps the current page when the feed is not full yet", async () => {
+      const getPage = Pages.prototype.getPage;
+      const now = Math.floor(Date.now() / 1000);
+      Pages.prototype.getPage = async function () {
+        await simulateLoadingTime();
+        return {
+          comments: [
+            {
+              timestamp: now,
+              lastReplyTimestamp: now,
+              cid: "partial expand cid 1",
+              communityAddress: this.community.address,
+            },
+            {
+              timestamp: now - 24 * 60 * 60,
+              lastReplyTimestamp: now - 24 * 60 * 60,
+              cid: "partial expand cid 2",
+              communityAddress: this.community.address,
+            },
+            {
+              timestamp: now - 5 * 24 * 60 * 60,
+              lastReplyTimestamp: now - 5 * 24 * 60 * 60,
+              cid: "partial expand cid 3",
+              communityAddress: this.community.address,
+            },
+            {
+              timestamp: now - 10 * 24 * 60 * 60,
+              lastReplyTimestamp: now - 10 * 24 * 60 * 60,
+              cid: "partial expand cid 4",
+              communityAddress: this.community.address,
+            },
+          ],
+        };
+      };
+
+      try {
+        rendered.rerender({
+          communityAddresses: ["community address 1"],
+          sortType: "active",
+          postsPerPage: 5,
+          newerThan: 3 * 24 * 60 * 60,
+        });
+
+        await waitFor(() => rendered.result.current.feed.length === 2);
+        const [feedName] = Object.keys(feedsStore.getState().feedsOptions);
+
+        await act(async () => {
+          await rendered.result.current.expandTimeWindow(14 * 24 * 60 * 60);
+        });
+
+        await waitFor(() => rendered.result.current.feed.length === 4);
+        expect(feedsStore.getState().feedsOptions[feedName]?.pageNumber).toBe(1);
+      } finally {
+        Pages.prototype.getPage = getPage;
+      }
+    });
+
+    test("expandTimeWindow is a no-op when the requested window is unchanged", async () => {
+      rendered.rerender({
+        communityAddresses: ["community address 1"],
+        sortType: "active",
+        newerThan: 24 * 60 * 60,
+      });
+
+      await waitFor(() => Object.keys(feedsStore.getState().feedsOptions).length > 0);
+      const [feedName] = Object.keys(feedsStore.getState().feedsOptions);
+      const previousFeedOptions = feedsStore.getState().feedsOptions[feedName];
+
+      await act(async () => {
+        await rendered.result.current.expandTimeWindow(24 * 60 * 60);
+      });
+
+      expect(rendered.result.current.errors).toEqual([]);
+      expect(feedsStore.getState().feedsOptions[feedName]).toBe(previousFeedOptions);
+    });
+
+    test("expandTimeWindow rejects narrower windows", async () => {
+      rendered.rerender({
+        communityAddresses: ["community address 1"],
+        sortType: "active",
+        newerThan: 7 * 24 * 60 * 60,
+      });
+
+      await waitFor(() => Object.keys(feedsStore.getState().feedsOptions).length > 0);
+
+      await act(async () => {
+        await rendered.result.current.expandTimeWindow(24 * 60 * 60);
+      });
+
+      expect(rendered.result.current.error?.message).toMatch(/must broaden the current window/i);
+    });
+
+    test("expandTimeWindow rejects expansions that would change the derived sort type", async () => {
+      rendered.rerender({
+        communityAddresses: ["community address 1"],
+        sortType: "topAll",
+        newerThan: 24 * 60 * 60,
+      });
+
+      await waitFor(() => Object.keys(feedsStore.getState().feedsOptions).length > 0);
+
+      await act(async () => {
+        await rendered.result.current.expandTimeWindow(7 * 24 * 60 * 60);
+      });
+
+      expect(rendered.result.current.error?.message).toMatch(/cannot change sort type/i);
     });
 
     test("change community addresses and sort type", async () => {

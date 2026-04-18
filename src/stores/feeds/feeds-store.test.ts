@@ -633,6 +633,47 @@ describe("feeds store", () => {
     }
   });
 
+  test("expandFeedTimeWindow keeps the current page when no loaded feed exists yet", () => {
+    const communityAddresses = ["community address expand-empty"];
+    const feedName = JSON.stringify([mockAccount?.id, "active", communityAddresses]);
+    const updateFeeds = useFeedsStore.getState().updateFeeds;
+    const updateFeedsSpy = vi.fn();
+
+    useFeedsStore.setState((state: any) => ({
+      ...state,
+      updateFeeds: updateFeedsSpy,
+      feedsOptions: {
+        ...state.feedsOptions,
+        [feedName]: {
+          communities: toCommunities(communityAddresses),
+          communityKeys: communityAddresses,
+          sortType: "active",
+          requestedSortType: "active",
+          accountId: mockAccount.id,
+          pageNumber: 1,
+          postsPerPage,
+          filter: undefined,
+          newerThan: 24 * 60 * 60,
+        },
+      },
+    }));
+
+    try {
+      act(() => {
+        useFeedsStore.getState().expandFeedTimeWindow(feedName, 7 * 24 * 60 * 60);
+      });
+
+      expect(useFeedsStore.getState().feedsOptions[feedName].pageNumber).toBe(1);
+      expect(useFeedsStore.getState().feedsOptions[feedName].newerThan).toBe(7 * 24 * 60 * 60);
+      expect(updateFeedsSpy).toHaveBeenCalled();
+    } finally {
+      useFeedsStore.setState((state: any) => ({
+        ...state,
+        updateFeeds,
+      }));
+    }
+  });
+
   test("updateFeedsOnAccountsBlockedCidsChange calls updateFeeds when blocked cid is in feed", async () => {
     const communityAddresses = ["community address 1"];
     const feedName = JSON.stringify([mockAccount?.id, "new", communityAddresses]);
