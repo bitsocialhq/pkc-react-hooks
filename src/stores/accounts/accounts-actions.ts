@@ -1701,6 +1701,8 @@ export const publishCommentModeration = async (
     }
   };
 
+  publishAndRetryFailedChallengeVerification();
+
   await accountsDatabase.addAccountEdit(account.id, storedCreateCommentModerationOptions);
   log("accountsActions.publishCommentModeration", { createCommentModerationOptions });
   accountsStore.setState(({ accountsEdits, accountsEditsSummaries }) => {
@@ -1715,8 +1717,6 @@ export const publishCommentModeration = async (
     );
     return nextState;
   });
-
-  publishAndRetryFailedChallengeVerification();
 };
 
 export const publishCommunityEdit = async (
