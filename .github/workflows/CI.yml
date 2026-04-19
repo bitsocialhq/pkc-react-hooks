@@ -95,11 +95,11 @@ jobs:
             browsers: chromium
           - suite: chrome
             pkc_rpc_port: 48492
-            command: DEBUG="pkc-js:*,bitsocial-react-hooks:*" CHROME_BIN=$(which chromium-browser) yarn test:e2e:chrome
+            command: CHROME_BIN=$(which chromium-browser) yarn test:e2e:chrome
             browsers: chromium
           - suite: firefox
             pkc_rpc_port: 48592
-            command: DEBUG="pkc-js:*,bitsocial-react-hooks:*" FIREFOX_BIN=$(which firefox) yarn test:e2e:firefox
+            command: FIREFOX_BIN=$(which firefox) yarn test:e2e:firefox
             browsers: firefox
           - suite: mock-content
             pkc_rpc_port: 48692
