@@ -1622,8 +1622,14 @@ export const publishCommentModeration = async (
   );
   let lastChallenge: Challenge | undefined;
   let challengeSucceeded = false;
+  let storedCommentModerationAdded = false;
+  let rollbackStoredCommentModerationRequested = false;
   let rollbackPendingEditPromise: Promise<void> | undefined;
   const rollbackStoredCommentModeration = () => {
+    rollbackStoredCommentModerationRequested = true;
+    if (!storedCommentModerationAdded) {
+      return Promise.resolve();
+    }
     if (!rollbackPendingEditPromise && !challengeSucceeded) {
       rollbackPendingEditPromise = Promise.all([
         accountsDatabase.deleteAccountEdit(account.id, storedCommentModeration),
@@ -1644,7 +1650,7 @@ export const publishCommentModeration = async (
         ),
       ]).then(() => {});
     }
-    return rollbackPendingEditPromise;
+    return rollbackPendingEditPromise || Promise.resolve();
   };
 
   const publishAndRetryFailedChallengeVerification = async () => {
@@ -1717,6 +1723,10 @@ export const publishCommentModeration = async (
     );
     return nextState;
   });
+  storedCommentModerationAdded = true;
+  if (rollbackStoredCommentModerationRequested) {
+    await rollbackStoredCommentModeration();
+  }
 };
 
 export const publishCommunityEdit = async (
