@@ -13,7 +13,13 @@ import Logger from "@pkc/pkc-logger";
 import assert from "assert";
 const log = Logger("bitsocial-react-hooks:pkc-js");
 let loadedDefaultPkc;
-const getFallbackShortAddress = ({ address }) => {
+const getShortAddressValue = (params = {}) => { var _a; return (_a = params.name) !== null && _a !== void 0 ? _a : params.address; };
+const normalizeShortAddressParams = (params = {}) => {
+    const address = getShortAddressValue(params);
+    return typeof address === "string" ? Object.assign(Object.assign({}, params), { address, name: address }) : params;
+};
+const getFallbackShortAddress = (params) => {
+    const address = getShortAddressValue(params);
     if (typeof address !== "string") {
         return address;
     }
@@ -41,7 +47,7 @@ const createLazyDefaultPkc = () => {
         return PKC(...args);
     });
     lazyPkc.getShortAddress = (params) => (loadedDefaultPkc === null || loadedDefaultPkc === void 0 ? void 0 : loadedDefaultPkc.getShortAddress)
-        ? loadedDefaultPkc.getShortAddress(params)
+        ? loadedDefaultPkc.getShortAddress(normalizeShortAddressParams(params))
         : getFallbackShortAddress(params);
     lazyPkc.getShortCid = (params) => (loadedDefaultPkc === null || loadedDefaultPkc === void 0 ? void 0 : loadedDefaultPkc.getShortCid)
         ? loadedDefaultPkc.getShortCid(params)
