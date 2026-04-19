@@ -41,7 +41,7 @@
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0"
   },
   "dependencies": {
-    "@bitsocial/bso-resolver": "0.0.4",
+    "@bitsocial/bso-resolver": "0.0.6",
     "@pkc/pkc-logger": "https://github.com/pkcprotocol/pkc-logger.git",
     "@pkcprotocol/pkc-js": "0.0.18",
     "assert": "2.0.0",

@@ -279,14 +279,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@bitsocial/bso-resolver@npm:0.0.4":
-  version: 0.0.4
-  resolution: "@bitsocial/bso-resolver@npm:0.0.4"
+"@bitsocial/bso-resolver@npm:0.0.6":
+  version: 0.0.6
+  resolution: "@bitsocial/bso-resolver@npm:0.0.6"
   dependencies:
-    "@pkc/pkc-logger": "github:pkcprotocol/pkc-logger#cb494fbaf332ed5b2cfd9d9d0f90ca7fd0058b4a"
+    "@pkcprotocol/pkc-logger": "npm:0.1.0"
     better-sqlite3: "npm:12.6.2"
-    viem: "npm:2.47.0"
-  checksum: 10c0/39cf1f3381343591e98ae149c682acd245403bde5608135d849dd31904c6b539f3accdc46e1e6a3978ddf6dea71f85814be8792ce5f5e0d7526399f1eb23ac48
+    viem: "npm:2.48.1"
+  checksum: 10c0/113e54c08dd86c1e356318e6be1b2b1682753209bba229256352a47bbaef81d340a46c5124f4abf8f49d1289caae479637e902b45ac33e950fc05a34caf0e044
   languageName: node
   linkType: hard
 
@@ -294,7 +294,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@bitsocialnet/bitsocial-react-hooks@workspace:."
   dependencies:
-    "@bitsocial/bso-resolver": "npm:0.0.4"
+    "@bitsocial/bso-resolver": "npm:0.0.6"
     "@pkc/pkc-logger": "https://github.com/pkcprotocol/pkc-logger.git"
     "@pkcprotocol/pkc-js": "npm:0.0.18"
     "@testing-library/dom": "npm:10.4.1"
@@ -2950,7 +2950,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@pkc/pkc-logger@github:pkcprotocol/pkc-logger#cb494fbaf332ed5b2cfd9d9d0f90ca7fd0058b4a, @pkc/pkc-logger@https://github.com/pkcprotocol/pkc-logger.git":
+"@pkc/pkc-logger@https://github.com/pkcprotocol/pkc-logger.git":
   version: 0.0.1
   resolution: "@pkc/pkc-logger@https://github.com/pkcprotocol/pkc-logger.git#commit=cb494fbaf332ed5b2cfd9d9d0f90ca7fd0058b4a"
   dependencies:
@@ -9337,9 +9337,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ox@npm:0.14.0":
-  version: 0.14.0
-  resolution: "ox@npm:0.14.0"
+"ox@npm:0.14.17":
+  version: 0.14.17
+  resolution: "ox@npm:0.14.17"
   dependencies:
     "@adraffy/ens-normalize": "npm:^1.11.0"
     "@noble/ciphers": "npm:^1.3.0"
@@ -9354,7 +9354,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/96728af6684887faf7b380d4530bdc1a5e32b7a4d89769567aab2a458b7dda522a0be98aa7edadfae09bd953e76fcfd0f1c5780ea8c2060992d09a11d865b010
+  checksum: 10c0/a4632918d89db20e7265dff96dec3786046e2ec99a42659badd300b7b24678348f505fd57e651c3a814a150d905f512a23a037f15757eae41db601d25fa7b10c
   languageName: node
   linkType: hard
 
@@ -11999,9 +11999,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"viem@npm:2.47.0":
-  version: 2.47.0
-  resolution: "viem@npm:2.47.0"
+"viem@npm:2.48.1":
+  version: 2.48.1
+  resolution: "viem@npm:2.48.1"
   dependencies:
     "@noble/curves": "npm:1.9.1"
     "@noble/hashes": "npm:1.8.0"
@@ -12009,14 +12009,14 @@ __metadata:
     "@scure/bip39": "npm:1.6.0"
     abitype: "npm:1.2.3"
     isows: "npm:1.0.7"
-    ox: "npm:0.14.0"
+    ox: "npm:0.14.17"
     ws: "npm:8.18.3"
   peerDependencies:
     typescript: ">=5.0.4"
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/6160dcd4a7b459c6cd5b12bb06a6168d5fac634a51957e0dc2032df7d35cbd15055e71f3b6fec6f133b9d5df2b7875f84ae7fabeff990118d7d87e5dbb1bbe2c
+  checksum: 10c0/222ad600cee6f9887228e2a9a8bc9d11315cb8a68cef6e271de4aee75be087be33544d3f1c7483d8a5c93c1964bbd4298fc6b36bfbcd3b7f1a66bda0de82d841
   languageName: node
   linkType: hard
 
