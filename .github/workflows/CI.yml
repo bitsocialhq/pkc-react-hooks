@@ -169,6 +169,8 @@ jobs:
       - name: Check if package version already exists
         if: steps.dist_commit.outputs.changes_detected == 'true'
         id: check_npm_version
+        env:
+          NODE_AUTH_TOKEN: ''
         run: |
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
           if npm view @bitsocial/bitsocial-react-hooks@$PACKAGE_VERSION version 2>/dev/null; then
@@ -180,4 +182,6 @@ jobs:
           fi
       - name: Publish to npm
         if: steps.dist_commit.outputs.changes_detected == 'true' && steps.check_npm_version.outputs.exists == 'false'
+        env:
+          NODE_AUTH_TOKEN: ''
         run: npm publish --access public --provenance
