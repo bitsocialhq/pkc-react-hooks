@@ -326,7 +326,7 @@ export function useAuthorAddress(options?: UseAuthorAddressOptions): UseAuthorAd
       log("useAuthorAddress protocol.resolveAuthorName", { address: addr });
       return cacheResolveAuthorAddressPromise(
         addr,
-        resolveAuthorNameWithProtocol(protocolClient, { address: addr }),
+        resolveAuthorNameWithProtocol(protocolClient, { name: addr }),
       );
     };
     const resolveAuthorAddress = async () => {
@@ -462,7 +462,7 @@ export function useResolvedAuthorAddress(
     return cacheResolveAuthorAddressPromise(
       author?.address,
       resolveAuthorNameWithProtocol(protocolClient, {
-        address: author?.address,
+        name: author?.address,
       }),
     );
   };

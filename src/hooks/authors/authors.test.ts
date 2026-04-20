@@ -24,6 +24,7 @@ import localForageLru from "../../lib/localforage-lru";
 import { ethers } from "ethers";
 import { Nft, Author } from "../../types";
 import PkcJsMock, { PKC } from "../../lib/pkc-js/pkc-js-mock";
+import type { PkcResolveAuthorNameResult } from "../../lib/pkc-types";
 
 const avatarNft1 = {
   chainTicker: "eth",
@@ -42,6 +43,9 @@ const avatarNftImageUrl1 =
 const avatarNftImageUrl2 =
   "https://peer.decentraland.org/lambdas/collections/standard/erc721/137/0xf6d8e606c862143556b342149a7fe0558c220375/0/100";
 const authorAddress = "12D3KooW...";
+const resolvedAuthorNameResult = (resolvedAuthorName: string): PkcResolveAuthorNameResult => ({
+  resolvedAuthorName,
+});
 
 const comment = {
   author: {
@@ -176,9 +180,9 @@ describe("authors", () => {
       PkcJsMock.getShortAddress = origGetShortAddress;
     });
 
-    test("useAuthorAddress catch path when resolveAuthorAddress rejects", async () => {
-      const origResolve = PKC.prototype.resolveAuthorAddress;
-      PKC.prototype.resolveAuthorAddress = () => Promise.reject(new Error("resolve failed"));
+    test("useAuthorAddress catch path when resolveAuthorName rejects", async () => {
+      const origResolve = PKC.prototype.resolveAuthorName;
+      PKC.prototype.resolveAuthorName = () => Promise.reject(new Error("resolve failed"));
       try {
         const cryptoName = "addr-reject-test.eth";
         const commentWithCrypto = {
@@ -190,7 +194,7 @@ describe("authors", () => {
         await new Promise((r) => setTimeout(r, 150));
         // Catch path is covered; Logger may not use console.error
       } finally {
-        PKC.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorName = origResolve;
       }
     });
 
@@ -200,12 +204,12 @@ describe("authors", () => {
       const signerAddr = comment.author.address;
       let resolveCalls = 0;
       let shouldReject = true;
-      const origResolve = PKC.prototype.resolveAuthorAddress;
-      PKC.prototype.resolveAuthorAddress = () => {
+      const origResolve = PKC.prototype.resolveAuthorName;
+      PKC.prototype.resolveAuthorName = () => {
         resolveCalls += 1;
         return shouldReject
           ? Promise.reject(new Error("resolve failed"))
-          : Promise.resolve(signerAddr);
+          : Promise.resolve(resolvedAuthorNameResult(signerAddr));
       };
       try {
         const commentWithCrypto = {
@@ -225,7 +229,7 @@ describe("authors", () => {
         await waitForSecond(() => second.result.current.authorAddress === cryptoName);
         expect(resolveCalls).toBe(2);
       } finally {
-        PKC.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorName = origResolve;
       }
     });
 
@@ -234,10 +238,10 @@ describe("authors", () => {
       const cryptoName = "first-resolve-293.eth";
       const signerAddr = comment.author.address;
       let resolveCallCount = 0;
-      const origResolve = PKC.prototype.resolveAuthorAddress;
-      PKC.prototype.resolveAuthorAddress = function (opts: { address: string }) {
+      const origResolve = PKC.prototype.resolveAuthorName;
+      PKC.prototype.resolveAuthorName = function (opts: { name: string }) {
         resolveCallCount += 1;
-        return Promise.resolve(signerAddr);
+        return Promise.resolve(resolvedAuthorNameResult(signerAddr));
       };
       try {
         const commentWithCrypto = {
@@ -249,15 +253,15 @@ describe("authors", () => {
         expect(rendered.result.current.authorAddress).toBe(cryptoName);
         expect(resolveCallCount).toBe(1);
       } finally {
-        PKC.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorName = origResolve;
       }
     });
 
     test("useAuthorAddress uses cached result on rerender", async () => {
       const cryptoName = "cached-addr.eth";
       const signerAddr = comment.author.address;
-      const origResolve = PKC.prototype.resolveAuthorAddress;
-      PKC.prototype.resolveAuthorAddress = () => Promise.resolve(signerAddr);
+      const origResolve = PKC.prototype.resolveAuthorName;
+      PKC.prototype.resolveAuthorName = () => Promise.resolve(resolvedAuthorNameResult(signerAddr));
       try {
         const commentWithCrypto = {
           ...comment,
@@ -269,18 +273,18 @@ describe("authors", () => {
         await act(() => {});
         expect(rendered.result.current.authorAddress).toBe(cryptoName);
       } finally {
-        PKC.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorName = origResolve;
       }
     });
 
     test("useAuthorAddress uses cached result on remount (hits cached path)", async () => {
       const cryptoName = "cached-remount.eth";
       const signerAddr = comment.author.address;
-      const origResolve = PKC.prototype.resolveAuthorAddress;
+      const origResolve = PKC.prototype.resolveAuthorName;
       let resolveCallCount = 0;
-      PKC.prototype.resolveAuthorAddress = () => {
+      PKC.prototype.resolveAuthorName = () => {
         resolveCallCount += 1;
-        return Promise.resolve(signerAddr);
+        return Promise.resolve(resolvedAuthorNameResult(signerAddr));
       };
       try {
         const commentWithCrypto = {
@@ -297,17 +301,17 @@ describe("authors", () => {
         await waitFor(() => rendered.result.current.authorAddress === cryptoName);
         expect(resolveCallCount).toBe(1);
       } finally {
-        PKC.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorName = origResolve;
       }
     });
 
     test("useAuthorAddress reuses in-flight promise on rapid rerender", async () => {
       let resolveDeferred: (v: string) => void = () => {};
-      const deferredPromise = new Promise<string>((r) => {
-        resolveDeferred = r;
+      const deferredPromise = new Promise<PkcResolveAuthorNameResult>((resolve) => {
+        resolveDeferred = (value) => resolve(resolvedAuthorNameResult(value));
       });
-      const origResolve = PKC.prototype.resolveAuthorAddress;
-      PKC.prototype.resolveAuthorAddress = () => deferredPromise;
+      const origResolve = PKC.prototype.resolveAuthorName;
+      PKC.prototype.resolveAuthorName = () => deferredPromise;
       try {
         const cryptoName = "deferred-addr.eth";
         const accountComment = { author: { address: cryptoName } };
@@ -318,7 +322,7 @@ describe("authors", () => {
         resolveDeferred!("resolved");
         await waitFor(() => rendered.result.current.authorAddress === cryptoName);
       } finally {
-        PKC.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorName = origResolve;
       }
     });
   });
@@ -875,11 +879,11 @@ describe("authors", () => {
     test("useResolvedAuthorAddress .bso resolves with the eth chain provider", async () => {
       resetAuthorAddressCacheForTesting();
       const resolved = "12D3KooWresolved";
-      let resolveArgs: { address: string } | undefined;
-      const origResolve = PKC.prototype.resolveAuthorAddress;
-      PKC.prototype.resolveAuthorAddress = (opts: { address: string }) => {
+      let resolveArgs: { name: string } | undefined;
+      const origResolve = PKC.prototype.resolveAuthorName;
+      PKC.prototype.resolveAuthorName = (opts: { name: string }) => {
         resolveArgs = opts;
-        return Promise.resolve(resolved);
+        return Promise.resolve(resolvedAuthorNameResult(resolved));
       };
       try {
         const rendered = renderHook<any, any>(() => {
@@ -895,7 +899,7 @@ describe("authors", () => {
         });
         const waitFor = testUtils.createWaitFor(rendered, { timeout: 20000 });
         await waitFor(() => rendered.result.current.resolvedAddress === resolved);
-        expect(resolveArgs).toEqual({ address: "plebeius.bso" });
+        expect(resolveArgs).toEqual({ name: "plebeius.bso" });
         expect(rendered.result.current.error).toBe(undefined);
         expect(rendered.result.current.chainProvider).toEqual(
           rendered.result.current.ethChainProvider,
@@ -908,7 +912,34 @@ describe("authors", () => {
           providerLabel: "ethereum-rpc.publicnode.com",
         });
       } finally {
-        PKC.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorName = origResolve;
+      }
+    });
+
+    test("useResolvedAuthorAddress matches the pkc-js resolveAuthorName contract", async () => {
+      resetAuthorAddressCacheForTesting();
+      const resolved = "12D3KooWresolvedFromName";
+      let resolveArgs: { name: string } | undefined;
+      const origResolveAddress = PKC.prototype.resolveAuthorAddress;
+      const origResolveName = PKC.prototype.resolveAuthorName;
+      (PKC.prototype as any).resolveAuthorAddress = undefined;
+      PKC.prototype.resolveAuthorName = ((opts: { name: string }) => {
+        resolveArgs = opts;
+        return Promise.resolve(resolvedAuthorNameResult(resolved));
+      }) as any;
+      try {
+        const rendered = renderHook<any, any>(() =>
+          useResolvedAuthorAddress({
+            author: { address: "typed-contract.bso" },
+            cache: false,
+          }),
+        );
+        const waitFor = testUtils.createWaitFor(rendered, { timeout: 20000 });
+        await waitFor(() => rendered.result.current.resolvedAddress === resolved);
+        expect(resolveArgs).toEqual({ name: "typed-contract.bso" });
+      } finally {
+        PKC.prototype.resolveAuthorAddress = origResolveAddress;
+        PKC.prototype.resolveAuthorName = origResolveName;
       }
     });
 
@@ -951,8 +982,8 @@ describe("authors", () => {
     );
 
     test("useResolvedAuthorAddress handles resolve error", { timeout }, async () => {
-      const origResolve = PKC.prototype.resolveAuthorAddress;
-      PKC.prototype.resolveAuthorAddress = () => Promise.reject(new Error("resolution failed"));
+      const origResolve = PKC.prototype.resolveAuthorName;
+      PKC.prototype.resolveAuthorName = () => Promise.reject(new Error("resolution failed"));
       try {
         const rendered = renderHook<any, any>((author) => useResolvedAuthorAddress({ author }));
         const waitFor = testUtils.createWaitFor(rendered, { timeout: 20000 });
@@ -960,7 +991,7 @@ describe("authors", () => {
         await waitFor(() => rendered.result.current.error !== undefined);
         expect(rendered.result.current.error?.message).toBe("resolution failed");
       } finally {
-        PKC.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorName = origResolve;
       }
     });
 
@@ -976,10 +1007,10 @@ describe("authors", () => {
       const addr = "cache-hit.eth";
       const resolved = "12D3KooWresolved";
       let resolveCalls = 0;
-      const origResolve = PKC.prototype.resolveAuthorAddress;
-      PKC.prototype.resolveAuthorAddress = () => {
+      const origResolve = PKC.prototype.resolveAuthorName;
+      PKC.prototype.resolveAuthorName = () => {
         resolveCalls++;
-        return Promise.resolve(resolved);
+        return Promise.resolve(resolvedAuthorNameResult(resolved));
       };
       try {
         const r1 = renderHook<any, any>(() =>
@@ -996,7 +1027,7 @@ describe("authors", () => {
         await waitFor2(() => r2.result.current.resolvedAddress === resolved);
         expect(resolveCalls).toBe(1);
       } finally {
-        PKC.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorName = origResolve;
       }
     });
 
@@ -1005,10 +1036,10 @@ describe("authors", () => {
       const addr = "cached-promise.eth";
       const resolved = "12D3KooWresolved";
       let resolveCalls = 0;
-      const origResolve = PKC.prototype.resolveAuthorAddress;
-      PKC.prototype.resolveAuthorAddress = () => {
+      const origResolve = PKC.prototype.resolveAuthorName;
+      PKC.prototype.resolveAuthorName = () => {
         resolveCalls++;
-        return Promise.resolve(resolved);
+        return Promise.resolve(resolvedAuthorNameResult(resolved));
       };
       try {
         const r1 = renderHook<any, any>(() =>
@@ -1025,7 +1056,7 @@ describe("authors", () => {
         await waitFor2(() => r2.result.current.resolvedAddress === resolved);
         expect(resolveCalls).toBe(1);
       } finally {
-        PKC.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorName = origResolve;
       }
     });
 
@@ -1035,12 +1066,12 @@ describe("authors", () => {
       const resolved = "12D3KooWresolved";
       let resolveCalls = 0;
       let shouldReject = true;
-      const origResolve = PKC.prototype.resolveAuthorAddress;
-      PKC.prototype.resolveAuthorAddress = () => {
+      const origResolve = PKC.prototype.resolveAuthorName;
+      PKC.prototype.resolveAuthorName = () => {
         resolveCalls++;
         return shouldReject
           ? Promise.reject(new Error("resolution failed"))
-          : Promise.resolve(resolved);
+          : Promise.resolve(resolvedAuthorNameResult(resolved));
       };
       try {
         const first = renderHook<any, any>(() =>
@@ -1059,7 +1090,7 @@ describe("authors", () => {
         await waitForSecond(() => second.result.current.resolvedAddress === resolved);
         expect(resolveCalls).toBe(2);
       } finally {
-        PKC.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorName = origResolve;
       }
     });
 
@@ -1069,11 +1100,11 @@ describe("authors", () => {
       const resolved = "12D3KooWresolved";
       let resolveCalls = 0;
       let releasePromise: ((value: string) => void) | undefined;
-      const origResolve = PKC.prototype.resolveAuthorAddress;
-      PKC.prototype.resolveAuthorAddress = () => {
+      const origResolve = PKC.prototype.resolveAuthorName;
+      PKC.prototype.resolveAuthorName = () => {
         resolveCalls++;
         return new Promise((resolve) => {
-          releasePromise = resolve;
+          releasePromise = (value) => resolve(resolvedAuthorNameResult(value));
         });
       };
       try {
@@ -1094,7 +1125,7 @@ describe("authors", () => {
         await waitForSecond(() => second.result.current.resolvedAddress === resolved);
         expect(resolveCalls).toBe(1);
       } finally {
-        PKC.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorName = origResolve;
       }
     });
 
@@ -1104,15 +1135,15 @@ describe("authors", () => {
       const resolved = "12D3KooWresolved";
       let resolveCalls = 0;
       let releaseFirstPromise: ((value: string) => void) | undefined;
-      const origResolve = PKC.prototype.resolveAuthorAddress;
-      PKC.prototype.resolveAuthorAddress = () => {
+      const origResolve = PKC.prototype.resolveAuthorName;
+      PKC.prototype.resolveAuthorName = () => {
         resolveCalls++;
         if (resolveCalls === 1) {
           return new Promise((resolve) => {
-            releaseFirstPromise = resolve;
+            releaseFirstPromise = (value) => resolve(resolvedAuthorNameResult(value));
           });
         }
-        return Promise.resolve(resolved);
+        return Promise.resolve(resolvedAuthorNameResult(resolved));
       };
       try {
         const first = renderHook<any, any>(() =>
@@ -1134,7 +1165,7 @@ describe("authors", () => {
         });
         await waitForFirst(() => first.result.current.resolvedAddress === resolved);
       } finally {
-        PKC.prototype.resolveAuthorAddress = origResolve;
+        PKC.prototype.resolveAuthorName = origResolve;
       }
     });
   });

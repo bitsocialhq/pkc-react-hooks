@@ -1,5 +1,6 @@
 import markdownExample from "./fixtures/markdown-example";
 import EventEmitter from "events";
+import type { PkcResolveAuthorNameOptions, PkcResolveAuthorNameResult } from "../pkc-types";
 import assert from "assert";
 import { sha256 } from "multiformats/hashes/sha2";
 import { fromString as uint8ArrayFromString } from "uint8arrays/from-string";
@@ -957,8 +958,11 @@ class PKC extends EventEmitter {
     }
     return "resolved author address";
   }
-  async resolveAuthorName(options: { address: string }) {
-    return this.resolveAuthorAddress(options);
+  async resolveAuthorName(
+    options: PkcResolveAuthorNameOptions,
+  ): Promise<PkcResolveAuthorNameResult> {
+    const resolvedAuthorName = await this.resolveAuthorAddress({ address: options.name });
+    return { resolvedAuthorName };
   }
 
   async createCommunity(createCommunityOptions: any) {

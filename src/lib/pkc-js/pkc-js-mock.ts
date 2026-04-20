@@ -1,4 +1,5 @@
 import EventEmitter from "events";
+import type { PkcResolveAuthorNameOptions, PkcResolveAuthorNameResult } from "../pkc-types";
 
 const loadingTime = 10;
 export const simulateLoadingTime = () => new Promise((r) => setTimeout(r, loadingTime));
@@ -62,8 +63,11 @@ export class PKC extends EventEmitter {
     return "resolved author address";
   }
 
-  async resolveAuthorName(options: { address: string }) {
-    return this.resolveAuthorAddress(options);
+  async resolveAuthorName(
+    options: PkcResolveAuthorNameOptions,
+  ): Promise<PkcResolveAuthorNameResult> {
+    const resolvedAuthorName = await this.resolveAuthorAddress({ address: options.name });
+    return { resolvedAuthorName };
   }
 
   async createSigner() {

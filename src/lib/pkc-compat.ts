@@ -1,5 +1,10 @@
 import assert from "assert";
 import { BsoResolver } from "@bitsocial/bso-resolver";
+import type {
+  PkcResolveAuthorName,
+  PkcResolveAuthorNameOptions,
+  PkcResolveAuthorNameResult,
+} from "./pkc-types";
 
 export const getProtocolClient = (account: any) => account?.pkc;
 
@@ -105,17 +110,40 @@ const buildConfiguredNameResolvers = (account: any, dataPath?: string) =>
       }),
   );
 
-export const resolveAuthorNameWithProtocol = (
-  protocolClient: any,
-  options: { address?: string } | Record<string, any>,
-) => {
-  const resolveAuthorName =
-    protocolClient?.resolveAuthorAddress || protocolClient?.resolveAuthorName;
+type LegacyResolveAuthorAddress = (options: { address: string }) => Promise<string> | string;
+
+type AuthorNameProtocolClient = {
+  resolveAuthorName?: PkcResolveAuthorName;
+  resolveAuthorAddress?: LegacyResolveAuthorAddress;
+};
+
+const normalizeResolvedAuthorName = (result: PkcResolveAuthorNameResult | string): string => {
+  if (typeof result === "string") {
+    return result;
+  }
+
   assert(
-    typeof resolveAuthorName === "function",
+    typeof result?.resolvedAuthorName === "string",
+    "protocol client resolveAuthorName returned invalid resolvedAuthorName",
+  );
+  return result.resolvedAuthorName;
+};
+
+export const resolveAuthorNameWithProtocol = async (
+  protocolClient: AuthorNameProtocolClient | undefined,
+  options: PkcResolveAuthorNameOptions,
+): Promise<string> => {
+  const resolveAuthorName = protocolClient?.resolveAuthorName;
+  if (typeof resolveAuthorName === "function") {
+    return normalizeResolvedAuthorName(await resolveAuthorName.call(protocolClient, options));
+  }
+
+  const resolveAuthorAddress = protocolClient?.resolveAuthorAddress;
+  assert(
+    typeof resolveAuthorAddress === "function",
     "protocol client resolveAuthorName/resolveAuthorAddress missing",
   );
-  return resolveAuthorName.call(protocolClient, options);
+  return resolveAuthorAddress.call(protocolClient, { address: options.name });
 };
 
 export const normalizeOptionsForPkcClient = <T extends Record<string, any> | undefined>(
