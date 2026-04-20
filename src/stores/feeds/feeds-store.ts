@@ -1,5 +1,5 @@
 import assert from "assert";
-import Logger from "@pkc/pkc-logger";
+import Logger from "@pkcprotocol/pkc-logger";
 const log = Logger("bitsocial-react-hooks:feeds:stores");
 import {
   Feed,

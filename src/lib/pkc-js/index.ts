@@ -1,7 +1,7 @@
 // NOTE: don't import pkc-js directly to be able to replace the implementation
 
 import PkcJsMockContent from "./pkc-js-mock-content";
-import Logger from "@pkc/pkc-logger";
+import Logger from "@pkcprotocol/pkc-logger";
 import assert from "assert";
 const log = Logger("bitsocial-react-hooks:pkc-js");
 

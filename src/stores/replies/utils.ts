@@ -16,7 +16,7 @@ import repliesSorter from "../feeds/feed-sorter";
 import accountsStore from "../accounts";
 import { flattenCommentsPages, commentIsValid, removeInvalidComments } from "../../lib/utils";
 import { areEquivalentCommunityAddresses } from "../../lib/community-address";
-import Logger from "@pkc/pkc-logger";
+import Logger from "@pkcprotocol/pkc-logger";
 const log = Logger("bitsocial-react-hooks:replies:stores");
 
 /**

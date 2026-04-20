@@ -18,7 +18,7 @@ REACT_APP_BITSOCIAL_REACT_HOOKS_MOCK_CONTENT_LOADING_TIME=1000
 #### Get a mock feed
 
 ```js
-import { useFeed } from "@bitsocialnet/bitsocial-react-hooks";
+import { useFeed } from "@bitsocial/bitsocial-react-hooks";
 
 function App() {
   const { feed, hasMore, loadMore } = useFeed({
@@ -41,7 +41,7 @@ REACT_APP_BITSOCIAL_REACT_HOOKS_NO_CACHE=1
 #### Delete databases and caches
 
 ```js
-import { deleteCaches, deleteDatabases } from "@bitsocialnet/bitsocial-react-hooks";
+import { deleteCaches, deleteDatabases } from "@bitsocial/bitsocial-react-hooks";
 
 // delete all databases, including all caches and accounts data
 await deleteDatabases();

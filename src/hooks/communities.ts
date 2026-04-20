@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useAccount } from "./accounts";
 import validator from "../lib/validator";
-import Logger from "@pkc/pkc-logger";
+import Logger from "@pkcprotocol/pkc-logger";
 const log = Logger("bitsocial-react-hooks:communities:hooks");
 import assert from "assert";
 import {

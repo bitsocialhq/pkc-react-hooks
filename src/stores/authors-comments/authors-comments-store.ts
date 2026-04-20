@@ -1,4 +1,4 @@
-import Logger from "@pkc/pkc-logger";
+import Logger from "@pkcprotocol/pkc-logger";
 const log = Logger("bitsocial-react-hooks:authors:stores");
 import createStore from "zustand";
 import assert from "assert";

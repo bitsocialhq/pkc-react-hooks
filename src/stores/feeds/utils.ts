@@ -24,7 +24,7 @@ import {
   getCommunityRefKeys,
   getMatchingCommunityRefKeys,
 } from "../../lib/community-ref";
-import Logger from "@pkc/pkc-logger";
+import Logger from "@pkcprotocol/pkc-logger";
 const log = Logger("bitsocial-react-hooks:feeds:stores");
 
 const getFeedCommunityRefs = (feedOptions: Partial<FeedOptions>): CommunityLookupRef[] =>

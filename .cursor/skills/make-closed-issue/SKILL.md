@@ -103,7 +103,7 @@ EOF
 
 Push the current task branch to origin and open a ready-for-review PR into `master`.
 
-Never open a draft PR unless the user explicitly requests a draft.
+Never open a draft PR. If the user does not want a ready-for-review PR yet, do not open a PR yet.
 
 Use `Closes #ISSUE_NUMBER` in the PR body so the issue closes automatically when the PR is merged.
 

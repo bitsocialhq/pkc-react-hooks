@@ -1,6 +1,6 @@
 import assert from "assert";
 import QuickLru from "quick-lru";
-import Logger from "@pkc/pkc-logger";
+import Logger from "@pkcprotocol/pkc-logger";
 import PkcJs from "../pkc-js";
 import { Comment } from "../../types";
 import { areEquivalentCommunityAddresses } from "../community-address";

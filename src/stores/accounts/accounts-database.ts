@@ -29,7 +29,7 @@ import {
   normalizeAccountProtocolConfig,
   withProtocolAliases,
 } from "../../lib/pkc-compat";
-import Logger from "@pkc/pkc-logger";
+import Logger from "@pkcprotocol/pkc-logger";
 const log = Logger("bitsocial-react-hooks:accounts:stores");
 // Storage keeps the existing namespace so current installs reuse the same IndexedDB data.
 const accountsDatabaseNamespace = "bitsocialReactHooks";

@@ -9,7 +9,7 @@ import {
   normalizeAccountProtocolConfig,
   withProtocolAliases,
 } from "../../lib/pkc-compat";
-import Logger from "@pkc/pkc-logger";
+import Logger from "@pkcprotocol/pkc-logger";
 const log = Logger("bitsocial-react-hooks:accounts:stores");
 
 export const DEFAULT_ETH_RPC_URL = "https://ethereum-rpc.publicnode.com";

@@ -135,10 +135,15 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     permissions:
       contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          registry-url: 'https://registry.npmjs.org'
       - name: Download dist artifact
         uses: actions/download-artifact@v4
         with:
@@ -152,8 +157,31 @@ jobs:
       - run: git add dist badges/coverage.json --force
       - run: git status
       - uses: stefanzweifel/git-auto-commit-action@v4
+        id: dist_commit
         with:
           commit_message: 'chore(ci): update dist and coverage badge'
           file_pattern: 'dist badges/coverage.json'
           add_options: '--force'
           branch: ${{ github.ref_name }}
+      - name: Upgrade npm for trusted publishing
+        if: steps.dist_commit.outputs.changes_detected == 'true'
+        run: npm install -g npm@11
+      - name: Check if package version already exists
+        if: steps.dist_commit.outputs.changes_detected == 'true'
+        id: check_npm_version
+        env:
+          NODE_AUTH_TOKEN: ''
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          if npm view @bitsocial/bitsocial-react-hooks@$PACKAGE_VERSION version 2>/dev/null; then
+            echo "Version $PACKAGE_VERSION already exists on npm, skipping publish"
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Version $PACKAGE_VERSION not found on npm, will publish"
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Publish to npm
+        if: steps.dist_commit.outputs.changes_detected == 'true' && steps.check_npm_version.outputs.exists == 'false'
+        env:
+          NODE_AUTH_TOKEN: ''
+        run: npm publish --access public --provenance

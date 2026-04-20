@@ -2,7 +2,7 @@
 
 import accountsStore, { listeners } from "./accounts-store";
 import accountsDatabase from "./accounts-database";
-import Logger from "@pkc/pkc-logger";
+import Logger from "@pkcprotocol/pkc-logger";
 import assert from "assert";
 import isEqual from "lodash.isequal";
 const log = Logger("bitsocial-react-hooks:accounts:stores");

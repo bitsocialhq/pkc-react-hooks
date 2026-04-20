@@ -2,7 +2,7 @@ import { RepliesPage, RepliesFeedOptions, RepliesFeedsOptions, Comment } from ".
 import repliesStore from "../replies";
 import { getSortTypeFromComment } from "../replies/utils";
 import repliesCommentsStore from "../replies/replies-comments-store";
-import Logger from "@pkc/pkc-logger";
+import Logger from "@pkcprotocol/pkc-logger";
 // include replies pages store with feeds for debugging
 const log = Logger("bitsocial-react-hooks:replies:stores");
 

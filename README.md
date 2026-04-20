@@ -11,15 +11,14 @@
 
 React hooks for the Bitsocial protocol. Build decentralized, serverless social apps with React using a familiar hooks API — fetch feeds, comments, author profiles, manage accounts, publish content, and more, all without a central server.
 
-This package is currently consumed directly from [`bitsocialnet/bitsocial-react-hooks`](https://github.com/bitsocialnet/bitsocial-react-hooks) and is used by [5chan](https://github.com/bitsocialnet/5chan) and other Bitsocial clients.
+This package is published as [`@bitsocial/bitsocial-react-hooks`](https://www.npmjs.com/package/@bitsocial/bitsocial-react-hooks) and is used by [5chan](https://github.com/bitsocialnet/5chan) and other Bitsocial clients.
 
 ## Installation
 
 ```bash
-yarn add https://github.com/bitsocialnet/bitsocial-react-hooks.git#<commit-hash>
+yarn add @bitsocial/bitsocial-react-hooks
 ```
 
-Use a pinned commit hash (or tag) so installs are reproducible.
 The published build is self-contained ESM, so consumers should not need postinstall import-rewrite patches.
 
 ## Development Setup
@@ -212,7 +211,7 @@ deleteCaches() // delete the cached comments, cached communities and cached page
 #### Getting started
 
 ```jsx
-import { useComment, useAccount } from "@bitsocialnet/bitsocial-react-hooks";
+import { useComment, useAccount } from "@bitsocial/bitsocial-react-hooks";
 
 const account = useAccount();
 const comment = useComment({ commentCid });
@@ -232,7 +231,7 @@ import {
   useAccounts,
   createAccount,
   setActiveAccount,
-} from "@bitsocialnet/bitsocial-react-hooks";
+} from "@bitsocial/bitsocial-react-hooks";
 
 const account = useAccount();
 const { accounts } = useAccounts();
@@ -718,7 +717,7 @@ await abandonPublish();
 **2. Delete by index or CID** — remove any of your comments (pending or published):
 
 ```jsx
-import { deleteComment, useAccountComments } from "@bitsocialnet/bitsocial-react-hooks";
+import { deleteComment, useAccountComments } from "@bitsocial/bitsocial-react-hooks";
 
 // By account comment index (from usePublishComment or useAccountComment)
 const { index, publishComment } = usePublishComment(publishCommentOptions);
@@ -736,7 +735,7 @@ await deleteComment(accountComment.cid);
 **Common cleanup pattern (remove failed UI clutter):**
 
 ```jsx
-import { deleteComment, useAccountComments } from "@bitsocialnet/bitsocial-react-hooks";
+import { deleteComment, useAccountComments } from "@bitsocial/bitsocial-react-hooks";
 
 const { accountComments } = useAccountComments();
 const failedComments = accountComments.filter((comment) => comment.state === "failed");
@@ -876,7 +875,7 @@ console.log(error);
 #### Edit an account
 
 ```jsx
-import {useAccount, setAccount, useResolvedAuthorAddress} from '@bitsocialnet/bitsocial-react-hooks'
+import {useAccount, setAccount, useResolvedAuthorAddress} from '@bitsocial/bitsocial-react-hooks'
 const account = useAccount() // or useAccount('Account 2') to use an account other than the active one
 
 // `account.author.wallets` only auto-generates an `eth` wallet by default.
@@ -924,7 +923,7 @@ if (state === 'resolving' && nameResolver) {
 > Note: deleting account is unrecoverable, warn the user to export/backup his account before deleting
 
 ```jsx
-import { deleteAccount } from "@bitsocialnet/bitsocial-react-hooks";
+import { deleteAccount } from "@bitsocial/bitsocial-react-hooks";
 
 // delete active account
 await deleteAccount();
@@ -1181,7 +1180,7 @@ import {
   importAccount,
   setActiveAccount,
   setAccountsOrder,
-} from "@bitsocialnet/bitsocial-react-hooks";
+} from "@bitsocial/bitsocial-react-hooks";
 
 // get active account 'Account 1'
 const activeAccount = useAccount();
@@ -1276,7 +1275,7 @@ const { accountEdits } = useAccountEdits({ filter });
 #### Get replies to a post (nested or flat)
 
 ```jsx
-import { useReplies, useComment, useAccountComment } from "@bitsocialnet/bitsocial-react-hooks";
+import { useReplies, useComment, useAccountComment } from "@bitsocial/bitsocial-react-hooks";
 
 // NOTE: recommended to use the same replies options for all depths, or will load slower
 const useRepliesOptions = {
@@ -1339,7 +1338,7 @@ const repliesComponents = replies.map((reply, index) => (
 #### Format short CIDs and addresses
 
 ```jsx
-import { useShortAddress, useShortCid } from "@bitsocialnet/bitsocial-react-hooks";
+import { useShortAddress, useShortCid } from "@bitsocial/bitsocial-react-hooks";
 
 const shortParentCid = useShortCid(comment.parentCid);
 const shortAddress = useShortAddress(address);

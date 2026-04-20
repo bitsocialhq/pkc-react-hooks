@@ -14,7 +14,7 @@ Only record items that are repo-specific, likely to recur, and have a concrete m
 
 ## Project Overview
 
-bitsocial-react-hooks (`@bitsocialnet/bitsocial-react-hooks`) is a React hooks library for the Bitsocial protocol. It provides React hooks and Zustand stores for interacting with decentralized communities — fetching comments, feeds, author data, publishing, account management, and more.
+bitsocial-react-hooks (`@bitsocial/bitsocial-react-hooks`) is a React hooks library for the Bitsocial protocol. It provides React hooks and Zustand stores for interacting with decentralized communities — fetching comments, feeds, author data, publishing, account management, and more.
 
 This repository is its own project under the bitsocialnet org. Use `pkc`, `community`, and `pkc-js` naming consistently in code, tests, docs, and file names.
 
@@ -95,7 +95,7 @@ src/
 - If the user asks for a reviewable feature/fix/docs/chore and the current branch is `master`, create a short-lived task branch before making code changes unless the user explicitly asks to work directly on `master`.
 - Name short-lived branches by intent: `feature/*`, `fix/*`, `docs/*`, `chore/*`.
 - Open PRs from task branches into `master` so review bots and humans can inspect the actual change before merge.
-- Open PRs as ready for review. Never open draft PRs unless the user explicitly requests a draft.
+- Never open draft PRs. PRs created by agents must be ready for review unless the user explicitly asks not to open a PR yet.
 - Prefer short-lived task branches over a long-lived `develop` branch unless the user explicitly asks for a staging-branch workflow.
 - Use worktrees only when parallel tasks need isolated checkouts. One active task branch per worktree.
 - If a new task is unrelated to the currently checked out branch, do not stack it on that branch. Create a new worktree from `master` and create a separate short-lived task branch there.
@@ -112,7 +112,7 @@ src/
 
 - Prefer `pkc`, `community`, and `pkc-js` naming in new or renamed code.
 - Do not introduce or preserve older protocol naming in code, tests, docs, or migrations unless the user explicitly asks for a compatibility bridge.
-- Package name and import path is `@bitsocialnet/bitsocial-react-hooks`. Use this in README examples and docs.
+- Package name and import path is `@bitsocial/bitsocial-react-hooks`. Use this in README examples and docs.
 
 ### Bug Investigation Rules
 

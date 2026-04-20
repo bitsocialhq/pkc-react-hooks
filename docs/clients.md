@@ -2,7 +2,7 @@
 
 ```js
 import { useMemo } from "react";
-import { useClientsStates } from "@bitsocialnet/bitsocial-react-hooks";
+import { useClientsStates } from "@bitsocial/bitsocial-react-hooks";
 
 const clientHosts = {};
 const getClientHost = (clientUrl) => {
@@ -129,7 +129,7 @@ if (errorString) {
 
 ```js
 import { useMemo } from "react";
-import { useCommunity, useCommunitiesStates } from "@bitsocialnet/bitsocial-react-hooks";
+import { useCommunity, useCommunitiesStates } from "@bitsocial/bitsocial-react-hooks";
 
 const clientHosts = {};
 const getClientHost = (clientUrl) => {

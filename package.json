@@ -1,11 +1,14 @@
 {
-  "name": "@bitsocialnet/bitsocial-react-hooks",
+  "name": "@bitsocial/bitsocial-react-hooks",
   "type": "module",
   "author": "Bitsocial Forge",
   "keywords": [
     "bitsocial"
   ],
-  "repository": "github:bitsocialnet/bitsocial-react-hooks",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bitsocialnet/bitsocial-react-hooks.git"
+  },
   "license": "GPL-3.0-or-later",
   "publishConfig": {
     "access": "public"
@@ -42,8 +45,8 @@
   },
   "dependencies": {
     "@bitsocial/bso-resolver": "0.0.6",
-    "@pkc/pkc-logger": "https://github.com/pkcprotocol/pkc-logger.git",
     "@pkcprotocol/pkc-js": "0.0.18",
+    "@pkcprotocol/pkc-logger": "0.1.0",
     "assert": "2.0.0",
     "ethers": "5.8.0",
     "localforage": "1.10.0",

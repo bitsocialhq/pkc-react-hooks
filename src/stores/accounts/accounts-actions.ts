@@ -4,7 +4,7 @@ import accountsStore, { listeners } from "./accounts-store";
 import communitiesStore from "../communities";
 import accountsDatabase from "./accounts-database";
 import accountGenerator from "./account-generator";
-import Logger from "@pkc/pkc-logger";
+import Logger from "@pkcprotocol/pkc-logger";
 import validator from "../../lib/validator";
 import chain from "../../lib/chain";
 import assert from "assert";

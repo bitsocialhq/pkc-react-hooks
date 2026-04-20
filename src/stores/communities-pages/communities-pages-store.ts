@@ -1,5 +1,5 @@
 import utils from "../../lib/utils";
-import Logger from "@pkc/pkc-logger";
+import Logger from "@pkcprotocol/pkc-logger";
 // include communities pages store with feeds for debugging
 export const log = Logger("bitsocial-react-hooks:feeds:stores");
 import {
