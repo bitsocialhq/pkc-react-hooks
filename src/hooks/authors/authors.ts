@@ -323,7 +323,7 @@ export function useAuthorAddress(options?: UseAuthorAddressOptions): UseAuthorAd
     const resolveAuthorAddressNoCache = () => {
       const existing = resolveAuthorAddressPromises[addr];
       if (existing) return existing;
-      log("useAuthorAddress protocol.resolveAuthorName", { address: addr });
+      log("useAuthorAddress protocol.resolveAuthorName", { name: addr });
       return cacheResolveAuthorAddressPromise(
         addr,
         resolveAuthorNameWithProtocol(protocolClient, { name: addr }),
@@ -458,7 +458,7 @@ export function useResolvedAuthorAddress(
     if (Boolean(resolveAuthorAddressPromises[author?.address])) {
       return resolveAuthorAddressPromises[author?.address];
     }
-    log("useResolvedAuthorAddress protocol.resolveAuthorName", { address: author?.address });
+    log("useResolvedAuthorAddress protocol.resolveAuthorName", { name: author?.address });
     return cacheResolveAuthorAddressPromise(
       author?.address,
       resolveAuthorNameWithProtocol(protocolClient, {
