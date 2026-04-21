@@ -16,11 +16,19 @@ import { getPkcClientOptions, normalizeAccountProtocolConfig, withProtocolAliase
 import Logger from "@pkcprotocol/pkc-logger";
 const log = Logger("bitsocial-react-hooks:accounts:stores");
 export const DEFAULT_ETH_RPC_URL = "https://ethereum-rpc.publicnode.com";
+export const DEFAULT_ETH_RPC_URLS = [
+    DEFAULT_ETH_RPC_URL,
+    "https://eth.drpc.org",
+    "https://ethereum.publicnode.com",
+    "https://rpc.mevblocker.io",
+    "https://1rpc.io/eth",
+    "https://eth-pokt.nodies.app",
+];
 // default chain providers
 const chainProviders = {
     eth: {
-        // default should not use a url, but rather ethers' default provider
-        urls: [DEFAULT_ETH_RPC_URL, "viem", "ethers.js"],
+        // Use explicit RPCs for default name resolution; viem's default transport is opt-in.
+        urls: [...DEFAULT_ETH_RPC_URLS, "ethers.js"],
         chainId: 1,
     },
     matic: {
