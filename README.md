@@ -880,8 +880,18 @@ const account = useAccount() // or useAccount('Account 2') to use an account oth
 
 // `account.author.wallets` only auto-generates an `eth` wallet by default.
 // `account.chainProviders` is the canonical chain config for wallets, NFT lookups, and other chain reads.
-// `account.nameResolversChainProviders` optionally overrides only the RPCs used for `.eth` / `.bso` author-name resolution.
+// Defaults use multiple explicit Ethereum RPCs for `.eth` / `.bso` author-name resolution.
+// `account.nameResolversChainProviders` optionally overrides only the RPCs used for that resolution.
 console.log(account.author.wallets.eth)
+
+const ethResolverRpcUrls = [
+  'https://ethereum-rpc.publicnode.com',
+  'https://eth.drpc.org',
+  'https://ethereum.publicnode.com',
+  'https://rpc.mevblocker.io',
+  'https://1rpc.io/eth',
+  'https://eth-pokt.nodies.app',
+]
 
 const author: {...account.author, displayName: 'John'}
 const editedAccount = {
@@ -889,10 +899,10 @@ const editedAccount = {
   author,
   chainProviders: {
     ...account.chainProviders,
-    eth: { urls: ['https://ethereum-rpc.publicnode.com', 'viem', 'ethers.js'], chainId: 1 },
+    eth: { urls: [...ethResolverRpcUrls, 'ethers.js'], chainId: 1 },
   },
   nameResolversChainProviders: {
-    eth: { urls: ['https://ethereum-rpc.publicnode.com', 'viem'], chainId: 1 },
+    eth: { urls: ethResolverRpcUrls, chainId: 1 },
   },
 }
 
