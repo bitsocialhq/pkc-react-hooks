@@ -24,6 +24,14 @@ This repository is its own project under the bitsocialnet org. Use `pkc`, `commu
 - **SHOULD** rules are strong defaults unless task context requires a different choice.
 - If guidance conflicts, prefer: user request > MUST > SHOULD > playbooks.
 
+## Agent Operating Principles
+
+- Before editing, state important assumptions when the task is ambiguous. Ask instead of silently choosing between materially different interpretations.
+- Prefer the smallest implementation that solves the requested problem. Do not add speculative abstractions, configurability, or features.
+- Keep diffs surgical. Do not refactor, reformat, rename, or "improve" adjacent code unless it is necessary for the task.
+- Clean up only artifacts created by the current change, such as newly unused imports or dead helper code.
+- For non-trivial work, define success criteria and verify them with the narrowest reliable checks before marking the task complete.
+
 ## Task Router (Read First)
 
 | Situation | Required action |
