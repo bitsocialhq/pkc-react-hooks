@@ -171,6 +171,8 @@ jobs:
           NODE_AUTH_TOKEN: ''
         run: |
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          echo "version=$PACKAGE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$PACKAGE_VERSION" >> "$GITHUB_OUTPUT"
           if npm view @bitsocial/bitsocial-react-hooks@$PACKAGE_VERSION version 2>/dev/null; then
             echo "Version $PACKAGE_VERSION already exists on npm, skipping publish"
             echo "exists=true" >> "$GITHUB_OUTPUT"
@@ -183,3 +185,18 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ''
         run: npm publish --access public --provenance
+      - name: Create GitHub release
+        if: steps.check_npm_version.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.check_npm_version.outputs.tag }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists, skipping"
+            exit 0
+          fi
+          gh release create "$RELEASE_TAG" \
+            --target "$GITHUB_SHA" \
+            --title "$RELEASE_TAG" \
+            --generate-notes \
+            --latest
