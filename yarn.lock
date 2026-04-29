@@ -284,7 +284,7 @@ __metadata:
   resolution: "@bitsocial/bitsocial-react-hooks@workspace:."
   dependencies:
     "@bitsocial/bso-resolver": "npm:0.0.6"
-    "@pkcprotocol/pkc-js": "npm:0.0.19"
+    "@pkcprotocol/pkc-js": "npm:0.0.22"
     "@pkcprotocol/pkc-logger": "npm:0.1.0"
     "@testing-library/dom": "npm:10.4.1"
     "@testing-library/react": "npm:16.3.2"
@@ -2117,6 +2117,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@noble/curves@npm:2.2.0":
+  version: 2.2.0
+  resolution: "@noble/curves@npm:2.2.0"
+  dependencies:
+    "@noble/hashes": "npm:2.2.0"
+  checksum: 10c0/e545d3bb03ebedd5c04c2cab81342d64f5ce8a4c1019cfe207f3dc69174bc0ad7cfb50effc31bfa8616b8340900f445dd053da7454190428857c4eedd3b51413
+  languageName: node
+  linkType: hard
+
 "@noble/curves@npm:^2.0.1":
   version: 2.0.1
   resolution: "@noble/curves@npm:2.0.1"
@@ -2135,7 +2144,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@noble/ed25519@npm:^1.5.1, @noble/ed25519@npm:^1.7.5":
+"@noble/ed25519@npm:^1.5.1":
   version: 1.7.5
   resolution: "@noble/ed25519@npm:1.7.5"
   checksum: 10c0/9ebcdf47e1cc986f270a82725ed4fdad1922fd63cca77f6bc0ba9575685db9cd73d45e66325fb62cc1d8a398010e953331b904961c1e9f18d170eebae783d5cb
@@ -2153,6 +2162,13 @@ __metadata:
   version: 2.0.1
   resolution: "@noble/hashes@npm:2.0.1"
   checksum: 10c0/e81769ce21c3b1c80141a3b99bd001f17edea09879aa936692ae39525477386d696101cd573928a304806efb2b9fa751e1dd83241c67d0c84d30091e85c79bdb
+  languageName: node
+  linkType: hard
+
+"@noble/hashes@npm:2.2.0":
+  version: 2.2.0
+  resolution: "@noble/hashes@npm:2.2.0"
+  checksum: 10c0/cad8630c504d6b9271984f685cd0af9101b40988fc2dfbe17ccdf068a9941f95cc5c9957d89e9ca4b7ca94c15cb35f93510c5d53a09fbcc83ee503b93d0a1034
   languageName: node
   linkType: hard
 
@@ -2950,9 +2966,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@pkcprotocol/pkc-js@npm:0.0.19":
-  version: 0.0.19
-  resolution: "@pkcprotocol/pkc-js@npm:0.0.19"
+"@pkcprotocol/pkc-js@npm:0.0.22":
+  version: 0.0.22
+  resolution: "@pkcprotocol/pkc-js@npm:0.0.22"
   dependencies:
     "@enhances/with-resolvers": "npm:0.0.5"
     "@helia/block-brokers": "npm:5.1.2"
@@ -2966,7 +2982,7 @@ __metadata:
     "@libp2p/interfaces": "npm:3.3.2"
     "@libp2p/peer-id": "npm:6.0.4"
     "@libp2p/websockets": "npm:10.1.3"
-    "@noble/ed25519": "npm:^1.7.5"
+    "@noble/curves": "npm:2.2.0"
     "@pkcprotocol/pkc-logger": "npm:0.1.0"
     "@pkcprotocol/proper-lock-file": "npm:4.2.1"
     assert: "npm:2.1.0"
@@ -2991,6 +3007,7 @@ __metadata:
     lru-cache: "npm:10.1.0"
     open-graph-scraper: "npm:6.11.0"
     p-limit: "npm:7.3.0"
+    p-retry: "npm:7.1.1"
     p-timeout: "npm:7.0.1"
     probe-image-size: "npm:7.2.3"
     remeda: "npm:1.57.0"
@@ -3005,7 +3022,7 @@ __metadata:
     typestub-ipfs-only-hash: "npm:4.0.0"
     uuid: "npm:13.0.0"
     zod: "npm:4.3.6"
-  checksum: 10c0/a2542c96cf2dc0ed54e216555679efb5c2e95948bd7ee99d336bfabcc84845f332aadf10dc6b0873c8a7f112d88438667340e9be45d0f55cca5ea82f9f8359d6
+  checksum: 10c0/ad8cf5b7f0d51473370410da0b0c22970fab306f4d86a8620218d0d9c53867ee2bdff7c0003678212c96f49e47831ad210c71dbe18f20e8f21d9240b172c91e7
   languageName: node
   linkType: hard
 
@@ -9768,7 +9785,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"p-retry@npm:^7.0.0":
+"p-retry@npm:7.1.1, p-retry@npm:^7.0.0":
   version: 7.1.1
   resolution: "p-retry@npm:7.1.1"
   dependencies:
