@@ -437,6 +437,82 @@ describe("replies utils", () => {
       expect(changed).toBe(true);
       expect(loadedFeeds[feedName][0]).toEqual(accountReplyWithCid);
     });
+
+    test("pending->cid: treats account reply index 0 as a valid loaded key", () => {
+      const feedName = "feed1";
+      const recentTs = Math.floor(Date.now() / 1000) - 100;
+      const feedsOptions = {
+        [feedName]: {
+          commentCid: "c1",
+          postCid: "p1",
+          accountId: mockAccountId,
+          accountComments: { newerThan: 3600, append: true },
+        },
+      };
+      const pendingReply = {
+        index: 0,
+        parentCid: "c1",
+        communityAddress: "sub1",
+        timestamp: recentTs,
+      };
+      const accountReplyWithCid = {
+        cid: "new-cid",
+        index: 0,
+        parentCid: "c1",
+        communityAddress: "sub1",
+        timestamp: recentTs,
+      };
+      (accountsStore as any).getState = () => ({
+        accountsComments: { [mockAccountId]: [accountReplyWithCid] },
+        accounts: { [mockAccountId]: { pkc: {} } },
+      });
+      const loadedFeeds = { [feedName]: [pendingReply] };
+      const changed = addAccountsComments(feedsOptions, loadedFeeds);
+      expect(changed).toBe(true);
+      expect(loadedFeeds[feedName]).toEqual([accountReplyWithCid]);
+    });
+
+    test("drops local pending approval reply once the approved network reply is loaded", () => {
+      const feedName = "feed1";
+      const recentTs = Math.floor(Date.now() / 1000) - 100;
+      const author = { address: "0xauthor" };
+      const feedsOptions = {
+        [feedName]: {
+          commentCid: "c1",
+          postCid: "p1",
+          accountId: mockAccountId,
+          accountComments: { newerThan: 3600, append: true },
+        },
+      };
+      const approvedReply = {
+        author,
+        cid: "approved-cid",
+        content: "same body",
+        parentCid: "c1",
+        postCid: "p1",
+        communityAddress: "sub1",
+        timestamp: recentTs,
+      };
+      const pendingReply = {
+        author,
+        cid: "pending-cid",
+        content: "same body",
+        index: 0,
+        parentCid: "c1",
+        pendingApproval: true,
+        postCid: "p1",
+        communityAddress: "sub1",
+        timestamp: recentTs,
+      };
+      (accountsStore as any).getState = () => ({
+        accountsComments: { [mockAccountId]: [pendingReply] },
+        accounts: { [mockAccountId]: { pkc: {} } },
+      });
+      const loadedFeeds = { [feedName]: [approvedReply, pendingReply] };
+      const changed = addAccountsComments(feedsOptions, loadedFeeds);
+      expect(changed).toBe(true);
+      expect(loadedFeeds[feedName]).toEqual([approvedReply]);
+    });
   });
 
   describe("getSortTypeFromComment", () => {

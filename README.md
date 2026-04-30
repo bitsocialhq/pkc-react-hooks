@@ -1016,6 +1016,9 @@ const { replies } = useReplies({
   comment: post,
   accountComments: { newerThan: Infinity, append: false },
 });
+
+// pending local account comments are reconciled with their approved network version
+// so the same post or reply is not shown twice after moderation approval
 ```
 
 #### Determine if a comment is your own

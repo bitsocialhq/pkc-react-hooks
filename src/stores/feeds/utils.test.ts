@@ -676,6 +676,84 @@ describe("feeds utils", () => {
       expect(changed).toBe(true);
       expect(loadedFeeds[feedName][0]).toEqual(accountPostWithCid);
     });
+
+    test("pending->cid: treats account post index 0 as a valid loaded key", () => {
+      const feedName = "feed1";
+      const recentTs = Math.floor(Date.now() / 1000) - 100;
+      const feedsOptions = {
+        [feedName]: {
+          communities: toCommunities(["sub1"]),
+          accountId: mockAccountId,
+          accountComments: { newerThan: 3600, append: true },
+        },
+      };
+      const pendingPost = {
+        index: 0,
+        communityAddress: "sub1",
+        timestamp: recentTs,
+      };
+      const accountPostWithCid = {
+        cid: "new-cid",
+        index: 0,
+        communityAddress: "sub1",
+        timestamp: recentTs,
+      };
+      // @ts-ignore
+      accountsStore.getState = () => ({
+        accountsComments: {
+          [mockAccountId]: [accountPostWithCid],
+        },
+        accounts: makeMockAccounts(),
+      });
+      const loadedFeeds = {
+        [feedName]: [pendingPost],
+      };
+      const changed = addAccountsComments(feedsOptions, loadedFeeds);
+      expect(changed).toBe(true);
+      expect(loadedFeeds[feedName]).toEqual([accountPostWithCid]);
+    });
+
+    test("drops local pending approval post once the approved network post is loaded", () => {
+      const feedName = "feed1";
+      const recentTs = Math.floor(Date.now() / 1000) - 100;
+      const author = { address: "0xauthor" };
+      const feedsOptions = {
+        [feedName]: {
+          communities: toCommunities(["sub1"]),
+          accountId: mockAccountId,
+          accountComments: { newerThan: 3600, append: true },
+        },
+      };
+      const approvedPost = {
+        author,
+        cid: "approved-cid",
+        content: "same body",
+        communityAddress: "sub1",
+        timestamp: recentTs,
+      };
+      const pendingPost = {
+        author,
+        cid: "pending-cid",
+        content: "same body",
+        index: 0,
+        pendingApproval: true,
+        communityAddress: "sub1",
+        timestamp: recentTs,
+      };
+      // @ts-ignore
+      accountsStore.getState = () => ({
+        accountsComments: {
+          [mockAccountId]: [pendingPost],
+        },
+        accounts: makeMockAccounts(),
+      });
+      const loadedFeeds = {
+        [feedName]: [approvedPost, pendingPost],
+      };
+      const changed = addAccountsComments(feedsOptions, loadedFeeds);
+      expect(changed).toBe(true);
+      expect(loadedFeeds[feedName]).toEqual([approvedPost]);
+    });
   });
 
   describe("blocked addresses/cids no-change false branches", () => {

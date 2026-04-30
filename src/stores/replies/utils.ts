@@ -149,6 +149,18 @@ const alwaysStreamPage = (feedOptions: RepliesFeedOptions) => {
   return feedOptions.commentDepth > 0 && !feedOptions.flat ? false : true;
 };
 
+const getApprovalPublicationKey = (comment: Comment) =>
+  [
+    comment.timestamp ?? "",
+    comment.parentCid ?? "",
+    comment.postCid ?? "",
+    comment.communityAddress ?? "",
+    comment.author?.address ?? "",
+    comment.title ?? "",
+    comment.content ?? "",
+    comment.link ?? "",
+  ].join("\0");
+
 export const getLoadedFeeds = async (
   feedsOptions: RepliesFeedsOptions,
   loadedFeeds: Feeds,
@@ -259,11 +271,23 @@ export const addAccountsComments = (feedsOptions: RepliesFeedsOptions, loadedFee
     }
 
     let loadedFeed = loadedFeeds[feedName] || [];
+    const approvedPublicationKeys = new Set(
+      loadedFeed
+        .filter((reply) => reply.pendingApproval !== true)
+        .map((reply) => getApprovalPublicationKey(reply)),
+    );
     // prune stale local-account entries and replace when cid matches but index changed
     const prunedLoadedFeed: Comment[] = [];
     for (const reply of loadedFeed) {
       if (reply.index === undefined) {
         prunedLoadedFeed.push(reply);
+        continue;
+      }
+      if (
+        reply.pendingApproval === true &&
+        approvedPublicationKeys.has(getApprovalPublicationKey(reply))
+      ) {
+        loadedFeedsChanged = true;
         continue;
       }
       if (!validAccountIndices.has(reply.index)) {
@@ -290,12 +314,21 @@ export const addAccountsComments = (feedsOptions: RepliesFeedsOptions, loadedFee
     const loadedFeedMap = new Map();
     loadedFeed.forEach((reply, loadedFeedIndex) => {
       if (reply.cid) loadedFeedMap.set(reply.cid, loadedFeedIndex);
-      if (reply.index) loadedFeedMap.set(reply.index, loadedFeedIndex);
+      if (typeof reply.index === "number") loadedFeedMap.set(reply.index, loadedFeedIndex);
       if (!reply.cid) loadedFeedMap.set(reply.timestamp, loadedFeedIndex);
+      if (reply.pendingApproval !== true) {
+        loadedFeedMap.set(getApprovalPublicationKey(reply), loadedFeedIndex);
+      }
     });
     for (const accountReply of accountReplies) {
       // account reply with cid already added
       if (accountReply.cid && loadedFeedMap.has(accountReply.cid)) {
+        continue;
+      }
+      if (
+        accountReply.pendingApproval === true &&
+        loadedFeedMap.has(getApprovalPublicationKey(accountReply))
+      ) {
         continue;
       }
       // account reply without cid already added, but now we have the cid
