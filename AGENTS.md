@@ -107,6 +107,7 @@ src/
 - Prefer short-lived task branches over a long-lived `develop` branch unless the user explicitly asks for a staging-branch workflow.
 - Use worktrees only when parallel tasks need isolated checkouts. One active task branch per worktree.
 - If a new task is unrelated to the currently checked out branch, do not stack it on that branch. Create a new worktree from `master` and create a separate short-lived task branch there.
+- Always give a new worktree a descriptive name that reflects the task (e.g. `fix-login-redirect`, not `wt1`, `tmp`, `feature`, or a numbered slug), so it can be identified at a glance in a long list of worktrees.
 - Treat branch and worktree as different things: the branch is the change set; the worktree is the checkout where that branch is worked on.
 - For parallel unrelated tasks, give each task its own branch from `master`, its own worktree, and its own PR into `master`.
 - After a reviewed branch is merged, prefer deleting it to keep branch drift and merge conflicts low.
