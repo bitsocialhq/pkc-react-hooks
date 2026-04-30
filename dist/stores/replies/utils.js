@@ -119,6 +119,19 @@ const alwaysStreamPage = (feedOptions) => {
     // always stream top level replies and/or flat
     return feedOptions.commentDepth > 0 && !feedOptions.flat ? false : true;
 };
+const getApprovalPublicationKey = (comment) => {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+    return [
+        (_a = comment.timestamp) !== null && _a !== void 0 ? _a : "",
+        (_b = comment.parentCid) !== null && _b !== void 0 ? _b : "",
+        (_c = comment.postCid) !== null && _c !== void 0 ? _c : "",
+        (_d = comment.communityAddress) !== null && _d !== void 0 ? _d : "",
+        (_f = (_e = comment.author) === null || _e === void 0 ? void 0 : _e.address) !== null && _f !== void 0 ? _f : "",
+        (_g = comment.title) !== null && _g !== void 0 ? _g : "",
+        (_h = comment.content) !== null && _h !== void 0 ? _h : "",
+        (_j = comment.link) !== null && _j !== void 0 ? _j : "",
+    ].join("\0");
+};
 export const getLoadedFeeds = (feedsOptions, loadedFeeds, bufferedFeeds, accounts) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const loadedFeedsMissingReplies = {};
@@ -200,11 +213,19 @@ export const addAccountsComments = (feedsOptions, loadedFeeds) => {
                 accountCidToReply.set(r.cid, r);
         }
         let loadedFeed = loadedFeeds[feedName] || [];
+        const approvedPublicationKeys = new Set(loadedFeed
+            .filter((reply) => reply.pendingApproval !== true)
+            .map((reply) => getApprovalPublicationKey(reply)));
         // prune stale local-account entries and replace when cid matches but index changed
         const prunedLoadedFeed = [];
         for (const reply of loadedFeed) {
             if (reply.index === undefined) {
                 prunedLoadedFeed.push(reply);
+                continue;
+            }
+            if (reply.pendingApproval === true &&
+                approvedPublicationKeys.has(getApprovalPublicationKey(reply))) {
+                loadedFeedsChanged = true;
                 continue;
             }
             if (!validAccountIndices.has(reply.index)) {
@@ -231,14 +252,21 @@ export const addAccountsComments = (feedsOptions, loadedFeeds) => {
         loadedFeed.forEach((reply, loadedFeedIndex) => {
             if (reply.cid)
                 loadedFeedMap.set(reply.cid, loadedFeedIndex);
-            if (reply.index)
+            if (typeof reply.index === "number")
                 loadedFeedMap.set(reply.index, loadedFeedIndex);
             if (!reply.cid)
                 loadedFeedMap.set(reply.timestamp, loadedFeedIndex);
+            if (reply.pendingApproval !== true) {
+                loadedFeedMap.set(getApprovalPublicationKey(reply), loadedFeedIndex);
+            }
         });
         for (const accountReply of accountReplies) {
             // account reply with cid already added
             if (accountReply.cid && loadedFeedMap.has(accountReply.cid)) {
+                continue;
+            }
+            if (accountReply.pendingApproval === true &&
+                loadedFeedMap.has(getApprovalPublicationKey(accountReply))) {
                 continue;
             }
             // account reply without cid already added, but now we have the cid
