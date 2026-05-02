@@ -1,3 +1,13 @@
+## [0.1.5](https://github.com/bitsocialnet/bitsocial-react-hooks/compare/v0.1.4...v0.1.5) (2026-05-02)
+
+
+### Bug Fixes
+
+* **ci:** fetch tags for release notes ([6d22e9f](https://github.com/bitsocialnet/bitsocial-react-hooks/commit/6d22e9f154621124757aef393dd8717657042c0a))
+* **replies:** hide purged account replies ([570a5f2](https://github.com/bitsocialnet/bitsocial-react-hooks/commit/570a5f24dbbb370c6d2ced6a2f6aff8fcfb053e2))
+
+
+
 ## [0.1.4](https://github.com/bitsocialnet/bitsocial-react-hooks/compare/v0.1.3...v0.1.4) (2026-04-30)
 
 
