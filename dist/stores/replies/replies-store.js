@@ -193,7 +193,14 @@ const repliesStore = createStore((setState, getState) => ({
             // calculate new feeds
             const filteredSortedFeeds = getFilteredSortedFeeds(feedsOptions, comments, repliesPages, accounts);
             const bufferedFeedsWithoutPreviousLoadedFeeds = getBufferedFeedsWithoutLoadedFeeds(filteredSortedFeeds, previousState.loadedFeeds);
-            const loadedFeeds = yield getLoadedFeeds(feedsOptions, previousState.loadedFeeds, bufferedFeedsWithoutPreviousLoadedFeeds, accounts);
+            const canonicalLoadedFeeds = yield getLoadedFeeds(feedsOptions, previousState.loadedFeeds, bufferedFeedsWithoutPreviousLoadedFeeds, accounts, { addAccountComments: false });
+            const canonicalBufferedFeeds = getBufferedFeedsWithoutLoadedFeeds(bufferedFeedsWithoutPreviousLoadedFeeds, canonicalLoadedFeeds);
+            const canonicalFeedsHaveMore = getFeedsHaveMore(feedsOptions, canonicalBufferedFeeds, comments, repliesPages, accounts);
+            const loadedFeedsWithAccountComments = Object.assign({}, canonicalLoadedFeeds);
+            const accountCommentsChangedFeeds = addAccountsComments(feedsOptions, loadedFeedsWithAccountComments, canonicalFeedsHaveMore);
+            const loadedFeeds = accountCommentsChangedFeeds
+                ? loadedFeedsWithAccountComments
+                : canonicalLoadedFeeds;
             // after loaded feeds are caculated, remove new loaded feeds (again) from buffered feeds
             const bufferedFeeds = getBufferedFeedsWithoutLoadedFeeds(bufferedFeedsWithoutPreviousLoadedFeeds, loadedFeeds);
             const bufferedFeedsReplyCounts = getFeedsReplyCounts(feedsOptions, bufferedFeeds);
@@ -378,8 +385,8 @@ export const getRepliesFirstPageSkipValidation = (comment, feedOptions) => {
     if (filteredSortedFeeds[feedName].length > repliesPerPage) {
         bufferedFeeds[feedName] = filteredSortedFeeds[feedName].splice(repliesPerPage);
     }
-    addAccountsComments(feedsOptions, filteredSortedFeeds);
     const feedsHaveMore = getFeedsHaveMore(feedsOptions, bufferedFeeds, comments, repliesPages, accounts);
+    addAccountsComments(feedsOptions, filteredSortedFeeds, feedsHaveMore);
     return { replies: filteredSortedFeeds[feedName], hasMore: feedsHaveMore[feedName] };
 };
 // reset store in between tests

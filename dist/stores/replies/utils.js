@@ -132,7 +132,15 @@ const getApprovalPublicationKey = (comment) => {
         (_j = comment.link) !== null && _j !== void 0 ? _j : "",
     ].join("\0");
 };
-export const getLoadedFeeds = (feedsOptions, loadedFeeds, bufferedFeeds, accounts) => __awaiter(void 0, void 0, void 0, function* () {
+const isActivePublishingState = (publishingState) => publishingState === "pending" ||
+    (publishingState === null || publishingState === void 0 ? void 0 : publishingState.startsWith("publishing")) ||
+    (publishingState === null || publishingState === void 0 ? void 0 : publishingState.startsWith("waiting-")) ||
+    (publishingState === null || publishingState === void 0 ? void 0 : publishingState.startsWith("fetching-link-dimensions"));
+const isPublishedAccountReply = (reply) => typeof (reply === null || reply === void 0 ? void 0 : reply.index) === "number" &&
+    !!reply.cid &&
+    reply.pendingApproval !== true &&
+    !isActivePublishingState(reply.publishingState);
+export const getLoadedFeeds = (feedsOptions_1, loadedFeeds_1, bufferedFeeds_1, accounts_1, ...args_1) => __awaiter(void 0, [feedsOptions_1, loadedFeeds_1, bufferedFeeds_1, accounts_1, ...args_1], void 0, function* (feedsOptions, loadedFeeds, bufferedFeeds, accounts, options = {}) {
     var _a;
     const loadedFeedsMissingReplies = {};
     for (const feedName in feedsOptions) {
@@ -177,14 +185,16 @@ export const getLoadedFeeds = (feedsOptions, loadedFeeds, bufferedFeeds, account
     }
     // add account comments
     newLoadedFeeds = Object.assign(Object.assign({}, loadedFeeds), newLoadedFeeds);
-    const accountCommentsChangedFeeds = addAccountsComments(feedsOptions, newLoadedFeeds);
+    const accountCommentsChangedFeeds = options.addAccountComments === false
+        ? false
+        : addAccountsComments(feedsOptions, newLoadedFeeds, options.feedsHaveMore);
     // do nothing if there are no missing replies
     if (Object.keys(loadedFeedsMissingReplies).length === 0 && !accountCommentsChangedFeeds) {
         return loadedFeeds;
     }
     return newLoadedFeeds;
 });
-export const addAccountsComments = (feedsOptions, loadedFeeds) => {
+export const addAccountsComments = (feedsOptions, loadedFeeds, feedsHaveMore) => {
     let loadedFeedsChanged = false;
     const accountsComments = accountsStore.getState().accountsComments || {};
     for (const feedName in feedsOptions) {
@@ -195,8 +205,12 @@ export const addAccountsComments = (feedsOptions, loadedFeeds) => {
         }
         const newerThanTimestamp = newerThan === Infinity ? 0 : Math.floor(Date.now() / 1000) - newerThan;
         const isNewerThan = (reply) => reply.timestamp > newerThanTimestamp;
+        const hidePublishedAccountReplies = (feedsHaveMore === null || feedsHaveMore === void 0 ? void 0 : feedsHaveMore[feedName]) === false;
         const accountComments = accountsComments[accountId] || [];
         const accountReplies = accountComments.filter((reply) => {
+            if (hidePublishedAccountReplies && isPublishedAccountReply(reply)) {
+                return false;
+            }
             if (!isNewerThan(reply)) {
                 return false;
             }
@@ -223,12 +237,12 @@ export const addAccountsComments = (feedsOptions, loadedFeeds) => {
                 prunedLoadedFeed.push(reply);
                 continue;
             }
-            if (reply.pendingApproval === true &&
-                approvedPublicationKeys.has(getApprovalPublicationKey(reply))) {
+            if (hidePublishedAccountReplies && isPublishedAccountReply(reply)) {
                 loadedFeedsChanged = true;
                 continue;
             }
-            if (!validAccountIndices.has(reply.index)) {
+            if (reply.pendingApproval === true &&
+                approvedPublicationKeys.has(getApprovalPublicationKey(reply))) {
                 loadedFeedsChanged = true;
                 continue;
             }
@@ -239,6 +253,10 @@ export const addAccountsComments = (feedsOptions, loadedFeeds) => {
                     loadedFeedsChanged = true;
                     continue;
                 }
+            }
+            if (!validAccountIndices.has(reply.index)) {
+                loadedFeedsChanged = true;
+                continue;
             }
             prunedLoadedFeed.push(reply);
         }

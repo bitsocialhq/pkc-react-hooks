@@ -3,8 +3,16 @@ import { Feeds, RepliesFeedOptions, RepliesFeedsOptions, Comment, Comments, Acco
  * Calculate the feeds from all the loaded replies pages, filter and sort them
  */
 export declare const getFilteredSortedFeeds: (feedsOptions: RepliesFeedsOptions, comments: Comments, repliesPages: RepliesPages, accounts: Accounts) => Feeds;
-export declare const getLoadedFeeds: (feedsOptions: RepliesFeedsOptions, loadedFeeds: Feeds, bufferedFeeds: Feeds, accounts: Accounts) => Promise<Feeds>;
-export declare const addAccountsComments: (feedsOptions: RepliesFeedsOptions, loadedFeeds: Feeds) => boolean;
+type GetLoadedFeedsOptions = {
+    addAccountComments?: boolean;
+    feedsHaveMore?: {
+        [feedName: string]: boolean;
+    };
+};
+export declare const getLoadedFeeds: (feedsOptions: RepliesFeedsOptions, loadedFeeds: Feeds, bufferedFeeds: Feeds, accounts: Accounts, options?: GetLoadedFeedsOptions) => Promise<Feeds>;
+export declare const addAccountsComments: (feedsOptions: RepliesFeedsOptions, loadedFeeds: Feeds, feedsHaveMore?: {
+    [feedName: string]: boolean;
+}) => boolean;
 export declare const getBufferedFeedsWithoutLoadedFeeds: (bufferedFeeds: Feeds, loadedFeeds: Feeds) => Feeds;
 export declare const getUpdatedFeeds: (feedsOptions: RepliesFeedsOptions, filteredSortedFeeds: Feeds, updatedFeeds: Feeds, loadedFeeds: Feeds, accounts: Accounts) => Promise<Feeds>;
 export declare const getFeedsReplyCounts: (feedsOptions: RepliesFeedsOptions, feeds: Feeds) => {
@@ -22,4 +30,5 @@ export declare const getFeedsCommentsFirstPageCids: (feedsComments: Map<string, 
 export declare const getFeedsCommentsRepliesPagesFirstUpdatedAts: (feedsComments: Map<string, Comment>) => string;
 export declare const getFeedsCommentsLoadedCount: (feedsComments: Map<string, Comment>) => number;
 export declare const getSortTypeFromComment: (comment: Comment, feedOptions: RepliesFeedOptions) => string;
+export {};
 //# sourceMappingURL=utils.d.ts.map
