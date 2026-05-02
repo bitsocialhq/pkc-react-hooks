@@ -3,6 +3,7 @@ import {
   getLoadedFeeds,
   addAccountsComments,
   getBufferedFeedsWithoutLoadedFeeds,
+  getFeedsCommentsFirstPageCids,
   getSortTypeFromComment,
   getUpdatedFeeds,
 } from "./utils";
@@ -81,6 +82,62 @@ describe("replies utils", () => {
         { [mockAccountId]: { pkc: {}, blockedAddresses: {}, blockedCids: {} } },
       );
       expect(feeds.feed1).toBeDefined();
+    });
+
+    test("ignores replies page entries without comments", () => {
+      const comments = {
+        comment1: {
+          cid: "comment1",
+          communityAddress: "sub1",
+          updatedAt: 1,
+          replies: {
+            pageCids: { new: "page-cid-1" },
+            pages: {},
+          },
+        },
+      };
+      const feedsOptions = {
+        feed1: {
+          commentCid: "comment1",
+          sortType: "new",
+          accountId: mockAccountId,
+        },
+      };
+      const feeds = getFilteredSortedFeeds(
+        feedsOptions,
+        comments,
+        { "page-cid-1": { nextCid: undefined } },
+        { [mockAccountId]: { pkc: {}, blockedAddresses: {}, blockedCids: {} } },
+      );
+      expect(feeds.feed1).toEqual([]);
+    });
+
+    test("ignores empty fallback preloaded pages", () => {
+      const comments = {
+        comment1: {
+          cid: "comment1",
+          communityAddress: "sub1",
+          depth: 1,
+          updatedAt: 1,
+          replies: {
+            pages: { best: { comments: [] } },
+          },
+        },
+      };
+      const feedsOptions = {
+        feed1: {
+          commentCid: "comment1",
+          sortType: "new",
+          accountId: mockAccountId,
+        },
+      };
+      const feeds = getFilteredSortedFeeds(
+        feedsOptions,
+        comments,
+        {},
+        { [mockAccountId]: { pkc: {}, blockedAddresses: {}, blockedCids: {} } },
+      );
+      expect(feeds.feed1).toEqual([]);
     });
 
     test("uses fallback when depth > 0 and hasPageCids (no early return)", () => {
@@ -344,6 +401,180 @@ describe("replies utils", () => {
       expect(loadedFeeds[feedName][1].cid).toBe("append-cid");
     });
 
+    test("does not append published account replies after the canonical feed is exhausted", () => {
+      const feedName = "feed1";
+      const recentTs = Math.floor(Date.now() / 1000) - 100;
+      const feedsOptions = {
+        [feedName]: {
+          commentCid: "c1",
+          postCid: "p1",
+          accountId: mockAccountId,
+          accountComments: { newerThan: 3600, append: true },
+        },
+      };
+      const accountReply = {
+        cid: "purged-cid",
+        index: 1,
+        parentCid: "c1",
+        postCid: "p1",
+        communityAddress: "sub1",
+        timestamp: recentTs,
+      };
+      (accountsStore as any).getState = () => ({
+        accountsComments: { [mockAccountId]: [accountReply] },
+        accounts: { [mockAccountId]: { pkc: {} } },
+      });
+      const loadedFeeds = { [feedName]: [] };
+      const changed = addAccountsComments(feedsOptions, loadedFeeds, { [feedName]: false });
+      expect(changed).toBe(false);
+      expect(loadedFeeds[feedName]).toEqual([]);
+    });
+
+    test("does not append stopped cid account replies after the canonical feed is exhausted", () => {
+      const feedName = "feed1";
+      const recentTs = Math.floor(Date.now() / 1000) - 100;
+      const feedsOptions = {
+        [feedName]: {
+          commentCid: "c1",
+          postCid: "p1",
+          accountId: mockAccountId,
+          accountComments: { newerThan: 3600, append: true },
+        },
+      };
+      const accountReply = {
+        cid: "purged-cid",
+        index: 1,
+        parentCid: "c1",
+        postCid: "p1",
+        communityAddress: "sub1",
+        timestamp: recentTs,
+        publishingState: "stopped",
+      };
+      (accountsStore as any).getState = () => ({
+        accountsComments: { [mockAccountId]: [accountReply] },
+        accounts: { [mockAccountId]: { pkc: {} } },
+      });
+      const loadedFeeds = { [feedName]: [] };
+      const changed = addAccountsComments(feedsOptions, loadedFeeds, { [feedName]: false });
+      expect(changed).toBe(false);
+      expect(loadedFeeds[feedName]).toEqual([]);
+    });
+
+    test("keeps actively publishing cid replies visible after the canonical feed is exhausted", () => {
+      const feedName = "feed1";
+      const recentTs = Math.floor(Date.now() / 1000) - 100;
+      const feedsOptions = {
+        [feedName]: {
+          commentCid: "c1",
+          postCid: "p1",
+          accountId: mockAccountId,
+          accountComments: { newerThan: 3600, append: true },
+        },
+      };
+      const accountReply = {
+        cid: "publishing-cid",
+        index: 1,
+        parentCid: "c1",
+        postCid: "p1",
+        communityAddress: "sub1",
+        timestamp: recentTs,
+        publishingState: "publishing-challenge-request",
+      };
+      (accountsStore as any).getState = () => ({
+        accountsComments: { [mockAccountId]: [accountReply] },
+        accounts: { [mockAccountId]: { pkc: {} } },
+      });
+      const loadedFeeds = { [feedName]: [] };
+      const changed = addAccountsComments(feedsOptions, loadedFeeds, { [feedName]: false });
+      expect(changed).toBe(true);
+      expect(loadedFeeds[feedName]).toEqual([accountReply]);
+    });
+
+    test("keeps pending account replies visible after the canonical feed is exhausted", () => {
+      const feedName = "feed1";
+      const recentTs = Math.floor(Date.now() / 1000) - 100;
+      const feedsOptions = {
+        [feedName]: {
+          commentCid: "c1",
+          postCid: "p1",
+          accountId: mockAccountId,
+          accountComments: { newerThan: 3600, append: true },
+        },
+      };
+      const accountReply = {
+        index: 1,
+        parentCid: "c1",
+        postCid: "p1",
+        communityAddress: "sub1",
+        timestamp: recentTs,
+      };
+      (accountsStore as any).getState = () => ({
+        accountsComments: { [mockAccountId]: [accountReply] },
+        accounts: { [mockAccountId]: { pkc: {} } },
+      });
+      const loadedFeeds = { [feedName]: [] };
+      const changed = addAccountsComments(feedsOptions, loadedFeeds, { [feedName]: false });
+      expect(changed).toBe(true);
+      expect(loadedFeeds[feedName]).toEqual([accountReply]);
+    });
+
+    test("initializes missing loaded feed when adding a local pending reply", () => {
+      const feedName = "feed1";
+      const recentTs = Math.floor(Date.now() / 1000) - 100;
+      const feedsOptions = {
+        [feedName]: {
+          commentCid: "c1",
+          postCid: "p1",
+          accountId: mockAccountId,
+          accountComments: { newerThan: 3600, append: true },
+        },
+      };
+      const accountReply = {
+        index: 1,
+        parentCid: "c1",
+        postCid: "p1",
+        communityAddress: "sub1",
+        timestamp: recentTs,
+      };
+      (accountsStore as any).getState = () => ({
+        accountsComments: { [mockAccountId]: [accountReply] },
+        accounts: { [mockAccountId]: { pkc: {} } },
+      });
+      const loadedFeeds = {};
+      const changed = addAccountsComments(feedsOptions, loadedFeeds);
+      expect(changed).toBe(true);
+      expect(loadedFeeds[feedName]).toEqual([accountReply]);
+    });
+
+    test("prunes previously appended published account replies after the canonical feed is exhausted", () => {
+      const feedName = "feed1";
+      const recentTs = Math.floor(Date.now() / 1000) - 100;
+      const feedsOptions = {
+        [feedName]: {
+          commentCid: "c1",
+          postCid: "p1",
+          accountId: mockAccountId,
+          accountComments: { newerThan: 3600, append: true },
+        },
+      };
+      const accountReply = {
+        cid: "purged-cid",
+        index: 1,
+        parentCid: "c1",
+        postCid: "p1",
+        communityAddress: "sub1",
+        timestamp: recentTs,
+      };
+      (accountsStore as any).getState = () => ({
+        accountsComments: { [mockAccountId]: [accountReply] },
+        accounts: { [mockAccountId]: { pkc: {} } },
+      });
+      const loadedFeeds = { [feedName]: [accountReply] };
+      const changed = addAccountsComments(feedsOptions, loadedFeeds, { [feedName]: false });
+      expect(changed).toBe(true);
+      expect(loadedFeeds[feedName]).toEqual([]);
+    });
+
     test("flat: false filters by parentCid", () => {
       const feedName = "feed1";
       const recentTs = Math.floor(Date.now() / 1000) - 100;
@@ -472,6 +703,32 @@ describe("replies utils", () => {
       expect(loadedFeeds[feedName]).toEqual([accountReplyWithCid]);
     });
 
+    test("pending without cid: does not duplicate account reply by timestamp when index is missing", () => {
+      const feedName = "feed1";
+      const recentTs = Math.floor(Date.now() / 1000) - 100;
+      const feedsOptions = {
+        [feedName]: {
+          commentCid: "c1",
+          postCid: "p1",
+          accountId: mockAccountId,
+          accountComments: { newerThan: 3600, append: true },
+        },
+      };
+      const accountReply = {
+        parentCid: "c1",
+        communityAddress: "sub1",
+        timestamp: recentTs,
+      };
+      (accountsStore as any).getState = () => ({
+        accountsComments: { [mockAccountId]: [accountReply] },
+        accounts: { [mockAccountId]: { pkc: {} } },
+      });
+      const loadedFeeds = { [feedName]: [accountReply] };
+      const changed = addAccountsComments(feedsOptions, loadedFeeds);
+      expect(changed).toBe(false);
+      expect(loadedFeeds[feedName]).toEqual([accountReply]);
+    });
+
     test("drops local pending approval reply once the approved network reply is loaded", () => {
       const feedName = "feed1";
       const recentTs = Math.floor(Date.now() / 1000) - 100;
@@ -503,6 +760,45 @@ describe("replies utils", () => {
         postCid: "p1",
         communityAddress: "sub1",
         timestamp: recentTs,
+      };
+      (accountsStore as any).getState = () => ({
+        accountsComments: { [mockAccountId]: [pendingReply] },
+        accounts: { [mockAccountId]: { pkc: {} } },
+      });
+      const loadedFeeds = { [feedName]: [approvedReply, pendingReply] };
+      const changed = addAccountsComments(feedsOptions, loadedFeeds);
+      expect(changed).toBe(true);
+      expect(loadedFeeds[feedName]).toEqual([approvedReply]);
+    });
+
+    test("matches pending approval replies when timestamp is missing", () => {
+      const feedName = "feed1";
+      const author = { address: "0xauthor" };
+      const feedsOptions = {
+        [feedName]: {
+          commentCid: "c1",
+          postCid: "p1",
+          accountId: mockAccountId,
+          accountComments: { newerThan: Infinity, append: true },
+        },
+      };
+      const approvedReply = {
+        author,
+        cid: "approved-cid",
+        content: "same body",
+        parentCid: "c1",
+        postCid: "p1",
+        communityAddress: "sub1",
+      };
+      const pendingReply = {
+        author,
+        cid: "pending-cid",
+        content: "same body",
+        index: 0,
+        parentCid: "c1",
+        pendingApproval: true,
+        postCid: "p1",
+        communityAddress: "sub1",
       };
       (accountsStore as any).getState = () => ({
         accountsComments: { [mockAccountId]: [pendingReply] },
@@ -648,6 +944,55 @@ describe("replies utils", () => {
       const result = await getLoadedFeeds(feedsOptions, loadedFeeds, bufferedFeeds, accounts);
       expect(result.feed1.length).toBeGreaterThanOrEqual(3);
     });
+
+    test("continues scanning buffered replies after an invalid candidate is removed", async () => {
+      const feedsOptions = {
+        feed1: {
+          commentCid: "c1",
+          postCid: "p1",
+          accountId: mockAccountId,
+          pageNumber: 1,
+          repliesPerPage: 1,
+          streamPage: true,
+        },
+      };
+      const loadedFeeds = { feed1: [] };
+      const bufferedFeeds = {
+        feed1: [
+          { cid: "invalid-reply", communityAddress: "invalid-buffered-sub", timestamp: 1 },
+          { cid: "valid-reply", communityAddress: "valid-buffered-sub", timestamp: 2 },
+        ],
+      };
+      const accounts = {
+        [mockAccountId]: {
+          pkc: {
+            validateComment: (comment: any) =>
+              comment.cid === "invalid-reply"
+                ? Promise.reject(new Error("invalid"))
+                : Promise.resolve(true),
+          },
+        },
+      };
+      const result = await getLoadedFeeds(feedsOptions, loadedFeeds, bufferedFeeds, accounts);
+      expect(result.feed1).toEqual([bufferedFeeds.feed1[1]]);
+    });
+
+    test("uses an empty buffered feed when none is stored for the feed name", async () => {
+      const feedsOptions = {
+        feed1: {
+          commentCid: "c1",
+          postCid: "p1",
+          accountId: mockAccountId,
+          pageNumber: 1,
+          repliesPerPage: 1,
+          streamPage: true,
+        },
+      };
+      const loadedFeeds = { feed1: [] };
+      const accounts = { [mockAccountId]: { pkc: {} } };
+      const result = await getLoadedFeeds(feedsOptions, loadedFeeds, {}, accounts);
+      expect(result).toBe(loadedFeeds);
+    });
   });
 
   describe("getBufferedFeedsWithoutLoadedFeeds", () => {
@@ -656,6 +1001,27 @@ describe("replies utils", () => {
       const loaded = { f1: [{ cid: "c2" }] };
       const result = getBufferedFeedsWithoutLoadedFeeds(buffered, loaded);
       expect(result.f1).toBe(buffered.f1);
+    });
+  });
+
+  describe("getFeedsCommentsFirstPageCids", () => {
+    test("ignores empty page cids", () => {
+      const feedsComments = new Map([
+        [
+          "c1",
+          {
+            cid: "c1",
+            replies: {
+              pages: { best: { nextCid: "next-cid" } },
+              pageCids: { best: "", new: "first-page-cid" },
+            },
+          },
+        ],
+      ]);
+      expect(getFeedsCommentsFirstPageCids(feedsComments as any)).toEqual([
+        "first-page-cid",
+        "next-cid",
+      ]);
     });
   });
 
@@ -760,6 +1126,82 @@ describe("replies utils", () => {
         accounts,
       );
       expect(result[feedName][0].updatedAt).toBe(200);
+    });
+
+    test("handles a filtered feed with no loaded or updated feed", async () => {
+      const feedName = "filtered-only";
+      const feedsOptions = {
+        [feedName]: { commentCid: "c1", accountId: mockAccountId },
+      };
+      const result = await getUpdatedFeeds(
+        feedsOptions,
+        { [feedName]: [{ timestamp: 100 }] },
+        {},
+        {},
+        { [mockAccountId]: { pkc: {} } },
+      );
+      expect(result[feedName]).toEqual([]);
+    });
+
+    test("handles a loaded feed with no filtered feed", async () => {
+      const feedName = "loaded-only";
+      const feedsOptions = {
+        [feedName]: { commentCid: "c1", accountId: mockAccountId },
+      };
+      const loadedReply = {
+        communityAddress: "sub1",
+        timestamp: 100,
+      };
+      const result = await getUpdatedFeeds(
+        feedsOptions,
+        {},
+        {},
+        { [feedName]: [loadedReply] },
+        { [mockAccountId]: { pkc: {} } },
+      );
+      expect(result[feedName]).toEqual([loadedReply]);
+    });
+
+    test("returns existing updated feeds when all feed inputs are missing", async () => {
+      const result = await getUpdatedFeeds(
+        {},
+        undefined as any,
+        undefined as any,
+        undefined as any,
+        {},
+      );
+      expect(result).toEqual({});
+    });
+
+    test("keeps loaded reply when newer filtered candidate is invalid", async () => {
+      const feedName = "feed1";
+      const feedsOptions = {
+        [feedName]: { commentCid: "c1", accountId: mockAccountId },
+      };
+      const loadedReply = {
+        cid: "r1",
+        communityAddress: "invalid-candidate-sub",
+        timestamp: 100,
+        updatedAt: 100,
+      };
+      const newerCandidate = {
+        ...loadedReply,
+        updatedAt: 200,
+      };
+      const pkc = { validateComment: () => Promise.reject(new Error("invalid")) };
+      const accounts = { [mockAccountId]: { pkc } };
+      const loadedFeeds = { [feedName]: [loadedReply] };
+      const updatedFeeds = { [feedName]: [loadedReply] };
+      const filteredSortedFeeds = { [feedName]: [newerCandidate] };
+
+      const result = await getUpdatedFeeds(
+        feedsOptions,
+        filteredSortedFeeds,
+        updatedFeeds,
+        loadedFeeds,
+        accounts,
+      );
+      expect(result[feedName][0].updatedAt).toBe(100);
     });
   });
 });

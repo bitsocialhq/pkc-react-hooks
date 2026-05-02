@@ -2012,7 +2012,8 @@ describe("replies", () => {
               {
                 ...defaultProps,
                 timestamp: now - 1,
-                cid: accountReplyCid1, // cid received, not pending, but not published by sub owner yet
+                cid: accountReplyCid1, // cid received, pending approval, not published by sub owner yet
+                pendingApproval: true,
                 parentCid: postCid,
                 updatedAt: now,
                 depth: 1,
@@ -2021,7 +2022,8 @@ describe("replies", () => {
               {
                 ...defaultProps,
                 timestamp: now,
-                cid: accountReplyCid2, // cid received, not pending, but not published by sub owner yet
+                cid: accountReplyCid2, // cid received, pending approval, not published by sub owner yet
+                pendingApproval: true,
                 parentCid: reply1Depth2Cid,
                 updatedAt: now,
                 depth: 2,

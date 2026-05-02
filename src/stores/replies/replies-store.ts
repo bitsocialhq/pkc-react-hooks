@@ -299,12 +299,33 @@ const repliesStore = createStore<RepliesState>((setState: Function, getState: Fu
         filteredSortedFeeds,
         previousState.loadedFeeds,
       );
-      const loadedFeeds = await getLoadedFeeds(
+      const canonicalLoadedFeeds = await getLoadedFeeds(
         feedsOptions,
         previousState.loadedFeeds,
         bufferedFeedsWithoutPreviousLoadedFeeds,
         accounts,
+        { addAccountComments: false },
       );
+      const canonicalBufferedFeeds = getBufferedFeedsWithoutLoadedFeeds(
+        bufferedFeedsWithoutPreviousLoadedFeeds,
+        canonicalLoadedFeeds,
+      );
+      const canonicalFeedsHaveMore = getFeedsHaveMore(
+        feedsOptions,
+        canonicalBufferedFeeds,
+        comments,
+        repliesPages,
+        accounts,
+      );
+      const loadedFeedsWithAccountComments = { ...canonicalLoadedFeeds };
+      const accountCommentsChangedFeeds = addAccountsComments(
+        feedsOptions,
+        loadedFeedsWithAccountComments,
+        canonicalFeedsHaveMore,
+      );
+      const loadedFeeds = accountCommentsChangedFeeds
+        ? loadedFeedsWithAccountComments
+        : canonicalLoadedFeeds;
       // after loaded feeds are caculated, remove new loaded feeds (again) from buffered feeds
       const bufferedFeeds = getBufferedFeedsWithoutLoadedFeeds(
         bufferedFeedsWithoutPreviousLoadedFeeds,
@@ -559,8 +580,6 @@ export const getRepliesFirstPageSkipValidation = (
   if (filteredSortedFeeds[feedName].length > repliesPerPage) {
     bufferedFeeds[feedName] = filteredSortedFeeds[feedName].splice(repliesPerPage);
   }
-  addAccountsComments(feedsOptions, filteredSortedFeeds);
-
   const feedsHaveMore = getFeedsHaveMore(
     feedsOptions,
     bufferedFeeds,
@@ -568,6 +587,7 @@ export const getRepliesFirstPageSkipValidation = (
     repliesPages,
     accounts,
   );
+  addAccountsComments(feedsOptions, filteredSortedFeeds, feedsHaveMore);
   return { replies: filteredSortedFeeds[feedName], hasMore: feedsHaveMore[feedName] };
 };
 
