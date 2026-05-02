@@ -1019,6 +1019,9 @@ const { replies } = useReplies({
 
 // pending local account comments are reconciled with their approved network version
 // so the same post or reply is not shown twice after moderation approval
+// published account replies are only kept in useReplies while the canonical
+// replies feed may still contain them; after the feed is exhausted, account-only
+// published replies are hidden unless the canonical feed includes their cid
 ```
 
 #### Determine if a comment is your own
@@ -1298,6 +1301,9 @@ const useRepliesOptions = {
   onlyIfCached: false,
   accountComments: { newerThan: Infinity, append: false },
 };
+
+// accountComments keeps pending local replies visible, but published account
+// replies must resolve through the canonical replies feed after it is exhausted
 
 const Reply = ({ reply, updatedReply }) => {
   const { replies, updatedReplies, bufferedReplies, hasMore, loadMore } = useReplies({

@@ -161,11 +161,29 @@ const getApprovalPublicationKey = (comment: Comment) =>
     comment.link ?? "",
   ].join("\0");
 
+const isActivePublishingState = (publishingState?: string) =>
+  publishingState === "pending" ||
+  publishingState?.startsWith("publishing") ||
+  publishingState?.startsWith("waiting-") ||
+  publishingState?.startsWith("fetching-link-dimensions");
+
+const isPublishedAccountReply = (reply: Comment) =>
+  typeof reply?.index === "number" &&
+  !!reply.cid &&
+  reply.pendingApproval !== true &&
+  !isActivePublishingState(reply.publishingState);
+
+type GetLoadedFeedsOptions = {
+  addAccountComments?: boolean;
+  feedsHaveMore?: { [feedName: string]: boolean };
+};
+
 export const getLoadedFeeds = async (
   feedsOptions: RepliesFeedsOptions,
   loadedFeeds: Feeds,
   bufferedFeeds: Feeds,
   accounts: Accounts,
+  options: GetLoadedFeedsOptions = {},
 ) => {
   const loadedFeedsMissingReplies: Feeds = {};
   for (const feedName in feedsOptions) {
@@ -224,7 +242,10 @@ export const getLoadedFeeds = async (
 
   // add account comments
   newLoadedFeeds = { ...loadedFeeds, ...newLoadedFeeds };
-  const accountCommentsChangedFeeds = addAccountsComments(feedsOptions, newLoadedFeeds);
+  const accountCommentsChangedFeeds =
+    options.addAccountComments === false
+      ? false
+      : addAccountsComments(feedsOptions, newLoadedFeeds, options.feedsHaveMore);
 
   // do nothing if there are no missing replies
   if (Object.keys(loadedFeedsMissingReplies).length === 0 && !accountCommentsChangedFeeds) {
@@ -233,7 +254,11 @@ export const getLoadedFeeds = async (
   return newLoadedFeeds;
 };
 
-export const addAccountsComments = (feedsOptions: RepliesFeedsOptions, loadedFeeds: Feeds) => {
+export const addAccountsComments = (
+  feedsOptions: RepliesFeedsOptions,
+  loadedFeeds: Feeds,
+  feedsHaveMore?: { [feedName: string]: boolean },
+) => {
   let loadedFeedsChanged = false;
   const accountsComments = accountsStore.getState().accountsComments || {};
   for (const feedName in feedsOptions) {
@@ -252,9 +277,13 @@ export const addAccountsComments = (feedsOptions: RepliesFeedsOptions, loadedFee
     const newerThanTimestamp =
       newerThan === Infinity ? 0 : Math.floor(Date.now() / 1000) - newerThan;
     const isNewerThan = (reply: Comment) => reply.timestamp > newerThanTimestamp;
+    const hidePublishedAccountReplies = feedsHaveMore?.[feedName] === false;
 
     const accountComments = accountsComments[accountId] || [];
     const accountReplies = accountComments.filter((reply) => {
+      if (hidePublishedAccountReplies && isPublishedAccountReply(reply)) {
+        return false;
+      }
       if (!isNewerThan(reply)) {
         return false;
       }
@@ -283,14 +312,14 @@ export const addAccountsComments = (feedsOptions: RepliesFeedsOptions, loadedFee
         prunedLoadedFeed.push(reply);
         continue;
       }
+      if (hidePublishedAccountReplies && isPublishedAccountReply(reply)) {
+        loadedFeedsChanged = true;
+        continue;
+      }
       if (
         reply.pendingApproval === true &&
         approvedPublicationKeys.has(getApprovalPublicationKey(reply))
       ) {
-        loadedFeedsChanged = true;
-        continue;
-      }
-      if (!validAccountIndices.has(reply.index)) {
         loadedFeedsChanged = true;
         continue;
       }
@@ -301,6 +330,10 @@ export const addAccountsComments = (feedsOptions: RepliesFeedsOptions, loadedFee
           loadedFeedsChanged = true;
           continue;
         }
+      }
+      if (!validAccountIndices.has(reply.index)) {
+        loadedFeedsChanged = true;
+        continue;
       }
       prunedLoadedFeed.push(reply);
     }
